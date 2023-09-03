@@ -15,6 +15,7 @@
 #define MAX_TIME360			(12*3600000) // 12h
 #define IS_TIMER_MODE		(mTime360 == TIMER_TIME360)
 #define IS_ALARM_MODE		(!IS_TIMER_MODE)
+#define TITLE_OFFSET		(RESIZE_MARGIN + mTitleHeight)
 int RESIZE_MARGIN = 15;
 int ROUND_CORNER = 50;
 
@@ -40,6 +41,14 @@ int ROUND_CORNER = 50;
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+
+static COLORREF blend_color(COLORREF c0, COLORREF c1)
+{
+	int r = (GetRValue(c0) + GetRValue(c1) + 1) >> 1;
+	int g = (GetGValue(c0) + GetGValue(c1) + 1) >> 1;
+	int b = (GetBValue(c0) + GetBValue(c1) + 1) >> 1;
+	return RGB(r, g, b);
+}
 
 // 응용 프로그램 정보에 사용되는 CAboutDlg 대화 상자입니다.
 
@@ -101,6 +110,7 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	mTopmost = FALSE;
 	mTitleHeight = 0;
 	mDegOffset = 0;
+	mIsMiniMode = FALSE;
 }
 
 void CNaraTimerDlg::Stop(void)
@@ -469,30 +479,44 @@ int CNaraTimerDlg::GetTitleHeight(void)
 	return (int)(min(w, h) * 0.1f);
 }
 
-void CNaraTimerDlg::DrawTimer(CDC* dc, RECT* rt, float scale)
+void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, RECT * crop_rect)
 {
 	CPen * peno;
 	CBrush* bro;
 	POINT pt0, pt1;
 	int clock;
 	int start = 0;
+	COLORREF bk_color = WHITE;
+	COLORREF grid_color = RGB(0, 0, 0);
+	COLORREF pie_color = RED;
+	COLORREF centerlock_color = RGB(77, 88, 94);
+	COLORREF timestr_color = RGB(220, 220, 220);
+	RECT tmprt;
 
-	// border
+	mIsMiniMode = FALSE;
+	if (crop_rect == NULL)
 	{
-		CPen pen(PS_SOLID, ROUND(RESIZE_MARGIN * 2 * scale), RED);
-		CPen* peno = dc->SelectObject(&pen);
-		CBrush br(WHITE);
-		CBrush* bro = (CBrush*)dc->SelectObject(&br);
-		dc->RoundRect(0, 0, rt->right, rt->bottom, ROUND(ROUND_CORNER * 2 * scale), ROUND(ROUND_CORNER * 2 * scale));
-		dc->SelectObject(peno);
-		dc->SelectObject(bro);
+		CopyRect(&tmprt, rt);
+		crop_rect = &tmprt;
+	}
+	else
+	{
+		mIsMiniMode = TRUE;
+		timestr_color = grid_color;
+		for(int i = 0; i < 2; i++)
+		{
+			grid_color = blend_color(grid_color, bk_color);
+			pie_color = blend_color(pie_color, bk_color);
+			centerlock_color = blend_color(centerlock_color, bk_color);
+		}
 	}
 
+	dc->FillSolidRect(rt, bk_color);
 	dc->SetBkMode(TRANSPARENT);
 	GetClientRect(&mTimerRect);
 	if (mTitleHeight > 0)
 	{
-		int off = RESIZE_MARGIN + mTitleHeight;
+		int off = TITLE_OFFSET;
 		rt->top += ROUND(off * scale);
 		mTimerRect.top += off;
 	}
@@ -554,6 +578,7 @@ void CNaraTimerDlg::DrawTimer(CDC* dc, RECT* rt, float scale)
 			mDegOffset = -360000.f * (m * 60 + s) / mTime360;
 		}
 		// draw numbers
+		dc->SetTextColor(grid_color);
 		clock = CTime::GetCurrentTime().GetHour();
 		for (int i = 0; i < 360; i += 30)
 		{
@@ -573,7 +598,7 @@ void CNaraTimerDlg::DrawTimer(CDC* dc, RECT* rt, float scale)
 		}
 
 		// ddraw grids
-		CPen penm(PS_SOLID, ROUND(1 * scale), RGB(0, 0, 0));
+		CPen penm(PS_SOLID, ROUND(1 * scale), grid_color);
 		peno = (CPen*)dc->SelectObject(&penm);
 		clock = (IS_TIMER_MODE ? 6 : 5);
 		for (int i = 0; i < 360; i += clock)
@@ -584,7 +609,7 @@ void CNaraTimerDlg::DrawTimer(CDC* dc, RECT* rt, float scale)
 			dc->LineTo(x + r + pt1.x, y + r + pt1.y);
 		}
 		dc->SelectObject(peno);
-		CPen penh(PS_SOLID, ROUND(3 * scale), RGB(0, 0, 0));
+		CPen penh(PS_SOLID, ROUND(3 * scale), grid_color);
 		peno = (CPen*)dc->SelectObject(&penh);
 		for (int i = 0; i < 360; i += 30)
 		{
@@ -629,7 +654,7 @@ void CNaraTimerDlg::DrawTimer(CDC* dc, RECT* rt, float scale)
 		int o = c.GetMinute() * 60 + c.GetSecond();
 		deg = 360.f * (t_remain + o * 1000) / MAX_TIME360;
 	}
-	DrawPie(dc, r, deg, rt);
+	DrawPie(dc, r, deg, rt, pie_color);
 	CString str = L"";
 	if (deg > -mDegOffset)
 	{
@@ -669,7 +694,7 @@ void CNaraTimerDlg::DrawTimer(CDC* dc, RECT* rt, float scale)
 			RECT rt4 = { rt0.left, rt0.top+1, rt0.right, rt0.bottom+1 };
 			CString min;
 			min.Format(L"%02d", mHM.cy);
-			dc->SetTextColor(WHITE);
+			dc->SetTextColor(bk_color);
 			dc->DrawText(min, &rt1, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 			dc->DrawText(min, &rt2, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 			dc->DrawText(min, &rt3, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
@@ -679,14 +704,14 @@ void CNaraTimerDlg::DrawTimer(CDC* dc, RECT* rt, float scale)
 			dc->SelectObject(fonto);
 		}
 	}
-	if (IS_ALARM_MODE)
+	if (IS_ALARM_MODE || mIsMiniMode)
 	{
 		CFont font;
 		int font_size = (r / 3);
 		GetFont(font, font_size, TRUE);
 		CFont* fonto = (CFont*)dc->SelectObject(&font);
 		RECT trt = { x, y + r, x + r + r, y + r + r };
-		dc->SetTextColor(RGB(220, 220, 220));
+		dc->SetTextColor(timestr_color);
 		dc->SetBkMode(TRANSPARENT);
 		if (mSetting)
 		{
@@ -705,19 +730,29 @@ void CNaraTimerDlg::DrawTimer(CDC* dc, RECT* rt, float scale)
 
 	// Center lock
 	if (deg < -mDegOffset) deg = -mDegOffset;
-	CBrush brgrey(RGB(77, 88, 94));
+	CBrush brgrey(centerlock_color);
 	bro = (CBrush*)dc->SelectObject(&brgrey);
 	peno = (CPen*)dc->SelectStockObject(NULL_PEN);
 	dc->Ellipse(x + r - sz, y + r - sz, x + r + sz, y + r + sz);
 	dc->SelectObject(bro);
 	dc->SelectObject(peno);
-	CPen pencl(PS_SOLID, ROUND(r * 0.05f), RGB(77, 88, 94));
+	CPen pencl(PS_SOLID, ROUND(r * 0.05f), centerlock_color);
 	peno = (CPen*)dc->SelectObject(&pencl);
 	pt0 = deg2pt(deg, (int)(sz * 1.6f));
 	dc->MoveTo(x + r, y + r);
 	dc->LineTo(x + r + pt0.x, y + r + pt0.y);
 	dc->SelectObject(peno);
 	dc->SelectObject(fonto);
+
+	// border
+	{
+		CPen pen(PS_SOLID, ROUND(RESIZE_MARGIN * 2 * scale), RED);
+		CPen* peno = dc->SelectObject(&pen);
+		CBrush* bro = (CBrush*)dc->SelectStockObject(NULL_BRUSH);
+		dc->RoundRect(crop_rect->left, crop_rect->top, crop_rect->right, crop_rect->bottom, ROUND(ROUND_CORNER * 2 * scale), ROUND(ROUND_CORNER * 2 * scale));
+		dc->SelectObject(peno);
+		dc->SelectObject(bro);
+	}
 
 	// draw icon
 	for (int i = 0; i < NUM_BUTTONS; i++)
@@ -727,15 +762,15 @@ void CNaraTimerDlg::DrawTimer(CDC* dc, RECT* rt, float scale)
 		{
 			RECT* rt = &mButtonRect[i];
 			HICON icon = static_cast<HICON>(::LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(id), IMAGE_ICON, 256, 256, LR_DEFAULTCOLOR));
-			DrawIconEx(dc->m_hDC, rt->left* scale, rt->top* scale, icon, (rt->right - rt->left)* scale, (rt->bottom - rt->top)* scale, 0, NULL, DI_NORMAL);
+			DrawIconEx(dc->m_hDC, crop_rect->left + rt->left* scale, crop_rect->top + rt->top* scale, icon, (rt->right - rt->left)* scale, (rt->bottom - rt->top)* scale, 0, NULL, DI_NORMAL);
 			DestroyIcon(icon);
 		}
 	}
 }
 
-void CNaraTimerDlg::DrawPie(CDC* dc, int r, float deg, RECT* rect)
+void CNaraTimerDlg::DrawPie(CDC* dc, int r, float deg, RECT* rect, COLORREF c)
 {
-	COLORREF c = RED;
+	if(c == -1) c = RED;
 	CBrush brred(c), * bro;
 	CPen pen(PS_SOLID, 1, c), * peno;
 	RECT rt;
@@ -749,7 +784,7 @@ void CNaraTimerDlg::DrawPie(CDC* dc, int r, float deg, RECT* rect)
 	if (deg > 0)
 	{
 		bro = dc->SelectObject(&brred);
-		CPen pen(PS_SOLID, 1, RGB(255, 0, 0));
+		CPen pen(PS_SOLID, 1, c);
 		peno = (CPen*)dc->SelectObject(&pen);
 		POINT t = deg2pt(deg, r);
 		if (t.x == 0 && deg > 200)
@@ -813,20 +848,47 @@ void CNaraTimerDlg::OnPaint()
 		CDialogEx::OnPaint();
 
 		CClientDC dc(this);
-		RECT crt;
-		GetClientRect(&crt);
-		float scale = (max(crt.right, crt.bottom) < 720 ? 2.f : 1.f);
-		RECT crt2 = { 0, 0, (int)((crt.right - crt.left) * scale), (int)((crt.bottom - crt.top) * scale) };
-
+		dc.SetStretchBltMode(HALFTONE);
 		CDC mdc;
 		mdc.CreateCompatibleDC(&dc);
-		CBitmap bmp;
-		bmp.CreateCompatibleBitmap(&dc, crt2.right, crt2.bottom);
-		CBitmap* bmpo = mdc.SelectObject(&bmp);
+		CBitmap bmp, *bmpo;
 
-		DrawTimer(&mdc, &crt2, scale);
-		dc.SetStretchBltMode(HALFTONE);
-		dc.StretchBlt(crt.left, crt.top, (crt.right - crt.left), (crt.bottom - crt.top), &mdc, 0, 0, crt2.right, crt2.bottom, SRCCOPY);
+		RECT crt, crt2;
+		GetClientRect(&crt);
+		int w_crt = crt.right - crt.left;
+		int h_crt = crt.bottom - crt.top;
+		int sz = MAX(w_crt, h_crt);
+		float scale = (sz < 720 ? 2.f : 1.f);
+
+		if (MIN(w_crt, h_crt) >= 200)
+		{
+			SetRect(&crt2, 0, 0, ROUND(w_crt * scale), ROUND(h_crt * scale));
+
+			bmp.CreateCompatibleBitmap(&dc, crt2.right, crt2.bottom);
+			bmpo = mdc.SelectObject(&bmp);
+
+			DrawTimer(&mdc, &crt2, scale);
+			dc.StretchBlt(crt.left, crt.top, w_crt, h_crt, &mdc, 0, 0, crt2.right, crt2.bottom, SRCCOPY);
+		}
+		else
+		{
+			int w_src = ROUND(max(w_crt, 200) * scale);
+			int h_src = ROUND(max(h_crt, 200) * scale);
+			int w_dst = ROUND(w_crt * scale);
+			int h_dst = ROUND(h_crt * scale);
+
+			SetRect(&crt2, 0, 0, w_src, h_src);
+			bmp.CreateCompatibleBitmap(&dc, crt2.right, crt2.bottom);
+			bmpo = mdc.SelectObject(&bmp);
+
+			int x = ((w_src - w_dst) >> 1);
+			int y = (h_src >> 1) + ROUND(TITLE_OFFSET * scale / 2) + ROUND(mRadius * scale / 2) - (h_dst >> 1);
+			y = min(max(y, 0), h_src - h_dst);
+			RECT crop_rect = { x, y, x + w_dst, y + h_dst };
+
+			DrawTimer(&mdc, &crt2, scale, &crop_rect);
+			dc.StretchBlt(crt.left, crt.top, w_crt, h_crt, &mdc, x, y, w_dst, h_dst, SRCCOPY);
+		}
 
 		mdc.SelectObject(bmpo);
 	}
@@ -856,7 +918,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 {
 	if (nIDEvent == TID_TICK)
 	{
-		if (!mSetting)
+		if (!mSetting && mTimeSet != 0)
 		{
 			if (GetTickCount64() + CHK_INTERVAL < mTimeSet)
 			{
@@ -874,6 +936,10 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				PlaySound((LPCWSTR)MAKEINTRESOURCE(IDR_WAVE1), GetModuleHandle(NULL), SND_ASYNC | SND_RESOURCE);
 				Stop();
 			}
+		}
+		else if (mTimeSet == 0 && mIsMiniMode)
+		{
+			Invalidate(FALSE);
 		}
 	}
 	else if (nIDEvent == TID_REFRESH)
@@ -896,6 +962,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 
 BOOL CNaraTimerDlg::IsTitleArea(CPoint pt)
 {
+	if(mIsMiniMode) return FALSE;
 	return (pt.x >= mTitleRect.left && pt.x < mTitleRect.right && pt.y >= mTitleRect.top && pt.y < mTitleRect.bottom);
 }
 
@@ -956,7 +1023,7 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 	int cx = (mTimerRect.right + mTimerRect.left) >> 1;
 	int cy = (mTimerRect.bottom + mTimerRect.top) >> 1;
 	int d = SQ(pt.x - cx) + SQ(pt.y - cy);
-	if (d < (mRadiusCenterLock * mRadiusCenterLock))
+	if(!mIsMiniMode && d < (mRadiusCenterLock * mRadiusCenterLock))
 	{
 		GetTimestamp();
 		CClientDC dc(this);
@@ -996,7 +1063,7 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 		}
 		Invalidate(FALSE);
 	}
-	else if (d < SQ(mRadius + mGridSize))
+	else if(!mIsMiniMode && d < SQ(mRadius + mGridSize))
 	{
 		KillTimer(TID_TICK);
 		float deg = pt2deg(pt);
@@ -1065,7 +1132,7 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 		{
 			::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_IBEAM));
 		}
-		else if (d < (mRadiusCenterLock * mRadiusCenterLock))
+		else if(!mIsMiniMode && d < (mRadiusCenterLock * mRadiusCenterLock))
 		{
 			::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_HAND));
 		}
@@ -1127,11 +1194,11 @@ void CNaraTimerDlg::reposition(void)
 	y = (rt.top + ROUND_CORNER - r);
 
 	// pin button
-	sz = ROUND(bsz * 1.5f);
+	sz = max(ROUND(bsz * 1.5f), 30);
 	x = (rt.left + ROUND_CORNER - r);
 	mButtonRect[BUTTON_PIN].SetRect(x, y, x + sz, y + sz);
 	// close button
-	sz = ROUND(bsz * 0.8f);
+	sz = max(ROUND(bsz * 0.8f), 16);
 	x = (rt.right - ROUND_CORNER + r);
 	mButtonRect[BUTTON_CLOSE].SetRect(x - sz, y, x, y + sz);
 	SET_BUTTON(BUTTON_CLOSE, IDI_CLOSE, IDI_CLOSE_HOVER);
@@ -1148,7 +1215,7 @@ void CNaraTimerDlg::OnSize(UINT nType, int cx, int cy)
 	int sz = MIN(w_wrt, h_wrt);
 
 	ROUND_CORNER = ROUND(sz / 4.f);
-	RESIZE_MARGIN = ROUND(sz / 14.f);
+	RESIZE_MARGIN = max(ROUND(sz / 14.f), 5);
 
 	CRgn rgn;
 	if (nType == SIZE_MAXIMIZED)
@@ -1167,11 +1234,23 @@ void CNaraTimerDlg::OnSize(UINT nType, int cx, int cy)
 	{
 		mTitleHeight = GetTitleHeight();
 	}
+
+	if (mTimeSet == 0 && IS_TIMER_MODE)
+	{
+		if (mIsMiniMode)
+		{
+			SetTimer(TID_TICK, CHK_INTERVAL, NULL);
+		}
+		else
+		{
+			KillTimer(TID_TICK);
+		}
+	}
 }
 
 void CNaraTimerDlg::OnGetMinMaxInfo(MINMAXINFO * lpMMI)
 {
-	int wh = 200;
+	int wh = 50;
 	lpMMI->ptMinTrackSize.x = wh;
 	lpMMI->ptMinTrackSize.y = wh;
 	CDialogEx::OnGetMinMaxInfo(lpMMI);

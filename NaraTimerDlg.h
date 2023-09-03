@@ -53,6 +53,7 @@ protected:
 	CRect mButtonRect[NUM_BUTTONS];
 	int mButtonIcon[NUM_BUTTONS];
 	int mButtonIconHover[NUM_BUTTONS];
+	BOOL mIsMiniMode;
 
 	void reposition(void);
 	int HitTest(CPoint pt);
@@ -60,8 +61,8 @@ protected:
 	POINT deg2pt(float deg, int r);
 	float pt2deg(CPoint pt);
 	ULONGLONG deg2time(float deg, BOOL stick = FALSE);
-	void DrawTimer(CDC* dc, RECT* rt, float scale = 1.f);
-	void DrawPie(CDC* cd, int r, float deg, RECT* rect = NULL);
+	void DrawTimer(CDC * dc, RECT * rt, float scale=1.f, RECT * crop_rect=NULL);
+	void DrawPie(CDC* cd, int r, float deg, RECT* rect = NULL, COLORREF c=-1);
 	ULONGLONG GetTimestamp(void);
 	void GetFont(CFont& font, int height, BOOL bold = FALSE);
 	int GetTitleHeight(void);
