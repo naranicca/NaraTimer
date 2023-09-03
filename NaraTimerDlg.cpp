@@ -115,7 +115,10 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 
 void CNaraTimerDlg::Stop(void)
 {
-	KillTimer(TID_TICK);
+	if (!mIsMiniMode)
+	{
+		KillTimer(TID_TICK);
+	}
 	mTimeSet = 0;
 	if (IS_ALARM_MODE)
 	{
