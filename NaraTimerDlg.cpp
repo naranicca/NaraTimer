@@ -111,6 +111,7 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	mTitleHeight = 0;
 	mDegOffset = 0;
 	mIsMiniMode = FALSE;
+	mResizing = FALSE;
 }
 
 void CNaraTimerDlg::Stop(void)
@@ -496,15 +497,13 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, RECT * crop_rect
 	COLORREF timestr_color = RGB(220, 220, 220);
 	RECT tmprt;
 
-	mIsMiniMode = FALSE;
 	if (crop_rect == NULL)
 	{
 		CopyRect(&tmprt, rt);
 		crop_rect = &tmprt;
 	}
-	else
+	if(mIsMiniMode)
 	{
-		mIsMiniMode = TRUE;
 		timestr_color = grid_color;
 		for(int i = 0; i < 2; i++)
 		{
@@ -702,7 +701,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, RECT * crop_rect
 			dc->DrawText(min, &rt2, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 			dc->DrawText(min, &rt3, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 			dc->DrawText(min, &rt4, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-			dc->SetTextColor(RGB(255, 120, 120));
+			dc->SetTextColor(pie_color);
 			dc->DrawText(min, &rt0, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 			dc->SelectObject(fonto);
 		}
@@ -713,7 +712,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, RECT * crop_rect
 		int font_size = (r / 3);
 		GetFont(font, font_size, TRUE);
 		CFont* fonto = (CFont*)dc->SelectObject(&font);
-		RECT trt = { x, y + r, x + r + r, y + r + r };
+		SetRect(&mTimeRect, x, y + r, x + r + r, y + r + r);
 		dc->SetTextColor(timestr_color);
 		dc->SetBkMode(TRANSPARENT);
 		if (mSetting)
@@ -727,7 +726,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, RECT * crop_rect
 			str.Format(L"%d:%02d:%02d", h > 12 ? h - 12 : h, t.GetMinute(), t.GetSecond());
 			SetWindowText(str);
 		}
-		dc->DrawText(str, &trt, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+		dc->DrawText(str, &mTimeRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 		dc->SelectObject(fonto);
 	}
 
@@ -747,12 +746,17 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, RECT * crop_rect
 	dc->SelectObject(peno);
 	dc->SelectObject(fonto);
 
+	DrawBorder(dc, crop_rect, scale);
+}
+
+void CNaraTimerDlg::DrawBorder(CDC * dc, RECT * rt, float scale)
+{
 	// border
 	{
 		CPen pen(PS_SOLID, ROUND(RESIZE_MARGIN * 2 * scale), RED);
 		CPen* peno = dc->SelectObject(&pen);
 		CBrush* bro = (CBrush*)dc->SelectStockObject(NULL_BRUSH);
-		dc->RoundRect(crop_rect->left, crop_rect->top, crop_rect->right, crop_rect->bottom, ROUND(ROUND_CORNER * 2 * scale), ROUND(ROUND_CORNER * 2 * scale));
+		dc->RoundRect(rt->left, rt->top, rt->right, rt->bottom, ROUND(ROUND_CORNER * 2 * scale), ROUND(ROUND_CORNER * 2 * scale));
 		dc->SelectObject(peno);
 		dc->SelectObject(bro);
 	}
@@ -763,9 +767,10 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, RECT * crop_rect
 		int id = (i == mButtonHover ? mButtonIconHover[i] : mButtonIcon[i]);
 		if (id)
 		{
-			RECT* rt = &mButtonRect[i];
+			RECT* brt = &mButtonRect[i];
 			HICON icon = static_cast<HICON>(::LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(id), IMAGE_ICON, 256, 256, LR_DEFAULTCOLOR));
-			DrawIconEx(dc->m_hDC, crop_rect->left + rt->left* scale, crop_rect->top + rt->top* scale, icon, (rt->right - rt->left)* scale, (rt->bottom - rt->top)* scale, 0, NULL, DI_NORMAL);
+			DrawIconEx(dc->m_hDC, rt->left + ROUND(brt->left* scale), rt->top + ROUND(brt->top* scale), icon,
+				ROUND((brt->right - brt->left) * scale), ROUND((brt->bottom - brt->top) * scale), 0, NULL, DI_NORMAL);
 			DestroyIcon(icon);
 		}
 	}
@@ -814,7 +819,7 @@ void CNaraTimerDlg::DrawPie(CDC* dc, int r, float deg, RECT* rect, COLORREF c)
 	}
 	else
 	{
-		CPen pg(PS_SOLID, 4, RED);
+		CPen pg(PS_SOLID, 4, c);
 		peno = dc->SelectObject(&pg);
 		dc->MoveTo(x + r, y - mGridSize - (mGridSize >> 1));
 		dc->LineTo(x + r, y + r);
@@ -825,6 +830,19 @@ void CNaraTimerDlg::DrawPie(CDC* dc, int r, float deg, RECT* rect, COLORREF c)
 BOOL CNaraTimerDlg::OnEraseBkgnd(CDC* pDC)
 {
 	return 0;
+}
+
+static void bmp_init(CBitmap * bmp, CDC * dc, int w, int h)
+{
+	BITMAP bm;
+	if (bmp->m_hObject && bmp->GetBitmap(&bm) && (bm.bmWidth != w || bm.bmHeight != h))
+	{
+		bmp->DeleteObject();
+	}
+	if (bmp->m_hObject == NULL)
+	{
+		bmp->CreateCompatibleBitmap(dc, w, h);
+	}
 }
 
 void CNaraTimerDlg::OnPaint()
@@ -854,7 +872,7 @@ void CNaraTimerDlg::OnPaint()
 		dc.SetStretchBltMode(HALFTONE);
 		CDC mdc;
 		mdc.CreateCompatibleDC(&dc);
-		CBitmap bmp, *bmpo;
+		CBitmap *bmpo;
 
 		RECT crt, crt2;
 		GetClientRect(&crt);
@@ -862,35 +880,90 @@ void CNaraTimerDlg::OnPaint()
 		int h_crt = crt.bottom - crt.top;
 		int sz = MAX(w_crt, h_crt);
 		float scale = (sz < 720 ? 2.f : 1.f);
+		static RECT trt, trt_target;
 
-		if (MIN(w_crt, h_crt) >= 200)
+		mIsMiniMode = (MIN(w_crt, h_crt) < 200 || w_crt > (h_crt << 1));
+		BOOL resize_end = (mResizing && !LBUTTON_DOWN);
+		if (resize_end) mResizing = FALSE;
+
+		if (!mIsMiniMode || mResizing)
 		{
 			SetRect(&crt2, 0, 0, ROUND(w_crt * scale), ROUND(h_crt * scale));
-
-			bmp.CreateCompatibleBitmap(&dc, crt2.right, crt2.bottom);
-			bmpo = mdc.SelectObject(&bmp);
+			bmp_init(&mBmp, &dc, crt2.right, crt2.bottom);
+			bmpo = mdc.SelectObject(&mBmp);
 
 			DrawTimer(&mdc, &crt2, scale);
 			dc.StretchBlt(crt.left, crt.top, w_crt, h_crt, &mdc, 0, 0, crt2.right, crt2.bottom, SRCCOPY);
 		}
 		else
 		{
-			int w_src = ROUND(max(w_crt, 200) * scale);
-			int h_src = ROUND(max(h_crt, 200) * scale);
-			int w_dst = ROUND(w_crt * scale);
-			int h_dst = ROUND(h_crt * scale);
+			scale = (h_crt < 256? 8.f : 4.f);
+			SetRect(&crt2, 0, 0, ROUND(w_crt * scale), ROUND(h_crt * scale));
+			bmp_init(&mBmp, &dc, crt2.right, crt2.bottom);
+			bmpo = mdc.SelectObject(&mBmp);
 
-			SetRect(&crt2, 0, 0, w_src, h_src);
-			bmp.CreateCompatibleBitmap(&dc, crt2.right, crt2.bottom);
-			bmpo = mdc.SelectObject(&bmp);
+			DrawTimer(&mdc, &crt2, scale, NULL);
 
-			int x = ((w_src - w_dst) >> 1);
-			int y = (h_src >> 1) + ROUND(TITLE_OFFSET * scale / 2) + ROUND(mRadius * scale / 2) - (h_dst >> 1);
-			y = min(max(y, 0), h_src - h_dst);
-			RECT crop_rect = { x, y, x + w_dst, y + h_dst };
+			if (resize_end)
+			{
+				CopyRect(&trt, &mTimeRect);
+				CFont font;
+				GetFont(font, ROUND(mRadius * scale / 3 * 1.5f), TRUE);
+				CString str;
+				GetWindowText(str);
+				CFont* fonto = dc.SelectObject(&font);
+				dc.DrawText(str, &trt, DT_SINGLELINE | DT_CALCRECT);
+				dc.SelectObject(fonto);
+				int dx = (mTimeRect.right - trt.right + 1) >> 1;
+				int dy = (mTimeRect.bottom - trt.bottom + 1) >> 1;
+				trt.left += dx;
+				trt.top += dy;
+				trt.right += dx;
+				trt.bottom += dy;
 
-			DrawTimer(&mdc, &crt2, scale, &crop_rect);
-			dc.StretchBlt(crt.left, crt.top, w_crt, h_crt, &mdc, x, y, w_dst, h_dst, SRCCOPY);
+				int wrt = trt.right - trt.left;
+				int hrt = trt.bottom - trt.top;
+				if (wrt * h_crt < hrt * w_crt)
+				{
+					int c = (trt.left + trt.right + 1) >> 1;
+					int w = ROUND((float)w_crt * hrt / h_crt);
+					trt.left = max(c - (w >> 1), 0);
+					trt.right = min(c + (w >> 1), crt2.right);
+				}
+				else
+				{
+					int c = (trt.bottom + trt.top + 1) >> 1;
+					int h = ROUND((float)h_crt * wrt / w_crt);
+					trt.top = max(c - (h >> 1), 0);
+					trt.bottom = min(c + (h >> 1), crt2.bottom);
+				}
+				CopyRect(&trt_target, &trt);
+				CopyRect(&trt, &crt2);
+				Invalidate(FALSE);
+			}
+			trt.left = (trt.left + trt_target.left + 1) >> 1;
+			trt.top = (trt.top + trt_target.top + 1) >> 1;
+			trt.right = (trt.right + trt_target.right + 1) >> 1;
+			trt.bottom = (trt.bottom + trt_target.bottom + 1) >> 1;
+			if (abs(trt.left - trt_target.left) <= 1)
+			{
+				CopyRect(&trt, &trt_target);
+			}
+			else
+			{
+				Invalidate(FALSE);
+			}
+
+			CDC bdc;
+			bdc.CreateCompatibleDC(&dc);
+			bmp_init(&mBuf, &dc, crt.right, crt.bottom);
+			CBitmap * bo = bdc.SelectObject(&mBuf);
+			bdc.SetStretchBltMode(HALFTONE);
+			bdc.StretchBlt(crt.left, crt.top, w_crt, h_crt, &mdc, trt.left, trt.top, trt.right-trt.left, trt.bottom-trt.top, SRCCOPY);
+
+			DrawBorder(&bdc, &crt, 1);
+			dc.BitBlt(0, 0, crt.right, crt.bottom, &bdc, 0, 0, SRCCOPY);
+			bdc.SelectObject(bo);
 		}
 
 		mdc.SelectObject(bmpo);
@@ -996,6 +1069,7 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 	int ht = HitTest(pt);
 	if (ht != HTCLIENT)
 	{
+		mResizing = TRUE;
 		SetArrowCursor(ht);
 		SendMessage(WM_NCLBUTTONDOWN, ht, MAKELPARAM(pt.x, pt.y));
 		return;

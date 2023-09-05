@@ -30,6 +30,8 @@ public:
 // 구현입니다.
 protected:
 	HICON m_hIcon;
+	CBitmap mBmp;
+	CBitmap mBuf;
 	ULONGLONG mTimeSet;
 	int mRadius;
 	int mRadiusCenterLock;
@@ -48,12 +50,14 @@ protected:
 	int mTitleHeight;
 	RECT mTitleRect;
 	RECT mTimerRect;
+	RECT mTimeRect;
 	float mDegOffset;
 	int mButtonHover;
 	CRect mButtonRect[NUM_BUTTONS];
 	int mButtonIcon[NUM_BUTTONS];
 	int mButtonIconHover[NUM_BUTTONS];
 	BOOL mIsMiniMode;
+	BOOL mResizing;
 
 	void reposition(void);
 	int HitTest(CPoint pt);
@@ -63,6 +67,7 @@ protected:
 	ULONGLONG deg2time(float deg, BOOL stick = FALSE);
 	void DrawTimer(CDC * dc, RECT * rt, float scale=1.f, RECT * crop_rect=NULL);
 	void DrawPie(CDC* cd, int r, float deg, RECT* rect = NULL, COLORREF c=-1);
+	void DrawBorder(CDC * dc, RECT * rt, float scale);
 	ULONGLONG GetTimestamp(void);
 	void GetFont(CFont& font, int height, BOOL bold = FALSE);
 	int GetTitleHeight(void);
