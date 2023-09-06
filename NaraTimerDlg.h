@@ -1,40 +1,32 @@
-﻿
-// NaraTimerDlg.h: 헤더 파일
-//
-
-#pragma once
+﻿#pragma once
 
 #define BUTTON_CLOSE		(0)
 #define BUTTON_PIN			(1)
 #define NUM_BUTTONS			(2)
 
-// CNaraTimerDlg 대화 상자
 class CNaraTimerDlg : public CDialogEx
 {
-// 생성입니다.
 public:
-	CNaraTimerDlg(CWnd* pParent = nullptr);	// 표준 생성자입니다.
+	CNaraTimerDlg(CWnd* pParent = nullptr);
 	void Stop(void);
 	void SetTitle();
 	void SetTopmost(BOOL topmost=TRUE);
 
-// 대화 상자 데이터입니다.
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_NARATIMER_DIALOG };
 #endif
 
 	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 지원입니다.
+	virtual void DoDataExchange(CDataExchange* pDX);
 
 
-// 구현입니다.
 protected:
 	HICON m_hIcon;
 	CBitmap mBmp;
 	CBitmap mBuf;
 	ULONGLONG mTimeSet;
 	int mRadius;
-	int mRadiusCenterLock;
+	int mRadiusHandsHead;
 	BOOL mSetting;
 	ULONGLONG mTso;
 	float mOldDeg;
@@ -65,7 +57,7 @@ protected:
 	POINT deg2pt(float deg, int r);
 	float pt2deg(CPoint pt);
 	ULONGLONG deg2time(float deg, BOOL stick = FALSE);
-	void DrawTimer(CDC * dc, RECT * rt, float scale=1.f, RECT * crop_rect=NULL);
+	void DrawTimer(CDC* dc, RECT* rt, float scale = 1.f, BOOL draw_border=TRUE);
 	void DrawPie(CDC* cd, int r, float deg, RECT* rect = NULL, COLORREF c=-1);
 	void DrawBorder(CDC * dc, RECT * rt, float scale);
 	ULONGLONG GetTimestamp(void);
