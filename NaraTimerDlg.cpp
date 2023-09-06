@@ -692,7 +692,8 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		{
 			CTime t = CTime::GetCurrentTime();
 			int h = t.GetHour();
-			str.Format(L"%d:%02d:%02d", h > 12 ? h - 12 : h, t.GetMinute(), t.GetSecond());
+			h = (h > 12 ? h - 12 : h);
+			str.Format(L"%d:%02d:%02d", (h == 0 ? 12 : h) , t.GetMinute(), t.GetSecond());
 			SetWindowText(str);
 		}
 		dc->DrawText(str, &mTimeRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
