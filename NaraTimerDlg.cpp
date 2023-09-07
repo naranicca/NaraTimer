@@ -675,6 +675,8 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 			dc->SelectObject(fonto);
 		}
 	}
+
+	// draw time info
 	if (IS_ALARM_MODE || mIsMiniMode)
 	{
 		CFont font;
@@ -700,7 +702,37 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		dc->SelectObject(fonto);
 	}
 
-	// Hands Head
+	// draw date complications
+	if(IS_ALARM_MODE)
+	{
+		CFont font;
+		GetFont(font, r / 6);
+		CFont* fonto = dc->SelectObject(&font);
+		RECT trt = { 0, };
+		CTime t = CTime::GetCurrentTime();
+		CString d;
+		d.Format(L"%d", t.GetDay());
+		dc->DrawText(L"WW", 2, &trt, DT_SINGLELINE | DT_CALCRECT);
+		int w = trt.right - trt.left;
+		int h = trt.bottom - trt.top;
+		trt.left = (x + r - (w >> 1));
+		trt.top = (y + r + r - ROUND(r / 3.f));
+		trt.right = trt.left + w ;
+		trt.bottom = trt.top + h;
+		CBrush br(bk_color);
+		CBrush* bro = dc->SelectObject(&br);
+		COLORREF cl = blend_color(blend_color(timestr_color, bk_color), bk_color);
+		CPen pen(PS_SOLID, 1, cl);
+		CPen* peno = dc->SelectObject(&pen);
+		dc->Rectangle(&trt);
+		dc->SetTextColor(grid_color);
+		dc->DrawText(d, &trt, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
+		dc->SelectObject(fonto);
+		dc->SelectObject(bro);
+		dc->SelectObject(peno);
+	}
+
+	// Center lock
 	if (deg < -mDegOffset) deg = -mDegOffset;
 	CBrush brgrey(handshead_color);
 	bro = (CBrush*)dc->SelectObject(&brgrey);
