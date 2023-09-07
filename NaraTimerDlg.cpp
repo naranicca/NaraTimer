@@ -1,8 +1,4 @@
-﻿
-// NaraTimerDlg.cpp: 구현 파일
-//
-
-#include "pch.h"
+﻿#include "pch.h"
 #include "framework.h"
 #include "NaraTimer.h"
 #include "NaraTimerDlg.h"
@@ -50,22 +46,18 @@ static COLORREF blend_color(COLORREF c0, COLORREF c1)
 	return RGB(r, g, b);
 }
 
-// 응용 프로그램 정보에 사용되는 CAboutDlg 대화 상자입니다.
-
 class CAboutDlg : public CDialogEx
 {
 public:
 	CAboutDlg();
 
-// 대화 상자 데이터입니다.
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_ABOUTBOX };
 #endif
 
 	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 지원입니다.
+	virtual void DoDataExchange(CDataExchange* pDX);
 
-// 구현입니다.
 protected:
 	DECLARE_MESSAGE_MAP()
 };
@@ -82,11 +74,6 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
-
-// CNaraTimerDlg 대화 상자
-
-
-
 CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_NARATIMER_DIALOG, pParent)
 {
@@ -102,7 +89,7 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	mTime360 = MAX_TIME360;
 #endif
 	mRadius = 0;
-	mRadiusCenterLock = 0;
+	mRadiusHandsHead = 0;
 	memset((void*)&mTimestamp, 0, sizeof(mTimestamp));
 	memset((void*)mButtonIcon, 0, sizeof(mButtonIcon));
 	memset((void*)mButtonIconHover, 0, sizeof(mButtonIconHover));
@@ -174,16 +161,10 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, CDialogEx)
 	ON_MESSAGE(WM_PIN, OnPinToggle)
 END_MESSAGE_MAP()
 
-
-// CNaraTimerDlg 메시지 처리기
-
 BOOL CNaraTimerDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
-	// 시스템 메뉴에 "정보..." 메뉴 항목을 추가합니다.
-
-	// IDM_ABOUTBOX는 시스템 명령 범위에 있어야 합니다.
 	ASSERT((IDM_ABOUTBOX & 0xFFF0) == IDM_ABOUTBOX);
 	ASSERT(IDM_ABOUTBOX < 0xF000);
 
@@ -201,10 +182,8 @@ BOOL CNaraTimerDlg::OnInitDialog()
 		}
 	}
 
-	// 이 대화 상자의 아이콘을 설정합니다.  응용 프로그램의 주 창이 대화 상자가 아닐 경우에는
-	//  프레임워크가 이 작업을 자동으로 수행합니다.
-	SetIcon(m_hIcon, TRUE);			// 큰 아이콘을 설정합니다.
-	SetIcon(m_hIcon, FALSE);		// 작은 아이콘을 설정합니다.
+	SetIcon(m_hIcon, TRUE);
+	SetIcon(m_hIcon, FALSE);
 
 	SET_WINDOWED_STYLE;
 
@@ -217,7 +196,7 @@ BOOL CNaraTimerDlg::OnInitDialog()
 
 	SetWindowText(L"NaraTimer");
 
-	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
+	return TRUE;
 }
 
 void CNaraTimerDlg::OnDestroy()
@@ -323,10 +302,6 @@ void CNaraTimerDlg::OnSysCommand(UINT nID, LPARAM lParam)
 		CDialogEx::OnSysCommand(nID, lParam);
 	}
 }
-
-// 대화 상자에 최소화 단추를 추가할 경우 아이콘을 그리려면
-//  아래 코드가 필요합니다.  문서/뷰 모델을 사용하는 MFC 애플리케이션의 경우에는
-//  프레임워크에서 이 작업을 자동으로 수행합니다.
 
 int CNaraTimerDlg::HitTest(CPoint pt)
 {
@@ -483,7 +458,7 @@ int CNaraTimerDlg::GetTitleHeight(void)
 	return (int)(min(w, h) * 0.1f);
 }
 
-void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, RECT * crop_rect)
+void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border)
 {
 	CPen * peno;
 	CBrush* bro;
@@ -493,15 +468,9 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, RECT * crop_rect
 	COLORREF bk_color = WHITE;
 	COLORREF grid_color = RGB(0, 0, 0);
 	COLORREF pie_color = RED;
-	COLORREF centerlock_color = RGB(77, 88, 94);
+	COLORREF handshead_color = RGB(77, 88, 94);
 	COLORREF timestr_color = RGB(220, 220, 220);
-	RECT tmprt;
 
-	if (crop_rect == NULL)
-	{
-		CopyRect(&tmprt, rt);
-		crop_rect = &tmprt;
-	}
 	if(mIsMiniMode)
 	{
 		timestr_color = grid_color;
@@ -509,7 +478,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, RECT * crop_rect
 		{
 			grid_color = blend_color(grid_color, bk_color);
 			pie_color = blend_color(pie_color, bk_color);
-			centerlock_color = blend_color(centerlock_color, bk_color);
+			handshead_color = blend_color(handshead_color, bk_color);
 		}
 	}
 
@@ -630,9 +599,9 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, RECT * crop_rect
 		dc->SelectObject(peno);
 	}
 
-	// Center lock shadow
+	// hands head shadow
 	int sz = (int)(r * 0.14);
-	mRadiusCenterLock = sz;
+	mRadiusHandsHead = sz;
 	CBrush brgrey2(RGB(227, 238, 244));
 	peno = (CPen*)dc->SelectStockObject(NULL_PEN);
 	bro = (CBrush*)dc->SelectObject(&brgrey2);
@@ -723,22 +692,23 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, RECT * crop_rect
 		{
 			CTime t = CTime::GetCurrentTime();
 			int h = t.GetHour();
-			str.Format(L"%d:%02d:%02d", h > 12 ? h - 12 : h, t.GetMinute(), t.GetSecond());
+			h = (h > 12 ? h - 12 : h);
+			str.Format(L"%d:%02d:%02d", (h == 0 ? 12 : h) , t.GetMinute(), t.GetSecond());
 			SetWindowText(str);
 		}
 		dc->DrawText(str, &mTimeRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 		dc->SelectObject(fonto);
 	}
 
-	// Center lock
+	// Hands Head
 	if (deg < -mDegOffset) deg = -mDegOffset;
-	CBrush brgrey(centerlock_color);
+	CBrush brgrey(handshead_color);
 	bro = (CBrush*)dc->SelectObject(&brgrey);
 	peno = (CPen*)dc->SelectStockObject(NULL_PEN);
 	dc->Ellipse(x + r - sz, y + r - sz, x + r + sz, y + r + sz);
 	dc->SelectObject(bro);
 	dc->SelectObject(peno);
-	CPen pencl(PS_SOLID, ROUND(r * 0.05f), centerlock_color);
+	CPen pencl(PS_SOLID, ROUND(r * 0.05f), handshead_color);
 	peno = (CPen*)dc->SelectObject(&pencl);
 	pt0 = deg2pt(deg, (int)(sz * 1.6f));
 	dc->MoveTo(x + r, y + r);
@@ -746,7 +716,10 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, RECT * crop_rect
 	dc->SelectObject(peno);
 	dc->SelectObject(fonto);
 
-	DrawBorder(dc, crop_rect, scale);
+	if (draw_border)
+	{
+		DrawBorder(dc, rt, scale);
+	}
 }
 
 void CNaraTimerDlg::DrawBorder(CDC * dc, RECT * rt, float scale)
@@ -902,7 +875,7 @@ void CNaraTimerDlg::OnPaint()
 			bmp_init(&mBmp, &dc, crt2.right, crt2.bottom);
 			bmpo = mdc.SelectObject(&mBmp);
 
-			DrawTimer(&mdc, &crt2, scale, NULL);
+			DrawTimer(&mdc, &crt2, scale, FALSE);
 
 			if (resize_end)
 			{
@@ -1100,11 +1073,11 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 	int cx = (mTimerRect.right + mTimerRect.left) >> 1;
 	int cy = (mTimerRect.bottom + mTimerRect.top) >> 1;
 	int d = SQ(pt.x - cx) + SQ(pt.y - cy);
-	if(!mIsMiniMode && d < (mRadiusCenterLock * mRadiusCenterLock))
+	if(!mIsMiniMode && d < (mRadiusHandsHead * mRadiusHandsHead))
 	{
 		GetTimestamp();
 		CClientDC dc(this);
-		int m = mRadiusCenterLock >> 1;
+		int m = mRadiusHandsHead >> 1;
 		RECT rt = { crt.left + m, crt.top + m, crt.right - m, crt.bottom - m };
 		DrawTimer(&dc, &rt, 1.f);
 		if (mTimeSet == 0 && !CTRL_DOWN)
@@ -1122,7 +1095,7 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 				mIsTimer = FALSE;
 			}
 			mTimeSet = 0;
-			for (int m = mRadiusCenterLock >> 1; m > 0; m >>= 1)
+			for (int m = mRadiusHandsHead >> 1; m > 0; m >>= 1)
 			{
 				LONGLONG d = GetTimestamp();
 				if (d < 30) Sleep((DWORD)(30 - d));
@@ -1209,7 +1182,7 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 		{
 			::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_IBEAM));
 		}
-		else if(!mIsMiniMode && d < (mRadiusCenterLock * mRadiusCenterLock))
+		else if(!mIsMiniMode && d < (mRadiusHandsHead * mRadiusHandsHead))
 		{
 			::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_HAND));
 		}
