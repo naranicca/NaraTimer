@@ -610,7 +610,6 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	dc->SelectObject(peno);
 	dc->SelectObject(bro);
 
-
 	// draw red pie
 	LONGLONG t_remain = (mTimeSet > 0 ? mTimeSet - GetTickCount64() : 0);
 	float deg = 0;
@@ -706,14 +705,14 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	if(IS_ALARM_MODE)
 	{
 		CFont font;
-		GetFont(font, r / 6);
+		GetFont(font, r / 6, TRUE);
 		CFont* fonto = dc->SelectObject(&font);
 		RECT trt = { 0, };
 		CTime t = CTime::GetCurrentTime();
 		CString d;
 		d.Format(L"%d", t.GetDay());
-		dc->DrawText(L"WW", 2, &trt, DT_SINGLELINE | DT_CALCRECT);
-		int w = trt.right - trt.left;
+		dc->DrawText(L"88", 2, &trt, DT_SINGLELINE | DT_CALCRECT);
+		int w = ROUND((trt.right - trt.left) * 1.05f);
 		int h = trt.bottom - trt.top;
 		trt.left = (x + r - (w >> 1));
 		trt.top = (y + r + r - ROUND(r / 3.f));
@@ -721,18 +720,19 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		trt.bottom = trt.top + h;
 		CBrush br(bk_color);
 		CBrush* bro = dc->SelectObject(&br);
-		COLORREF cl = blend_color(blend_color(timestr_color, bk_color), bk_color);
+		COLORREF cl = blend_color(blend_color(blend_color(grid_color, bk_color), bk_color), bk_color);
 		CPen pen(PS_SOLID, 1, cl);
 		CPen* peno = dc->SelectObject(&pen);
 		dc->Rectangle(&trt);
-		dc->SetTextColor(grid_color);
+		dc->FillSolidRect(trt.left, trt.bottom, w, ROUND(h * 0.1f) , pie_color);
+		dc->SetTextColor(timestr_color);
 		dc->DrawText(d, &trt, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 		dc->SelectObject(fonto);
 		dc->SelectObject(bro);
 		dc->SelectObject(peno);
 	}
 
-	// Center lock
+	// Hands head
 	if (deg < -mDegOffset) deg = -mDegOffset;
 	CBrush brgrey(handshead_color);
 	bro = (CBrush*)dc->SelectObject(&brgrey);
