@@ -593,16 +593,18 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	}
 	else
 	{
-		CPen pen(PS_SOLID, (int)(3 * scale + 0.5f), RGB(227, 238, 244));
+		CPen pen(PS_SOLID, (int)(3 * scale + 0.5f), grid_color);
 		peno = (CPen*)dc->SelectObject(&pen);
+		bro = (CBrush*)dc->SelectStockObject(NULL_BRUSH);
 		dc->Ellipse(x, y, x + (r << 1), y + (r << 1));
 		dc->SelectObject(peno);
+		dc->SelectObject(bro);
 	}
 
 	// hands head shadow
 	int sz = (int)(r * 0.14);
 	mRadiusHandsHead = sz;
-	CBrush brgrey2(RGB(227, 238, 244));
+	CBrush brgrey2(blend_color(blend_color(0, bk_color), bk_color));
 	peno = (CPen*)dc->SelectStockObject(NULL_PEN);
 	bro = (CBrush*)dc->SelectObject(&brgrey2);
 	int off = ROUND(sz * 0.15);
