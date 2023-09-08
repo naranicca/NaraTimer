@@ -4,6 +4,9 @@
 #define BUTTON_PIN			(1)
 #define NUM_BUTTONS			(2)
 
+#define THEME_DEFAULT		(0)
+#define THEME_BLUE			(1)
+
 class CNaraTimerDlg : public CDialogEx
 {
 public:
@@ -11,6 +14,7 @@ public:
 	void Stop(void);
 	void SetTitle();
 	void SetTopmost(BOOL topmost=TRUE);
+	void SetTheme(int theme);
 
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_NARATIMER_DIALOG };
@@ -25,6 +29,7 @@ protected:
 	CBitmap mBmp;
 	CBitmap mBuf;
 	ULONGLONG mTimeSet;
+	int mTheme;
 	int mRadius;
 	int mRadiusHandsHead;
 	BOOL mSetting;

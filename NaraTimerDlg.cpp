@@ -78,6 +78,7 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_NARATIMER_DIALOG, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	mTheme = THEME_DEFAULT;
 	mTimeSet = 0;
 	mSetting = FALSE;
 	mOldDeg = 0;
@@ -135,6 +136,12 @@ void CNaraTimerDlg::SetTopmost(BOOL topmost)
 		SET_BUTTON(BUTTON_PIN, NULL, IDI_UNPIN);
 	}
 	mTopmost = topmost;
+}
+
+void CNaraTimerDlg::SetTheme(int theme)
+{
+	mTheme = theme;
+	Invalidate(FALSE);
 }
 
 void CNaraTimerDlg::DoDataExchange(CDataExchange* pDX)
@@ -466,11 +473,32 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	POINT pt0, pt1;
 	int clock;
 	int start = 0;
-	COLORREF bk_color = WHITE;
-	COLORREF grid_color = RGB(0, 0, 0);
-	COLORREF pie_color = RED;
-	COLORREF handshead_color = RGB(77, 88, 94);
-	COLORREF timestr_color = RGB(220, 220, 220);
+	COLORREF bk_color, grid_color, pie_color, hand_color, handshead_color, timestr_color;
+	float hand_size;
+	float handshead_size;
+
+	if (mTheme == THEME_DEFAULT)
+	{
+		hand_size = 0.22f;
+		handshead_size = 0.14f;
+		bk_color = WHITE;
+		grid_color = RGB(0, 0, 0);
+		pie_color = RED;
+		hand_color = RGB(77, 88, 94);
+		handshead_color = RGB(77, 88, 94);
+		timestr_color = RGB(220, 220, 220);
+	}
+	else if(mTheme == THEME_BLUE)
+	{
+		hand_size = 1.f;
+		handshead_size = 0.14f;
+		bk_color = RGB(40, 59, 114);
+		grid_color = WHITE;
+		pie_color = RED;
+		hand_color = WHITE;
+		handshead_color = RGB(0, 20, 70);
+		timestr_color = RGB(220, 220, 220);
+	}
 
 	if(mIsMiniMode)
 	{
@@ -479,6 +507,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		{
 			grid_color = blend_color(grid_color, bk_color);
 			pie_color = blend_color(pie_color, bk_color);
+			hand_color = blend_color(hand_color, bk_color);
 			handshead_color = blend_color(handshead_color, bk_color);
 		}
 	}
@@ -604,7 +633,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	}
 
 	// hands head shadow
-	int sz = (int)(r * 0.14);
+	int sz = ROUND(r * handshead_size);
 	mRadiusHandsHead = sz;
 	CBrush brgrey2(blend_color(blend_color(0, bk_color), bk_color));
 	peno = (CPen*)dc->SelectStockObject(NULL_PEN);
@@ -738,17 +767,17 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 
 	// Hands head
 	if (deg < -mDegOffset) deg = -mDegOffset;
+	CPen pencl(PS_SOLID, ROUND(r * 0.05f), hand_color);
+	peno = (CPen*)dc->SelectObject(&pencl);
+	pt0 = deg2pt(deg, ROUND(r * hand_size));
+	dc->MoveTo(x + r, y + r);
+	dc->LineTo(x + r + pt0.x, y + r + pt0.y);
+	dc->SelectObject(peno);
 	CBrush brgrey(handshead_color);
 	bro = (CBrush*)dc->SelectObject(&brgrey);
 	peno = (CPen*)dc->SelectStockObject(NULL_PEN);
 	dc->Ellipse(x + r - sz, y + r - sz, x + r + sz, y + r + sz);
 	dc->SelectObject(bro);
-	dc->SelectObject(peno);
-	CPen pencl(PS_SOLID, ROUND(r * 0.05f), handshead_color);
-	peno = (CPen*)dc->SelectObject(&pencl);
-	pt0 = deg2pt(deg, (int)(sz * 1.6f));
-	dc->MoveTo(x + r, y + r);
-	dc->LineTo(x + r + pt0.x, y + r + pt0.y);
 	dc->SelectObject(peno);
 	dc->SelectObject(fonto);
 
