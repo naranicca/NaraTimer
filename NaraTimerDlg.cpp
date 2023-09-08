@@ -1051,15 +1051,18 @@ BOOL CNaraTimerDlg::IsTitleArea(CPoint pt)
 
 void CNaraTimerDlg::SetTitle()
 {
-	mTitleHeight = GetTitleHeight();
-	OnPaint();
-	CFont font;
-	GetFont(font, mTitleHeight, TRUE);
-	mTitleEdit.ShowWindow(SW_SHOW);
-	mTitleEdit.SetFont(&font, FALSE);
-	mTitleEdit.MoveWindow(&mTitleRect);
-	mTitleEdit.SetFocus();
-	mTitleEdit.SetSel(0, -1);
+	if(!mIsMiniMode)
+	{
+		mTitleHeight = GetTitleHeight();
+		OnPaint();
+		CFont font;
+		GetFont(font, mTitleHeight, TRUE);
+		mTitleEdit.ShowWindow(SW_SHOW);
+		mTitleEdit.SetFont(&font, FALSE);
+		mTitleEdit.MoveWindow(&mTitleRect);
+		mTitleEdit.SetFocus();
+		mTitleEdit.SetSel(0, -1);
+	}
 }
 
 void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
