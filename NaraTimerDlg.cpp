@@ -460,6 +460,7 @@ int CNaraTimerDlg::GetTitleHeight(void)
 
 void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border)
 {
+	RECT border_rect;
 	CPen * peno;
 	CBrush* bro;
 	POINT pt0, pt1;
@@ -485,6 +486,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	dc->FillSolidRect(rt, bk_color);
 	dc->SetBkMode(TRANSPARENT);
 	GetClientRect(&mTimerRect);
+	CopyRect(&border_rect, rt);
 	if (mTitleHeight > 0)
 	{
 		int off = TITLE_OFFSET;
@@ -593,16 +595,18 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	}
 	else
 	{
-		CPen pen(PS_SOLID, (int)(3 * scale + 0.5f), RGB(227, 238, 244));
+		CPen pen(PS_SOLID, (int)(3 * scale + 0.5f), grid_color);
 		peno = (CPen*)dc->SelectObject(&pen);
+		bro = (CBrush*)dc->SelectStockObject(NULL_BRUSH);
 		dc->Ellipse(x, y, x + (r << 1), y + (r << 1));
 		dc->SelectObject(peno);
+		dc->SelectObject(bro);
 	}
 
 	// hands head shadow
 	int sz = (int)(r * 0.14);
 	mRadiusHandsHead = sz;
-	CBrush brgrey2(RGB(227, 238, 244));
+	CBrush brgrey2(blend_color(blend_color(0, bk_color), bk_color));
 	peno = (CPen*)dc->SelectStockObject(NULL_PEN);
 	bro = (CBrush*)dc->SelectObject(&brgrey2);
 	int off = ROUND(sz * 0.15);
@@ -750,7 +754,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 
 	if (draw_border)
 	{
-		DrawBorder(dc, rt, scale);
+		DrawBorder(dc, &border_rect, scale);
 	}
 }
 
@@ -1049,15 +1053,18 @@ BOOL CNaraTimerDlg::IsTitleArea(CPoint pt)
 
 void CNaraTimerDlg::SetTitle()
 {
-	mTitleHeight = GetTitleHeight();
-	OnPaint();
-	CFont font;
-	GetFont(font, mTitleHeight, TRUE);
-	mTitleEdit.ShowWindow(SW_SHOW);
-	mTitleEdit.SetFont(&font, FALSE);
-	mTitleEdit.MoveWindow(&mTitleRect);
-	mTitleEdit.SetFocus();
-	mTitleEdit.SetSel(0, -1);
+	if(!mIsMiniMode)
+	{
+		mTitleHeight = GetTitleHeight();
+		OnPaint();
+		CFont font;
+		GetFont(font, mTitleHeight, TRUE);
+		mTitleEdit.ShowWindow(SW_SHOW);
+		mTitleEdit.SetFont(&font, FALSE);
+		mTitleEdit.MoveWindow(&mTitleRect);
+		mTitleEdit.SetFocus();
+		mTitleEdit.SetSel(0, -1);
+	}
 }
 
 void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
