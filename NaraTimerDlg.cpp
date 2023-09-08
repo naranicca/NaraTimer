@@ -460,6 +460,7 @@ int CNaraTimerDlg::GetTitleHeight(void)
 
 void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border)
 {
+	RECT border_rect;
 	CPen * peno;
 	CBrush* bro;
 	POINT pt0, pt1;
@@ -485,6 +486,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	dc->FillSolidRect(rt, bk_color);
 	dc->SetBkMode(TRANSPARENT);
 	GetClientRect(&mTimerRect);
+	CopyRect(&border_rect, rt);
 	if (mTitleHeight > 0)
 	{
 		int off = TITLE_OFFSET;
@@ -752,7 +754,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 
 	if (draw_border)
 	{
-		DrawBorder(dc, rt, scale);
+		DrawBorder(dc, &border_rect, scale);
 	}
 }
 
