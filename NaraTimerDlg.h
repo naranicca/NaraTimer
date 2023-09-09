@@ -84,11 +84,14 @@ protected:
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
 	afx_msg void OnWindowPosChanged(WINDOWPOS* pos);
 	afx_msg void OnDestroy();
 	afx_msg LRESULT OnPinToggle(WPARAM wParam, LPARAM lparam);
+	afx_msg void OnThemeDefault();
+	afx_msg void OnThemeBlue();
 	DECLARE_MESSAGE_MAP()
 };
 

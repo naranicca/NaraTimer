@@ -14,6 +14,7 @@
 #define TITLE_OFFSET		(RESIZE_MARGIN + mTitleHeight)
 int RESIZE_MARGIN = 15;
 int ROUND_CORNER = 50;
+COLORREF BORDER_COLOR = RED;
 
 #define TID_TICK			(0)
 #define TID_REFRESH			(1)
@@ -160,12 +161,15 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, CDialogEx)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_MOUSEMOVE()
 	ON_WM_LBUTTONUP()
+	ON_WM_RBUTTONDOWN()
 	ON_WM_SIZE()
 	ON_WM_GETMINMAXINFO()
 	ON_WM_WINDOWPOSCHANGED()
 	ON_WM_QUERYDRAGICON()
 	ON_WM_DESTROY()
 	ON_MESSAGE(WM_PIN, OnPinToggle)
+	ON_COMMAND(IDM_THEMEDEFAULT, OnThemeDefault)
+	ON_COMMAND(IDM_THEMEBLUE, OnThemeBlue)
 END_MESSAGE_MAP()
 
 BOOL CNaraTimerDlg::OnInitDialog()
@@ -487,17 +491,19 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		hand_color = RGB(77, 88, 94);
 		handshead_color = RGB(77, 88, 94);
 		timestr_color = RGB(220, 220, 220);
+		BORDER_COLOR = RED;
 	}
 	else if(mTheme == THEME_BLUE)
 	{
 		hand_size = 1.f;
-		handshead_size = 0.14f;
+		handshead_size = 0.09f;
 		bk_color = RGB(40, 59, 114);
 		grid_color = WHITE;
 		pie_color = RED;
 		hand_color = WHITE;
-		handshead_color = RGB(0, 20, 70);
+		handshead_color = RGB(150, 150, 150);
 		timestr_color = RGB(220, 220, 220);
+		BORDER_COLOR = RGB(21, 116, 215);
 	}
 
 	if(mIsMiniMode)
@@ -765,14 +771,25 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		dc->SelectObject(peno);
 	}
 
-	// Hands head
+	// Hands
 	if (deg < -mDegOffset) deg = -mDegOffset;
-	CPen pencl(PS_SOLID, ROUND(r * 0.05f), hand_color);
+	CPen pencl(PS_SOLID, ROUND(r * 0.08f), handshead_color);
 	peno = (CPen*)dc->SelectObject(&pencl);
 	pt0 = deg2pt(deg, ROUND(r * hand_size));
 	dc->MoveTo(x + r, y + r);
 	dc->LineTo(x + r + pt0.x, y + r + pt0.y);
 	dc->SelectObject(peno);
+	if (hand_color != handshead_color)
+	{
+		CPen pen(PS_SOLID, ROUND(r* 0.08f * 0.7f), hand_color);
+		CPen* peno = dc->SelectObject(&pen);
+		pt0 = deg2pt(deg, sz + (sz>>1));
+		pt1 = deg2pt(deg, ROUND(r * hand_size - scale));
+		dc->MoveTo(x + r + pt0.x, y + r + pt0.y);
+		dc->LineTo(x + r + pt1.x, y + r + pt1.y);
+		dc->SelectObject(peno);
+	}
+	// Hands head
 	CBrush brgrey(handshead_color);
 	bro = (CBrush*)dc->SelectObject(&brgrey);
 	peno = (CPen*)dc->SelectStockObject(NULL_PEN);
@@ -791,7 +808,7 @@ void CNaraTimerDlg::DrawBorder(CDC * dc, RECT * rt, float scale)
 {
 	// border
 	{
-		CPen pen(PS_SOLID, ROUND(RESIZE_MARGIN * 2 * scale), RED);
+		CPen pen(PS_SOLID, ROUND(RESIZE_MARGIN * 2 * scale), BORDER_COLOR);
 		CPen* peno = dc->SelectObject(&pen);
 		CBrush* bro = (CBrush*)dc->SelectStockObject(NULL_BRUSH);
 		dc->RoundRect(rt->left, rt->top, rt->right, rt->bottom, ROUND(ROUND_CORNER * 2 * scale), ROUND(ROUND_CORNER * 2 * scale));
@@ -847,22 +864,11 @@ void CNaraTimerDlg::DrawPie(CDC* dc, int r, float deg, RECT* rect, COLORREF c)
 		dc->SelectObject(peno);
 		dc->SelectObject(bro);
 	}
-	if (IS_TIMER_MODE)
-	{
-		CPen pg(PS_SOLID, 1, RGB(128, 128, 128));
-		peno = dc->SelectObject(&pg);
-		dc->MoveTo(x + r, y - (mGridSize >> 1));
-		dc->LineTo(x + r, y + r);
-		dc->SelectObject(peno);
-	}
-	else
-	{
-		CPen pg(PS_SOLID, 4, c);
-		peno = dc->SelectObject(&pg);
-		dc->MoveTo(x + r, y - mGridSize - (mGridSize >> 1));
-		dc->LineTo(x + r, y + r);
-		dc->SelectObject(peno);
-	}
+	CPen pg(PS_SOLID, 1, IS_TIMER_MODE? RGB(128, 128, 128) : c);
+	peno = dc->SelectObject(&pg);
+	dc->MoveTo(x + r, y);
+	dc->LineTo(x + r, y + r);
+	dc->SelectObject(peno);
 }
 
 BOOL CNaraTimerDlg::OnEraseBkgnd(CDC* pDC)
@@ -1299,6 +1305,29 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 		ReleaseCapture();
 	}
 	CDialogEx::OnLButtonUp(nFlags, pt);
+}
+
+void CNaraTimerDlg::OnRButtonDown(UINT nFlags, CPoint pt)
+{
+	CMenu menu;
+	menu.CreatePopupMenu();
+	menu.AppendMenu(MF_STRING, IDM_THEMEDEFAULT, L"Default Theme");
+	menu.AppendMenu(MF_STRING, IDM_THEMEBLUE, L"Blue Theme");
+	ClientToScreen(&pt);
+	menu.TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, pt.x, pt.y, this);
+	CDialogEx::OnNcRButtonDown(nFlags, pt);
+}
+
+void CNaraTimerDlg::OnThemeDefault(void)
+{
+	mTheme = THEME_DEFAULT;
+	Invalidate(FALSE);
+}
+
+void CNaraTimerDlg::OnThemeBlue(void)
+{
+	mTheme = THEME_BLUE;
+	Invalidate(FALSE);
 }
 
 void CNaraTimerDlg::reposition(void)
