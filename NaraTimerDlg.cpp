@@ -172,6 +172,7 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, CDialogEx)
 	ON_COMMAND(IDM_THEMEBLACK, OnThemeBlack)
 	ON_COMMAND(IDM_THEMEBLUE, OnThemeBlue)
 	ON_COMMAND(IDM_THEMEGREEN, OnThemeGreen)
+	ON_COMMAND(IDM_THEMEORANGE, OnThemeOrange)
 END_MESSAGE_MAP()
 
 BOOL CNaraTimerDlg::OnInitDialog()
@@ -517,6 +518,17 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		handshead_color = RGB(39, 40, 41);
 		timestr_color = RGB(220, 220, 220);
 		BORDER_COLOR = RGB(30, 108, 78);
+		break;
+	case THEME_ORANGE:
+		hand_size = 1.f;
+		handshead_size = 0.09f;
+		bk_color = RGB(229, 119, 33);
+		grid_color = WHITE;
+		pie_color = RED;
+		hand_color = WHITE;
+		handshead_color = RGB(19, 20, 21);
+		timestr_color = RGB(220, 220, 220);
+		BORDER_COLOR = RGB(21, 22, 23);
 		break;
 	default:
 		hand_size = 0.22f;
@@ -1352,6 +1364,7 @@ void CNaraTimerDlg::OnRButtonDown(UINT nFlags, CPoint pt)
 	menu.AppendMenu(MF_STRING, IDM_THEMEBLACK, L"Black Theme");
 	menu.AppendMenu(MF_STRING, IDM_THEMEBLUE, L"Blue Theme");
 	menu.AppendMenu(MF_STRING, IDM_THEMEGREEN, L"GreenTheme");
+	menu.AppendMenu(MF_STRING, IDM_THEMEORANGE, L"OrangeTheme");
 	ClientToScreen(&pt);
 	menu.TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, pt.x, pt.y, this);
 	CDialogEx::OnNcRButtonDown(nFlags, pt);
@@ -1378,6 +1391,12 @@ void CNaraTimerDlg::OnThemeBlue(void)
 void CNaraTimerDlg::OnThemeGreen(void)
 {
 	mTheme = THEME_GREEN;
+	Invalidate(FALSE);
+}
+
+void CNaraTimerDlg::OnThemeOrange(void)
+{
+	mTheme = THEME_ORANGE;
 	Invalidate(FALSE);
 }
 

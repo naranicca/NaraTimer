@@ -8,6 +8,7 @@
 #define THEME_BLUE			(1)
 #define THEME_BLACK			(2)
 #define THEME_GREEN			(3)
+#define THEME_ORANGE		(4)
 
 class CNaraTimerDlg : public CDialogEx
 {
@@ -96,6 +97,7 @@ protected:
 	afx_msg void OnThemeBlue();
 	afx_msg void OnThemeBlack();
 	afx_msg void OnThemeGreen();
+	afx_msg void OnThemeOrange();
 	DECLARE_MESSAGE_MAP()
 };
 
