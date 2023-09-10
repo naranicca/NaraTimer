@@ -597,6 +597,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		mTitleRect.top = y - mGridSize - tsize - fh;
 		mTitleRect.right = rt->right - ROUND(ROUND_CORNER * scale);
 		mTitleRect.bottom = mTitleRect.top + fh;
+		dc->SetTextColor(grid_color);
 		dc->DrawText(mTitle, &mTitleRect, DT_VCENTER | DT_CENTER | DT_SINGLELINE);
 		mTitleRect.left = ROUND(mTitleRect.left / scale);
 		mTitleRect.top = ROUND(mTitleRect.top / scale);
