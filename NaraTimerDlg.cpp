@@ -169,8 +169,9 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, CDialogEx)
 	ON_WM_DESTROY()
 	ON_MESSAGE(WM_PIN, OnPinToggle)
 	ON_COMMAND(IDM_THEMEDEFAULT, OnThemeDefault)
-	ON_COMMAND(IDM_THEMEBLUE, OnThemeBlue)
 	ON_COMMAND(IDM_THEMEBLACK, OnThemeBlack)
+	ON_COMMAND(IDM_THEMEBLUE, OnThemeBlue)
+	ON_COMMAND(IDM_THEMEGREEN, OnThemeGreen)
 END_MESSAGE_MAP()
 
 BOOL CNaraTimerDlg::OnInitDialog()
@@ -484,17 +485,6 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 
 	switch(mTheme)
 	{
-	case THEME_BLUE:
-		hand_size = 1.f;
-		handshead_size = 0.09f;
-		bk_color = RGB(40, 59, 114);
-		grid_color = WHITE;
-		pie_color = RED;
-		hand_color = WHITE;
-		handshead_color = RGB(150, 150, 150);
-		timestr_color = RGB(220, 220, 220);
-		BORDER_COLOR = RGB(21, 116, 215);
-		break;
 	case THEME_BLACK:
 		hand_size = 1.f;
 		handshead_size = 0.09f;
@@ -505,6 +495,28 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		handshead_color = RGB(150, 150, 150);
 		timestr_color = RGB(220, 220, 220);
 		BORDER_COLOR = RGB(22, 23, 24);
+		break;
+	case THEME_BLUE:
+		hand_size = 1.f;
+		handshead_size = 0.09f;
+		bk_color = RGB(6, 16, 49);
+		grid_color = WHITE;
+		pie_color = RED;
+		hand_color = WHITE;
+		handshead_color = RGB(39, 40, 41);
+		timestr_color = RGB(220, 220, 220);
+		BORDER_COLOR = RGB(16, 41, 145);
+		break;
+	case THEME_GREEN:
+		hand_size = 1.f;
+		handshead_size = 0.09f;
+		bk_color = RGB(0, 26, 9);
+		grid_color = WHITE;
+		pie_color = RED;
+		hand_color = WHITE;
+		handshead_color = RGB(39, 40, 41);
+		timestr_color = RGB(220, 220, 220);
+		BORDER_COLOR = RGB(30, 108, 78);
 		break;
 	default:
 		hand_size = 0.22f;
@@ -786,18 +798,19 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 
 	// Hands
 	if (deg < -mDegOffset) deg = -mDegOffset;
-	CPen pencl(PS_SOLID, ROUND(r * 0.08f), handshead_color);
+	float pt = (r * 0.08f);
+	CPen pencl(PS_SOLID, ROUND(pt), handshead_color);
 	peno = (CPen*)dc->SelectObject(&pencl);
-	pt0 = deg2pt(deg, ROUND(r * hand_size));
+	pt0 = deg2pt(deg, ROUND(r * hand_size - pt/2 + scale));
 	dc->MoveTo(x + r, y + r);
 	dc->LineTo(x + r + pt0.x, y + r + pt0.y);
 	dc->SelectObject(peno);
 	if (hand_color != handshead_color)
 	{
-		CPen pen(PS_SOLID, ROUND(r* 0.08f * 0.7f), hand_color);
+		CPen pen(PS_SOLID, ROUND(pt * 0.7f), hand_color);
 		CPen* peno = dc->SelectObject(&pen);
 		pt0 = deg2pt(deg, sz + (sz>>1));
-		pt1 = deg2pt(deg, ROUND(r * hand_size - scale));
+		pt1 = deg2pt(deg, ROUND(r * hand_size - pt/2 - scale));
 		dc->MoveTo(x + r + pt0.x, y + r + pt0.y);
 		dc->LineTo(x + r + pt1.x, y + r + pt1.y);
 		dc->SelectObject(peno);
@@ -807,6 +820,16 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	bro = (CBrush*)dc->SelectObject(&brgrey);
 	peno = (CPen*)dc->SelectStockObject(NULL_PEN);
 	dc->Ellipse(x + r - sz, y + r - sz, x + r + sz, y + r + sz);
+	if (hand_color != handshead_color)
+	{
+		CPen* peno = (CPen*)dc->SelectStockObject(NULL_PEN);
+		CBrush br(hand_color);
+		CBrush* bro = dc->SelectObject(&br);
+		int s = ROUND(sz * 0.3f);
+		dc->Ellipse(x + r - s, y + r - s, x + r + s, y + r + s);
+		dc->SelectObject(bro);
+		dc->SelectObject(peno);
+	}
 	dc->SelectObject(bro);
 	dc->SelectObject(peno);
 	dc->SelectObject(fonto);
@@ -879,7 +902,7 @@ void CNaraTimerDlg::DrawPie(CDC* dc, int r, float deg, RECT* rect, COLORREF c)
 	}
 	CPen pg(PS_SOLID, 1, IS_TIMER_MODE? RGB(128, 128, 128) : c);
 	peno = dc->SelectObject(&pg);
-	dc->MoveTo(x + r, y);
+	dc->MoveTo(x + r, y + 1);
 	dc->LineTo(x + r, y + r);
 	dc->SelectObject(peno);
 }
@@ -900,6 +923,7 @@ static void bmp_init(CBitmap * bmp, CDC * dc, int w, int h)
 	{
 		bmp->CreateCompatibleBitmap(dc, w, h);
 	}
+	dc->SetStretchBltMode(HALFTONE);
 }
 
 void CNaraTimerDlg::OnPaint()
@@ -1325,8 +1349,9 @@ void CNaraTimerDlg::OnRButtonDown(UINT nFlags, CPoint pt)
 	CMenu menu;
 	menu.CreatePopupMenu();
 	menu.AppendMenu(MF_STRING, IDM_THEMEDEFAULT, L"Default Theme");
-	menu.AppendMenu(MF_STRING, IDM_THEMEBLUE, L"Blue Theme");
 	menu.AppendMenu(MF_STRING, IDM_THEMEBLACK, L"Black Theme");
+	menu.AppendMenu(MF_STRING, IDM_THEMEBLUE, L"Blue Theme");
+	menu.AppendMenu(MF_STRING, IDM_THEMEGREEN, L"GreenTheme");
 	ClientToScreen(&pt);
 	menu.TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, pt.x, pt.y, this);
 	CDialogEx::OnNcRButtonDown(nFlags, pt);
@@ -1338,15 +1363,21 @@ void CNaraTimerDlg::OnThemeDefault(void)
 	Invalidate(FALSE);
 }
 
+void CNaraTimerDlg::OnThemeBlack(void)
+{
+	mTheme = THEME_BLACK;
+	Invalidate(FALSE);
+}
+
 void CNaraTimerDlg::OnThemeBlue(void)
 {
 	mTheme = THEME_BLUE;
 	Invalidate(FALSE);
 }
 
-void CNaraTimerDlg::OnThemeBlack(void)
+void CNaraTimerDlg::OnThemeGreen(void)
 {
-	mTheme = THEME_BLACK;
+	mTheme = THEME_GREEN;
 	Invalidate(FALSE);
 }
 
