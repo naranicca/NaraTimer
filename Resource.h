@@ -15,6 +15,7 @@
 #define IDM_TOPMOST						200
 #define IDM_THEMEDEFAULT				201
 #define IDM_THEMEBLUE					202
+#define IDM_THEMEBLACK					203
 
 // 다음은 새 개체에 사용할 기본값입니다.
 //

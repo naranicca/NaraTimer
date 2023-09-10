@@ -6,6 +6,7 @@
 
 #define THEME_DEFAULT		(0)
 #define THEME_BLUE			(1)
+#define THEME_BLACK			(2)
 
 class CNaraTimerDlg : public CDialogEx
 {
@@ -92,6 +93,7 @@ protected:
 	afx_msg LRESULT OnPinToggle(WPARAM wParam, LPARAM lparam);
 	afx_msg void OnThemeDefault();
 	afx_msg void OnThemeBlue();
+	afx_msg void OnThemeBlack();
 	DECLARE_MESSAGE_MAP()
 };
 

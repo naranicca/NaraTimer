@@ -170,6 +170,7 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, CDialogEx)
 	ON_MESSAGE(WM_PIN, OnPinToggle)
 	ON_COMMAND(IDM_THEMEDEFAULT, OnThemeDefault)
 	ON_COMMAND(IDM_THEMEBLUE, OnThemeBlue)
+	ON_COMMAND(IDM_THEMEBLACK, OnThemeBlack)
 END_MESSAGE_MAP()
 
 BOOL CNaraTimerDlg::OnInitDialog()
@@ -481,20 +482,9 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	float hand_size;
 	float handshead_size;
 
-	if (mTheme == THEME_DEFAULT)
+	switch(mTheme)
 	{
-		hand_size = 0.22f;
-		handshead_size = 0.14f;
-		bk_color = WHITE;
-		grid_color = RGB(0, 0, 0);
-		pie_color = RED;
-		hand_color = RGB(77, 88, 94);
-		handshead_color = RGB(77, 88, 94);
-		timestr_color = RGB(220, 220, 220);
-		BORDER_COLOR = RED;
-	}
-	else if(mTheme == THEME_BLUE)
-	{
+	case THEME_BLUE:
 		hand_size = 1.f;
 		handshead_size = 0.09f;
 		bk_color = RGB(40, 59, 114);
@@ -504,6 +494,29 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		handshead_color = RGB(150, 150, 150);
 		timestr_color = RGB(220, 220, 220);
 		BORDER_COLOR = RGB(21, 116, 215);
+		break;
+	case THEME_BLACK:
+		hand_size = 1.f;
+		handshead_size = 0.09f;
+		bk_color = RGB(8, 9, 10);
+		grid_color = WHITE;
+		pie_color = RED;
+		hand_color = WHITE;
+		handshead_color = RGB(150, 150, 150);
+		timestr_color = RGB(220, 220, 220);
+		BORDER_COLOR = RGB(22, 23, 24);
+		break;
+	default:
+		hand_size = 0.22f;
+		handshead_size = 0.14f;
+		bk_color = WHITE;
+		grid_color = RGB(0, 0, 0);
+		pie_color = RED;
+		hand_color = RGB(77, 88, 94);
+		handshead_color = RGB(77, 88, 94);
+		timestr_color = RGB(220, 220, 220);
+		BORDER_COLOR = RED;
+		break;
 	}
 
 	if(mIsMiniMode)
@@ -1313,6 +1326,7 @@ void CNaraTimerDlg::OnRButtonDown(UINT nFlags, CPoint pt)
 	menu.CreatePopupMenu();
 	menu.AppendMenu(MF_STRING, IDM_THEMEDEFAULT, L"Default Theme");
 	menu.AppendMenu(MF_STRING, IDM_THEMEBLUE, L"Blue Theme");
+	menu.AppendMenu(MF_STRING, IDM_THEMEBLACK, L"Black Theme");
 	ClientToScreen(&pt);
 	menu.TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, pt.x, pt.y, this);
 	CDialogEx::OnNcRButtonDown(nFlags, pt);
@@ -1327,6 +1341,12 @@ void CNaraTimerDlg::OnThemeDefault(void)
 void CNaraTimerDlg::OnThemeBlue(void)
 {
 	mTheme = THEME_BLUE;
+	Invalidate(FALSE);
+}
+
+void CNaraTimerDlg::OnThemeBlack(void)
+{
+	mTheme = THEME_BLACK;
 	Invalidate(FALSE);
 }
 
