@@ -4,6 +4,11 @@
 #define BUTTON_PIN			(1)
 #define NUM_BUTTONS			(2)
 
+#define THEME_DEFAULT		(0)
+#define THEME_BLUE			(1)
+#define THEME_BLACK			(2)
+#define THEME_GREEN			(3)
+
 class CNaraTimerDlg : public CDialogEx
 {
 public:
@@ -11,6 +16,7 @@ public:
 	void Stop(void);
 	void SetTitle();
 	void SetTopmost(BOOL topmost=TRUE);
+	void SetTheme(int theme);
 
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_NARATIMER_DIALOG };
@@ -25,6 +31,7 @@ protected:
 	CBitmap mBmp;
 	CBitmap mBuf;
 	ULONGLONG mTimeSet;
+	int mTheme;
 	int mRadius;
 	int mRadiusHandsHead;
 	BOOL mSetting;
@@ -79,11 +86,16 @@ protected:
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
 	afx_msg void OnWindowPosChanged(WINDOWPOS* pos);
 	afx_msg void OnDestroy();
 	afx_msg LRESULT OnPinToggle(WPARAM wParam, LPARAM lparam);
+	afx_msg void OnThemeDefault();
+	afx_msg void OnThemeBlue();
+	afx_msg void OnThemeBlack();
+	afx_msg void OnThemeGreen();
 	DECLARE_MESSAGE_MAP()
 };
 
