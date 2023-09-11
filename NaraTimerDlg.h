@@ -93,6 +93,7 @@ protected:
 	afx_msg void OnWindowPosChanged(WINDOWPOS* pos);
 	afx_msg void OnDestroy();
 	afx_msg LRESULT OnPinToggle(WPARAM wParam, LPARAM lparam);
+	afx_msg void OnNew();
 	afx_msg void OnMenuPin();
 	afx_msg void OnThemeDefault();
 	afx_msg void OnThemeBlue();

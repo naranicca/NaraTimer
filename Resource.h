@@ -12,12 +12,13 @@
 #define IDI_UNPIN						131
 #define IDI_CLOSE						132
 #define IDI_CLOSE_HOVER					133
-#define IDM_TOPMOST						200
-#define IDM_THEMEDEFAULT				201
-#define IDM_THEMEBLACK					202
-#define IDM_THEMEBLUE					203
-#define IDM_THEMEGREEN					204
-#define IDM_THEMEORANGE					205
+#define IDM_NEW							200
+#define IDM_TOPMOST						201
+#define IDM_THEMEDEFAULT				202
+#define IDM_THEMEBLACK					203
+#define IDM_THEMEBLUE					204
+#define IDM_THEMEGREEN					205
+#define IDM_THEMEORANGE					206
 
 // 다음은 새 개체에 사용할 기본값입니다.
 //

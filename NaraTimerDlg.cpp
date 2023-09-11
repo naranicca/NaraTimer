@@ -168,6 +168,7 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_WM_DESTROY()
 	ON_MESSAGE(WM_PIN, OnPinToggle)
+	ON_COMMAND(IDM_NEW, OnNew)
 	ON_COMMAND(IDM_TOPMOST, OnMenuPin)
 	ON_COMMAND(IDM_THEMEDEFAULT, OnThemeDefault)
 	ON_COMMAND(IDM_THEMEBLACK, OnThemeBlack)
@@ -525,11 +526,11 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		handshead_size = 0.09f;
 		bk_color = RGB(229, 119, 33);
 		grid_color = WHITE;
-		pie_color = RED;
-		hand_color = WHITE;
+		pie_color = RGB(24, 57, 186);
+		hand_color = RGB(108, 185, 66);
 		handshead_color = RGB(19, 20, 21);
 		timestr_color = RGB(220, 220, 220);
-		BORDER_COLOR = RGB(21, 22, 23);
+		BORDER_COLOR = RGB(244, 76, 11);
 		break;
 	default:
 		hand_size = 0.22f;
@@ -1232,9 +1233,7 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 		}
 		else
 		{
-			wchar_t path[MAX_PATH];
-			GetModuleFileName(GetModuleHandle(NULL), path, MAX_PATH);
-			ShellExecute(GetSafeHwnd(), L"open", path, NULL, NULL, 1);
+			OnNew();
 		}
 		Invalidate(FALSE);
 	}
@@ -1360,16 +1359,26 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 
 void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 {
-	CMenu menu;
+	CMenu menu, theme;
 	menu.CreatePopupMenu();
+	menu.AppendMenu(MF_STRING, IDM_NEW, L"New");
 	menu.AppendMenu(MF_STRING|(mTopmost?MF_CHECKED:0), IDM_TOPMOST, L"Alwasy On Top");
 	menu.AppendMenu(MF_SEPARATOR, 0, L"");
-	menu.AppendMenu(MF_STRING, IDM_THEMEDEFAULT, L"Default Theme");
-	menu.AppendMenu(MF_STRING, IDM_THEMEBLACK, L"Black Theme");
-	menu.AppendMenu(MF_STRING, IDM_THEMEBLUE, L"Blue Theme");
-	menu.AppendMenu(MF_STRING, IDM_THEMEGREEN, L"GreenTheme");
-	menu.AppendMenu(MF_STRING, IDM_THEMEORANGE, L"OrangeTheme");
+	theme.CreatePopupMenu();
+	theme.AppendMenu(MF_STRING, IDM_THEMEDEFAULT, L"Default");
+	theme.AppendMenu(MF_STRING, IDM_THEMEBLACK, L"Black");
+	theme.AppendMenu(MF_STRING, IDM_THEMEBLUE, L"Blue");
+	theme.AppendMenu(MF_STRING, IDM_THEMEGREEN, L"Green");
+	theme.AppendMenu(MF_STRING, IDM_THEMEORANGE, L"Orange");
+	menu.AppendMenuW(MF_POPUP, (UINT_PTR)theme.Detach(), L"Themes");
 	menu.TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, pt.x, pt.y, this);
+}
+
+void CNaraTimerDlg::OnNew(void)
+{
+	wchar_t path[MAX_PATH];
+	GetModuleFileName(GetModuleHandle(NULL), path, MAX_PATH);
+	ShellExecute(GetSafeHwnd(), L"open", path, NULL, NULL, 1);
 }
 
 void CNaraTimerDlg::OnMenuPin(void)
