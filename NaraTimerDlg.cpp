@@ -161,13 +161,14 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, CDialogEx)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_MOUSEMOVE()
 	ON_WM_LBUTTONUP()
-	ON_WM_RBUTTONDOWN()
+	ON_WM_CONTEXTMENU()
 	ON_WM_SIZE()
 	ON_WM_GETMINMAXINFO()
 	ON_WM_WINDOWPOSCHANGED()
 	ON_WM_QUERYDRAGICON()
 	ON_WM_DESTROY()
 	ON_MESSAGE(WM_PIN, OnPinToggle)
+	ON_COMMAND(IDM_TOPMOST, OnMenuPin)
 	ON_COMMAND(IDM_THEMEDEFAULT, OnThemeDefault)
 	ON_COMMAND(IDM_THEMEBLACK, OnThemeBlack)
 	ON_COMMAND(IDM_THEMEBLUE, OnThemeBlue)
@@ -1357,18 +1358,23 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 	CDialogEx::OnLButtonUp(nFlags, pt);
 }
 
-void CNaraTimerDlg::OnRButtonDown(UINT nFlags, CPoint pt)
+void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 {
 	CMenu menu;
 	menu.CreatePopupMenu();
+	menu.AppendMenu(MF_STRING|(mTopmost?MF_CHECKED:0), IDM_TOPMOST, L"Alwasy On Top");
+	menu.AppendMenu(MF_SEPARATOR, 0, L"");
 	menu.AppendMenu(MF_STRING, IDM_THEMEDEFAULT, L"Default Theme");
 	menu.AppendMenu(MF_STRING, IDM_THEMEBLACK, L"Black Theme");
 	menu.AppendMenu(MF_STRING, IDM_THEMEBLUE, L"Blue Theme");
 	menu.AppendMenu(MF_STRING, IDM_THEMEGREEN, L"GreenTheme");
 	menu.AppendMenu(MF_STRING, IDM_THEMEORANGE, L"OrangeTheme");
-	ClientToScreen(&pt);
 	menu.TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, pt.x, pt.y, this);
-	CDialogEx::OnNcRButtonDown(nFlags, pt);
+}
+
+void CNaraTimerDlg::OnMenuPin(void)
+{
+	SetTopmost(!mTopmost);
 }
 
 void CNaraTimerDlg::OnThemeDefault(void)
