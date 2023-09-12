@@ -142,6 +142,7 @@ void CNaraTimerDlg::SetTopmost(BOOL topmost)
 void CNaraTimerDlg::SetTheme(int theme)
 {
 	mTheme = theme;
+	AfxGetApp()->WriteProfileInt(L"Theme", L"CurrentTheme", mTheme);
 	Invalidate(FALSE);
 }
 
@@ -202,6 +203,8 @@ BOOL CNaraTimerDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);
 
 	SET_WINDOWED_STYLE;
+
+	mTheme = AfxGetApp()->GetProfileInt(L"Theme", L"CurrentTheme", THEME_DEFAULT);
 
 	reposition();
 	mTitleEdit.Create(WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | ES_CENTER, CRect(0, 0, 10, 10), this, 0);
@@ -1388,32 +1391,27 @@ void CNaraTimerDlg::OnMenuPin(void)
 
 void CNaraTimerDlg::OnThemeDefault(void)
 {
-	mTheme = THEME_DEFAULT;
-	Invalidate(FALSE);
+	SetTheme(THEME_DEFAULT);
 }
 
 void CNaraTimerDlg::OnThemeBlack(void)
 {
-	mTheme = THEME_BLACK;
-	Invalidate(FALSE);
+	SetTheme(THEME_BLACK);
 }
 
 void CNaraTimerDlg::OnThemeBlue(void)
 {
-	mTheme = THEME_BLUE;
-	Invalidate(FALSE);
+	SetTheme(THEME_BLUE);
 }
 
 void CNaraTimerDlg::OnThemeGreen(void)
 {
-	mTheme = THEME_GREEN;
-	Invalidate(FALSE);
+	SetTheme(THEME_GREEN);
 }
 
 void CNaraTimerDlg::OnThemeOrange(void)
 {
-	mTheme = THEME_ORANGE;
-	Invalidate(FALSE);
+	SetTheme(THEME_ORANGE);
 }
 
 void CNaraTimerDlg::reposition(void)
