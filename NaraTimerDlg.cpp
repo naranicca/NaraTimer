@@ -301,6 +301,12 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			SetTopmost(!mTopmost);
 			break;
 		}
+	case WM_POINTERDOWN:
+		if (IS_POINTER_SECONDBUTTON_WPARAM(pMsg->wParam))
+		{
+			PostMessage(WM_CONTEXTMENU, 0, pMsg->lParam);
+		}
+		break;
 	}
 	return CDialogEx::PreTranslateMessage(pMsg);
 }
