@@ -498,8 +498,6 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	switch(mTheme)
 	{
 	case THEME_BLACK:
-		hand_size = 1.f;
-		handshead_size = 0.09f;
 		bk_color = RGB(8, 9, 10);
 		grid_color = WHITE;
 		pie_color = RED;
@@ -509,8 +507,6 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		BORDER_COLOR = RGB(22, 23, 24);
 		break;
 	case THEME_BLUE:
-		hand_size = 1.f;
-		handshead_size = 0.09f;
 		bk_color = RGB(6, 16, 49);
 		grid_color = WHITE;
 		pie_color = RED;
@@ -520,8 +516,6 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		BORDER_COLOR = RGB(16, 41, 145);
 		break;
 	case THEME_GREEN:
-		hand_size = 1.f;
-		handshead_size = 0.09f;
 		bk_color = RGB(0, 26, 9);
 		grid_color = WHITE;
 		pie_color = RED;
@@ -531,8 +525,6 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		BORDER_COLOR = RGB(30, 108, 78);
 		break;
 	case THEME_ORANGE:
-		hand_size = 1.f;
-		handshead_size = 0.09f;
 		bk_color = RGB(229, 119, 33);
 		grid_color = WHITE;
 		pie_color = RGB(24, 57, 186);
@@ -542,8 +534,6 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		BORDER_COLOR = RGB(244, 76, 11);
 		break;
 	default:
-		hand_size = 0.22f;
-		handshead_size = 0.14f;
 		bk_color = WHITE;
 		grid_color = RGB(0, 0, 0);
 		pie_color = RED;
@@ -552,6 +542,17 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		timestr_color = RGB(220, 220, 220);
 		BORDER_COLOR = RED;
 		break;
+	}
+	if (IS_TIMER_MODE)
+	{
+		hand_size = 0.22f;
+		handshead_size = 0.14f;
+		hand_color = handshead_color;
+	}
+	else
+	{
+		hand_size = 1.f;
+		handshead_size = 0.09f;
 	}
 
 	if(mIsMiniMode)
