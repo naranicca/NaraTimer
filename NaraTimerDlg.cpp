@@ -79,7 +79,7 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_NARATIMER_DIALOG, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
-	mTheme = THEME_DEFAULT;
+	mTheme = THEME_LIGHT;
 	mTimeSet = 0;
 	mSetting = FALSE;
 	mOldDeg = 0;
@@ -171,8 +171,8 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, CDialogEx)
 	ON_MESSAGE(WM_PIN, OnPinToggle)
 	ON_COMMAND(IDM_NEW, OnNew)
 	ON_COMMAND(IDM_TOPMOST, OnMenuPin)
-	ON_COMMAND(IDM_THEMEDEFAULT, OnThemeDefault)
-	ON_COMMAND(IDM_THEMEBLACK, OnThemeBlack)
+	ON_COMMAND(IDM_THEMEDEFAULT, OnThemeLight)
+	ON_COMMAND(IDM_THEMEBLACK, OnThemeDark)
 	ON_COMMAND(IDM_THEMEBLUE, OnThemeBlue)
 	ON_COMMAND(IDM_THEMEGREEN, OnThemeGreen)
 	ON_COMMAND(IDM_THEMEORANGE, OnThemeOrange)
@@ -204,7 +204,7 @@ BOOL CNaraTimerDlg::OnInitDialog()
 
 	SET_WINDOWED_STYLE;
 
-	mTheme = AfxGetApp()->GetProfileInt(L"Theme", L"CurrentTheme", THEME_DEFAULT);
+	mTheme = AfxGetApp()->GetProfileInt(L"Theme", L"CurrentTheme", THEME_LIGHT);
 
 	reposition();
 	mTitleEdit.Create(WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | ES_CENTER, CRect(0, 0, 10, 10), this, 0);
@@ -497,7 +497,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 
 	switch(mTheme)
 	{
-	case THEME_BLACK:
+	case THEME_DARK:
 		bk_color = RGB(8, 9, 10);
 		grid_color = WHITE;
 		pie_color = RED;
@@ -537,7 +537,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		bk_color = WHITE;
 		grid_color = RGB(0, 0, 0);
 		pie_color = RED;
-		hand_color = RGB(77, 88, 94);
+		hand_color = RGB(220, 220, 220);
 		handshead_color = RGB(77, 88, 94);
 		timestr_color = RGB(220, 220, 220);
 		BORDER_COLOR = RED;
@@ -1375,8 +1375,8 @@ void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 	menu.AppendMenu(MF_STRING|(mTopmost?MF_CHECKED:0), IDM_TOPMOST, L"Alwasy On Top");
 	menu.AppendMenu(MF_SEPARATOR, 0, L"");
 	theme.CreatePopupMenu();
-	theme.AppendMenu(MF_STRING, IDM_THEMEDEFAULT, L"Default");
-	theme.AppendMenu(MF_STRING, IDM_THEMEBLACK, L"Black");
+	theme.AppendMenu(MF_STRING, IDM_THEMEDEFAULT, L"Light");
+	theme.AppendMenu(MF_STRING, IDM_THEMEBLACK, L"Dark");
 	theme.AppendMenu(MF_STRING, IDM_THEMEBLUE, L"Blue");
 	theme.AppendMenu(MF_STRING, IDM_THEMEGREEN, L"Green");
 	theme.AppendMenu(MF_STRING, IDM_THEMEORANGE, L"Orange");
@@ -1396,14 +1396,14 @@ void CNaraTimerDlg::OnMenuPin(void)
 	SetTopmost(!mTopmost);
 }
 
-void CNaraTimerDlg::OnThemeDefault(void)
+void CNaraTimerDlg::OnThemeLight(void)
 {
-	SetTheme(THEME_DEFAULT);
+	SetTheme(THEME_LIGHT);
 }
 
-void CNaraTimerDlg::OnThemeBlack(void)
+void CNaraTimerDlg::OnThemeDark(void)
 {
-	SetTheme(THEME_BLACK);
+	SetTheme(THEME_DARK);
 }
 
 void CNaraTimerDlg::OnThemeBlue(void)

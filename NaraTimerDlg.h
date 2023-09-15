@@ -4,9 +4,9 @@
 #define BUTTON_PIN			(1)
 #define NUM_BUTTONS			(2)
 
-#define THEME_DEFAULT		(0)
-#define THEME_BLUE			(1)
-#define THEME_BLACK			(2)
+#define THEME_LIGHT			(0)
+#define THEME_DARK			(1)
+#define THEME_BLUE			(2)
 #define THEME_GREEN			(3)
 #define THEME_ORANGE		(4)
 
@@ -95,9 +95,9 @@ protected:
 	afx_msg LRESULT OnPinToggle(WPARAM wParam, LPARAM lparam);
 	afx_msg void OnNew();
 	afx_msg void OnMenuPin();
-	afx_msg void OnThemeDefault();
+	afx_msg void OnThemeLight();
+	afx_msg void OnThemeDark();
 	afx_msg void OnThemeBlue();
-	afx_msg void OnThemeBlack();
 	afx_msg void OnThemeGreen();
 	afx_msg void OnThemeOrange();
 	DECLARE_MESSAGE_MAP()
