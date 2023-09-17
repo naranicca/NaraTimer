@@ -447,7 +447,7 @@ ULONGLONG CNaraTimerDlg::deg2time(float deg, BOOL stick)
 		int m = ((int)((t / 1000)) % 3600) / 60;
 		mHM.cx = (h < 24 ? h : h - 24);
 		mHM.cy = m;
-		mTimeStr.Format(L"%d:%02d", (mHM.cx > 12 ? mHM.cx - 12 : mHM.cx), mHM.cy);
+		mTimeStr.Format(L"%d:%02d %s", (mHM.cx > 12 ? mHM.cx - 12 : mHM.cx), mHM.cy, mHM.cx < 12? L"am": L"pm");
 		ULONGLONG o = (c.GetMinute() * 60 + c.GetSecond()) * 1000;
 		return GetTickCount64() + (t > o ? t - o : 0);
 	}

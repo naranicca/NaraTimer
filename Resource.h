@@ -1,7 +1,4 @@
 ﻿//{{NO_DEPENDENCIES}}
-// Microsoft Visual C++에서 생성한 포함 파일입니다.
-// NaraTimer.rc에서 사용
-//
 #define IDM_ABOUTBOX					0x0010
 #define IDD_ABOUTBOX					100
 #define IDS_ABOUTBOX					101
@@ -20,8 +17,6 @@
 #define IDM_THEMEGREEN					205
 #define IDM_THEMEORANGE					206
 
-// 다음은 새 개체에 사용할 기본값입니다.
-//
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 
