@@ -33,6 +33,9 @@ protected:
 	CBitmap mBuf;
 	ULONGLONG mTimeSet;
 	int mTheme;
+	int mDigitalWatch;
+	int mTickSound;
+	int mHasDate;
 	int mRadius;
 	int mRadiusHandsHead;
 	BOOL mSetting;
@@ -58,6 +61,7 @@ protected:
 	int mButtonIconHover[NUM_BUTTONS];
 	BOOL mIsMiniMode;
 	BOOL mResizing;
+	int mMuteTick;
 
 	void reposition(void);
 	int HitTest(CPoint pt);
@@ -99,6 +103,9 @@ protected:
 	afx_msg void OnThemeBlue();
 	afx_msg void OnThemeGreen();
 	afx_msg void OnThemeOrange();
+	afx_msg void OnToggleDigitalWatch();
+	afx_msg void OnToggleDate();
+	afx_msg void OnToggleTickSound();
 	DECLARE_MESSAGE_MAP()
 };
 

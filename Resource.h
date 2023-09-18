@@ -5,10 +5,11 @@
 #define IDD_NARATIMER_DIALOG			102
 #define IDR_MAINFRAME					128
 #define IDR_WAVE1						129
-#define IDI_PIN							130
-#define IDI_UNPIN						131
-#define IDI_CLOSE						132
-#define IDI_CLOSE_HOVER					133
+#define IDR_WAVE2						130
+#define IDI_PIN							131
+#define IDI_UNPIN						132
+#define IDI_CLOSE						133
+#define IDI_CLOSE_HOVER					134
 #define IDM_NEW							200
 #define IDM_TOPMOST						201
 #define IDM_THEMEDEFAULT				202
@@ -16,6 +17,9 @@
 #define IDM_THEMEBLUE					204
 #define IDM_THEMEGREEN					205
 #define IDM_THEMEORANGE					206
+#define IDM_TOGGLEDIGITALWATCH			300
+#define IDM_TOGGLEDATE					301
+#define IDM_TOGGLETICKSOUND				302
 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
