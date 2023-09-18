@@ -1122,6 +1122,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				fi.dwTimeout = 0;
 				::FlashWindowEx(&fi);
 				PlaySound((LPCWSTR)MAKEINTRESOURCE(IDR_WAVE1), GetModuleHandle(NULL), SND_ASYNC | SND_RESOURCE);
+				mMuteTick = 5;
 				Stop();
 			}
 		}
@@ -1141,10 +1142,11 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 			if (cs != s)
 			{
 				s = cs;
-				if (mTickSound)
+				if (mTickSound && mMuteTick <= 0)
 				{
 					PlaySound((LPCWSTR)MAKEINTRESOURCE(IDR_WAVE2), GetModuleHandle(NULL), SND_ASYNC | SND_RESOURCE);
 				}
+				if (mMuteTick > 0) mMuteTick--;
 				Invalidate(FALSE);
 			}
 		}

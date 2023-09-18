@@ -61,6 +61,7 @@ protected:
 	int mButtonIconHover[NUM_BUTTONS];
 	BOOL mIsMiniMode;
 	BOOL mResizing;
+	int mMuteTick;
 
 	void reposition(void);
 	int HitTest(CPoint pt);
