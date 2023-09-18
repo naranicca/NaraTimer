@@ -34,6 +34,7 @@ protected:
 	ULONGLONG mTimeSet;
 	int mTheme;
 	int mDigitalWatch;
+	int mTickSound;
 	int mHasDate;
 	int mRadius;
 	int mRadiusHandsHead;
@@ -104,6 +105,7 @@ protected:
 	afx_msg void OnThemeOrange();
 	afx_msg void OnToggleDigitalWatch();
 	afx_msg void OnToggleDate();
+	afx_msg void OnToggleTickSound();
 	DECLARE_MESSAGE_MAP()
 };
 
