@@ -176,6 +176,9 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, CDialogEx)
 	ON_COMMAND(IDM_THEMEBLUE, OnThemeBlue)
 	ON_COMMAND(IDM_THEMEGREEN, OnThemeGreen)
 	ON_COMMAND(IDM_THEMEORANGE, OnThemeOrange)
+	ON_COMMAND(IDM_TOGGLEDIGITALWATCH, OnToggleDigitalWatch)
+	ON_COMMAND(IDM_TOGGLEDATE, OnToggleDate)
+	ON_COMMAND(IDM_TOGGLETICKSOUND, OnToggleTickSound)
 END_MESSAGE_MAP()
 
 BOOL CNaraTimerDlg::OnInitDialog()
@@ -205,6 +208,9 @@ BOOL CNaraTimerDlg::OnInitDialog()
 	SET_WINDOWED_STYLE;
 
 	mTheme = AfxGetApp()->GetProfileInt(L"Theme", L"CurrentTheme", THEME_LIGHT);
+	mDigitalWatch = AfxGetApp()->GetProfileInt(L"Theme", L"DigitalWatch", 1);
+	mHasDate = AfxGetApp()->GetProfileInt(L"Theme", L"HasDate", 1);
+	mTickSound = AfxGetApp()->GetProfileInt(L"Theme", L"TickSound", 0);
 
 	reposition();
 	mTitleEdit.Create(WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | ES_CENTER, CRect(0, 0, 10, 10), this, 0);
@@ -765,7 +771,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	}
 
 	// draw time info
-	if (IS_ALARM_MODE || mIsMiniMode)
+	if ((mDigitalWatch && IS_ALARM_MODE) || mIsMiniMode)
 	{
 		CFont font;
 		int font_size = (r / 3);
@@ -791,7 +797,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	}
 
 	// draw date complications
-	if(IS_ALARM_MODE)
+	if(mHasDate && IS_ALARM_MODE)
 	{
 		CFont font;
 		GetFont(font, r / 6, TRUE);
@@ -1116,6 +1122,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				fi.dwTimeout = 0;
 				::FlashWindowEx(&fi);
 				PlaySound((LPCWSTR)MAKEINTRESOURCE(IDR_WAVE1), GetModuleHandle(NULL), SND_ASYNC | SND_RESOURCE);
+				mMuteTick = 5;
 				Stop();
 			}
 		}
@@ -1135,6 +1142,11 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 			if (cs != s)
 			{
 				s = cs;
+				if (mTickSound && mMuteTick <= 0)
+				{
+					PlaySound((LPCWSTR)MAKEINTRESOURCE(IDR_WAVE2), GetModuleHandle(NULL), SND_ASYNC | SND_RESOURCE);
+				}
+				if (mMuteTick > 0) mMuteTick--;
 				Invalidate(FALSE);
 			}
 		}
@@ -1381,6 +1393,9 @@ void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 	theme.AppendMenu(MF_STRING, IDM_THEMEGREEN, L"Green");
 	theme.AppendMenu(MF_STRING, IDM_THEMEORANGE, L"Orange");
 	menu.AppendMenuW(MF_POPUP, (UINT_PTR)theme.Detach(), L"Themes");
+	menu.AppendMenuW(MF_STRING | (mDigitalWatch ? MF_CHECKED : 0), IDM_TOGGLEDIGITALWATCH, L"Digital Watch");
+	menu.AppendMenuW(MF_STRING | (mHasDate ? MF_CHECKED : 0), IDM_TOGGLEDATE, L"Date");
+	menu.AppendMenuW(MF_STRING | (mTickSound ? MF_CHECKED : 0), IDM_TOGGLETICKSOUND, L"Ticking Sound");
 	menu.TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, pt.x, pt.y, this);
 }
 
@@ -1419,6 +1434,27 @@ void CNaraTimerDlg::OnThemeGreen(void)
 void CNaraTimerDlg::OnThemeOrange(void)
 {
 	SetTheme(THEME_ORANGE);
+}
+
+void CNaraTimerDlg::OnToggleDigitalWatch(void)
+{
+	mDigitalWatch = !mDigitalWatch;
+	AfxGetApp()->WriteProfileInt(L"Theme", L"DigitalWatch", mDigitalWatch);
+	Invalidate(FALSE);
+}
+
+void CNaraTimerDlg::OnToggleDate(void)
+{
+	mHasDate = !mHasDate;
+	AfxGetApp()->WriteProfileInt(L"Theme", L"HasDate", mHasDate);
+	Invalidate(FALSE);
+}
+
+void CNaraTimerDlg::OnToggleTickSound(void)
+{
+	mTickSound = !mTickSound;
+	AfxGetApp()->WriteProfileInt(L"Theme", L"TickSound", mTickSound);
+	Invalidate(FALSE);
 }
 
 void CNaraTimerDlg::reposition(void)
