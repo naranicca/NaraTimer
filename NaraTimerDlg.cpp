@@ -176,6 +176,7 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, CDialogEx)
 	ON_COMMAND(IDM_THEMEBLUE, OnThemeBlue)
 	ON_COMMAND(IDM_THEMEGREEN, OnThemeGreen)
 	ON_COMMAND(IDM_THEMEORANGE, OnThemeOrange)
+	ON_COMMAND(IDM_TOGGLEDIGITALWATCH, OnToggleDigitalWatch)
 	ON_COMMAND(IDM_TOGGLEDATE, OnToggleDate)
 END_MESSAGE_MAP()
 
@@ -767,7 +768,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	}
 
 	// draw time info
-	if (IS_ALARM_MODE || mIsMiniMode)
+	if ((mDigitalWatch && IS_ALARM_MODE) || mIsMiniMode)
 	{
 		CFont font;
 		int font_size = (r / 3);
@@ -1383,7 +1384,8 @@ void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 	theme.AppendMenu(MF_STRING, IDM_THEMEGREEN, L"Green");
 	theme.AppendMenu(MF_STRING, IDM_THEMEORANGE, L"Orange");
 	menu.AppendMenuW(MF_POPUP, (UINT_PTR)theme.Detach(), L"Themes");
-	menu.AppendMenuW(MF_STRING | (mHasDate ? MF_CHECKED : 0), IDM_TOGGLEDATE, L"Show Date");
+	menu.AppendMenuW(MF_STRING | (mDigitalWatch ? MF_CHECKED : 0), IDM_TOGGLEDIGITALWATCH, L"Digital Watch");
+	menu.AppendMenuW(MF_STRING | (mHasDate ? MF_CHECKED : 0), IDM_TOGGLEDATE, L"Date");
 	menu.TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, pt.x, pt.y, this);
 }
 
@@ -1422,6 +1424,13 @@ void CNaraTimerDlg::OnThemeGreen(void)
 void CNaraTimerDlg::OnThemeOrange(void)
 {
 	SetTheme(THEME_ORANGE);
+}
+
+void CNaraTimerDlg::OnToggleDigitalWatch(void)
+{
+	mDigitalWatch = !mDigitalWatch;
+	AfxGetApp()->WriteProfileInt(L"Theme", L"DigitalWatch", mDigitalWatch);
+	Invalidate(FALSE);
 }
 
 void CNaraTimerDlg::OnToggleDate(void)
