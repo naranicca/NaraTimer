@@ -19,6 +19,7 @@
 #define IDM_THEMEBLUE					204
 #define IDM_THEMEGREEN					205
 #define IDM_THEMEORANGE					206
+#define IDM_TOGGLEDATE					300
 
 // 다음은 새 개체에 사용할 기본값입니다.
 //

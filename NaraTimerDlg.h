@@ -33,6 +33,7 @@ protected:
 	CBitmap mBuf;
 	ULONGLONG mTimeSet;
 	int mTheme;
+	int mHasDate;
 	int mRadius;
 	int mRadiusHandsHead;
 	BOOL mSetting;
@@ -100,6 +101,7 @@ protected:
 	afx_msg void OnThemeBlue();
 	afx_msg void OnThemeGreen();
 	afx_msg void OnThemeOrange();
+	afx_msg void OnToggleDate();
 	DECLARE_MESSAGE_MAP()
 };
 
