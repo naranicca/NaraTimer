@@ -18,6 +18,11 @@ public:
 	void SetTitle();
 	void SetTopmost(BOOL topmost=TRUE);
 	void SetTheme(int theme);
+	void PlayTickSound(void);
+
+	BOOL mRunning;
+	CWinThread * mThread;
+	int mMuteTick;
 
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_NARATIMER_DIALOG };
@@ -61,7 +66,6 @@ protected:
 	int mButtonIconHover[NUM_BUTTONS];
 	BOOL mIsMiniMode;
 	BOOL mResizing;
-	int mMuteTick;
 
 	void reposition(void);
 	int HitTest(CPoint pt);

@@ -78,6 +78,12 @@ END_MESSAGE_MAP()
 CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_NARATIMER_DIALOG, pParent)
 {
+	// set class name
+	WNDCLASS c = {};
+	::GetClassInfo(AfxGetInstanceHandle(), L"#32770", &c);
+	c.lpszClassName = L"NaraTimer_designed-by-naranicca";
+	AfxRegisterClass(&c);
+
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	mTheme = THEME_LIGHT;
 	mTimeSet = 0;
@@ -101,6 +107,7 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	mDegOffset = 0;
 	mIsMiniMode = FALSE;
 	mResizing = FALSE;
+	mMuteTick = 0;
 }
 
 void CNaraTimerDlg::Stop(void)
@@ -146,6 +153,14 @@ void CNaraTimerDlg::SetTheme(int theme)
 	Invalidate(FALSE);
 }
 
+void CNaraTimerDlg::PlayTickSound(void)
+{
+	if(mTickSound)
+	{
+		PlaySound((LPCWSTR)MAKEINTRESOURCE(IDR_WAVE2), GetModuleHandle(NULL), SND_ASYNC | SND_RESOURCE);
+	}
+}
+
 void CNaraTimerDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
@@ -180,6 +195,32 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, CDialogEx)
 	ON_COMMAND(IDM_TOGGLEDATE, OnToggleDate)
 	ON_COMMAND(IDM_TOGGLETICKSOUND, OnToggleTickSound)
 END_MESSAGE_MAP()
+
+UINT FnThreadTicking(LPVOID param)
+{
+	CNaraTimerDlg * dlg = (CNaraTimerDlg*)param;
+	HWND hwnd = dlg->GetSafeHwnd();
+	while(dlg->mRunning)
+	{
+		int mute = dlg->mMuteTick;
+		if(mute > 0)
+		{
+			dlg->mMuteTick = 0;
+			Sleep(mute * 1000);
+		}
+		else
+		{
+			dlg->mMuteTick = 0;
+			if(::FindWindow(L"NaraTimer_designed-by-naranicca", NULL) == hwnd)
+			{
+				dlg->PlayTickSound();
+			}
+			ULONGLONG t = GetTickCount64();
+			Sleep(1000 - (t % 1000));
+		}
+	}
+	return 0;
+}
 
 BOOL CNaraTimerDlg::OnInitDialog()
 {
@@ -220,6 +261,9 @@ BOOL CNaraTimerDlg::OnInitDialog()
 	SetTopmost(FALSE);
 
 	SetWindowText(L"NaraTimer");
+
+	mRunning = TRUE;
+	mThread = AfxBeginThread(FnThreadTicking, this);
 
 	return TRUE;
 }
@@ -312,6 +356,10 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 		{
 			PostMessage(WM_CONTEXTMENU, 0, pMsg->lParam);
 		}
+		break;
+	case WM_CLOSE:
+		mRunning = FALSE;
+		WaitForSingleObject(mThread->m_hThread, INFINITE);
 		break;
 	}
 	return CDialogEx::PreTranslateMessage(pMsg);
@@ -1192,8 +1240,8 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				fi.uCount = 0;
 				fi.dwTimeout = 0;
 				::FlashWindowEx(&fi);
-				PlaySound((LPCWSTR)MAKEINTRESOURCE(IDR_WAVE1), GetModuleHandle(NULL), SND_ASYNC | SND_RESOURCE);
 				mMuteTick = 5;
+				PlaySound((LPCWSTR)MAKEINTRESOURCE(IDR_WAVE1), GetModuleHandle(NULL), SND_ASYNC | SND_RESOURCE);
 				Stop();
 			}
 		}
@@ -1213,11 +1261,6 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 			if (cs != s)
 			{
 				s = cs;
-				if (mTickSound && mMuteTick <= 0)
-				{
-					PlaySound((LPCWSTR)MAKEINTRESOURCE(IDR_WAVE2), GetModuleHandle(NULL), SND_ASYNC | SND_RESOURCE);
-				}
-				if (mMuteTick > 0) mMuteTick--;
 				Invalidate(FALSE);
 			}
 		}
