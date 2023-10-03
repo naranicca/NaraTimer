@@ -625,6 +625,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	dc->SetBkMode(TRANSPARENT);
 	GetClientRect(&mTimerRect);
 	CopyRect(&border_rect, rt);
+#if 0
 	// shadows
 	if(!mIsMiniMode)
 	{
@@ -641,6 +642,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		}
 		dc->SelectObject(bro);
 	}
+#endif
 	if (mTitleHeight > 0)
 	{
 		int off = TITLE_OFFSET;
@@ -896,22 +898,6 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	float pt = (r * 0.08f);
 	CPen pencl(PS_SOLID, ROUND(pt), handshead_color);
 	peno = (CPen*)dc->SelectObject(&pencl);
-#if 0
-	pt0 = deg2pt(deg, ROUND(r * hand_size - pt/2 + scale));
-	dc->MoveTo(x + r, y + r);
-	dc->LineTo(x + r + pt0.x, y + r + pt0.y);
-	dc->SelectObject(peno);
-	if (hand_color != handshead_color)
-	{
-		CPen pen(PS_SOLID, ROUND(pt * 0.7f), hand_color);
-		CPen* peno = dc->SelectObject(&pen);
-		pt0 = deg2pt(deg, sz + (sz>>1));
-		pt1 = deg2pt(deg, ROUND(r * hand_size - pt/2 - scale));
-		dc->MoveTo(x + r + pt0.x, y + r + pt0.y);
-		dc->LineTo(x + r + pt1.x, y + r + pt1.y);
-		dc->SelectObject(peno);
-	}
-#else
 	if (hand_color == handshead_color)
 	{
 		pt0 = deg2pt(deg, ROUND(r * hand_size - pt/2 + scale));
@@ -942,7 +928,6 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		dc->LineTo(x + r + pt1.x, y + r + pt1.y);
 		dc->SelectObject(peno);
 	}
-#endif
 	// Hands head
 	CBrush brgrey(handshead_color);
 	bro = (CBrush*)dc->SelectObject(&brgrey);
@@ -970,12 +955,13 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 
 void CNaraTimerDlg::DrawBorder(CDC * dc, RECT * rt, float scale)
 {
+	int corner = ROUND(ROUND_CORNER * 2 * scale);
 	// border
 	{
 		CPen pen(PS_SOLID, ROUND(RESIZE_MARGIN * 2 * scale), BORDER_COLOR);
 		CPen* peno = dc->SelectObject(&pen);
 		CBrush* bro = (CBrush*)dc->SelectStockObject(NULL_BRUSH);
-		dc->RoundRect(rt->left, rt->top, rt->right, rt->bottom, ROUND(ROUND_CORNER * 2 * scale), ROUND(ROUND_CORNER * 2 * scale));
+		dc->RoundRect(rt->left, rt->top, rt->right, rt->bottom, corner, corner);
 		dc->SelectObject(peno);
 		dc->SelectObject(bro);
 	}
@@ -986,7 +972,7 @@ void CNaraTimerDlg::DrawBorder(CDC * dc, RECT * rt, float scale)
 		c = blend_color(blend_color(c, BORDER_COLOR), BORDER_COLOR);
 		CPen pen(PS_SOLID, ROUND(3 * scale), c);
 		CPen* peno = dc->SelectObject(&pen);
-		dc->RoundRect(rt->left, rt->top, rt->right<<1, rt->bottom<<1, ROUND(ROUND_CORNER * 2 * scale), ROUND(ROUND_CORNER * 2 * scale));
+		dc->RoundRect(rt->left, rt->top, rt->right<<1, rt->bottom<<1, corner, corner);
 		dc->SelectObject(peno);
 		dc->SelectObject(bro);
 	}
@@ -997,7 +983,12 @@ void CNaraTimerDlg::DrawBorder(CDC * dc, RECT * rt, float scale)
 		c = blend_color(blend_color(c, BORDER_COLOR), BORDER_COLOR);
 		CPen pen(PS_SOLID, ROUND(3 * scale), c);
 		CPen* peno = dc->SelectObject(&pen);
-		dc->RoundRect(rt->left-100, rt->top-100, rt->right, rt->bottom, ROUND(ROUND_CORNER * 2 * scale), ROUND(ROUND_CORNER * 2 * scale));
+		dc->RoundRect(rt->left-100, rt->top-100, rt->right, rt->bottom, corner, corner);
+		dc->SelectObject(peno);
+		CPen pen2(PS_SOLID, ROUND(1 * scale), c);
+		peno = dc->SelectObject(&pen2);
+		int off = ROUND(RESIZE_MARGIN * scale);
+		dc->RoundRect(rt->left + off, rt->top + off, rt->right - off, rt->bottom - off, corner - 2*off, corner - 2*off);
 		dc->SelectObject(peno);
 		dc->SelectObject(bro);
 	}
