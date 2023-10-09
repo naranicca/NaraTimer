@@ -616,7 +616,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	else
 	{
 		hand_size = 1.f;
-		handshead_size = 0.09f;
+		handshead_size = 0.07f;
 	}
 
 	if(mIsMiniMode)
