@@ -16,6 +16,7 @@ class CNaraTimerDlg : public CDialogEx
 public:
 	CNaraTimerDlg(CWnd* pParent = nullptr);
 	void Stop(void);
+	void SetMode(BOOL is_timer = TRUE);
 	void SetTitle();
 	void SetTopmost(BOOL topmost=TRUE);
 	void SetTheme(int theme);
@@ -102,6 +103,8 @@ protected:
 	afx_msg void OnDestroy();
 	afx_msg LRESULT OnPinToggle(WPARAM wParam, LPARAM lparam);
 	afx_msg void OnNew();
+	afx_msg void OnTimerMode();
+	afx_msg void OnAlarmMode();
 	afx_msg void OnMenuPin();
 	afx_msg void OnThemeLight();
 	afx_msg void OnThemeDark();

@@ -185,6 +185,8 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, CDialogEx)
 	ON_WM_DESTROY()
 	ON_MESSAGE(WM_PIN, OnPinToggle)
 	ON_COMMAND(IDM_NEW, OnNew)
+	ON_COMMAND(IDM_TIMERMODE, OnTimerMode)
+	ON_COMMAND(IDM_ALARMMODE, OnAlarmMode)
 	ON_COMMAND(IDM_TOPMOST, OnMenuPin)
 	ON_COMMAND(IDM_THEMEDEFAULT, OnThemeLight)
 	ON_COMMAND(IDM_THEMEBLACK, OnThemeDark)
@@ -1275,6 +1277,34 @@ BOOL CNaraTimerDlg::IsTitleArea(CPoint pt)
 	return (pt.x >= mTitleRect.left && pt.x < mTitleRect.right && pt.y >= mTitleRect.top && pt.y < mTitleRect.bottom);
 }
 
+void CNaraTimerDlg::SetMode(BOOL is_timer)
+{
+	if(is_timer)
+	{
+		if(IS_TIMER_MODE) return;
+		mTime360 = TIMER_TIME360;
+		mIsTimer = TRUE;
+	}
+	else
+	{
+		if(IS_ALARM_MODE) return;
+		mTime360 = MAX_TIME360;
+		mIsTimer = FALSE;
+	}
+	mTimeSet = 0;
+	RECT crt;
+	GetClientRect(&crt);
+	for(int m = mRadiusHandsHead >> 1; m > 0; m >>= 1)
+	{
+		LONGLONG d = GetTimestamp();
+		if (d < 30) Sleep((DWORD)(30 - d));
+		CClientDC dc(this);
+		RECT rt = { crt.left + m, crt.top + m,crt.right - m,crt.bottom - m };
+		DrawTimer(&dc, &rt, 1.f);
+	}
+	SetWindowText(L"NaraTimer");
+}
+
 void CNaraTimerDlg::SetTitle()
 {
 	if(!mIsMiniMode)
@@ -1346,27 +1376,14 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 		if (mTimeSet == 0 && !CTRL_DOWN)
 		{
 			KillTimer(TID_TICK);
-			mIsTimer = !mIsTimer;
 			if (IS_ALARM_MODE)
 			{
-				mTime360 = TIMER_TIME360;
-				mIsTimer = TRUE;
+				SetMode(TRUE);
 			}
 			else
 			{
-				mTime360 = MAX_TIME360;
-				mIsTimer = FALSE;
+				SetMode(FALSE);
 			}
-			mTimeSet = 0;
-			for (int m = mRadiusHandsHead >> 1; m > 0; m >>= 1)
-			{
-				LONGLONG d = GetTimestamp();
-				if (d < 30) Sleep((DWORD)(30 - d));
-				CClientDC dc(this);
-				RECT rt = { crt.left + m, crt.top + m,crt.right - m,crt.bottom - m };
-				DrawTimer(&dc, &rt, 1.f);
-			}
-			SetWindowText(L"NaraTimer");
 		}
 		else
 		{
@@ -1499,7 +1516,11 @@ void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 	CMenu menu, theme;
 	menu.CreatePopupMenu();
 	menu.AppendMenu(MF_STRING, IDM_NEW, L"New");
-	menu.AppendMenu(MF_STRING|(mTopmost?MF_CHECKED:0), IDM_TOPMOST, L"Alwasy On Top");
+	menu.AppendMenu(MF_SEPARATOR, 0, L"");
+	menu.AppendMenu(MF_STRING | (IS_TIMER_MODE? MF_CHECKED: 0), IDM_TIMERMODE, L"Timer Mode");
+	menu.AppendMenu(MF_STRING | (IS_ALARM_MODE? MF_CHECKED: 0), IDM_ALARMMODE, L"Alarm Mode");
+	menu.AppendMenu(MF_SEPARATOR, 0, L"");
+	menu.AppendMenu(MF_STRING|(mTopmost?MF_CHECKED:0), IDM_TOPMOST, L"Always On Top");
 	menu.AppendMenu(MF_SEPARATOR, 0, L"");
 	theme.CreatePopupMenu();
 	theme.AppendMenu(MF_STRING, IDM_THEMEDEFAULT, L"Light");
@@ -1520,6 +1541,16 @@ void CNaraTimerDlg::OnNew(void)
 	wchar_t path[MAX_PATH];
 	GetModuleFileName(GetModuleHandle(NULL), path, MAX_PATH);
 	ShellExecute(GetSafeHwnd(), L"open", path, NULL, NULL, 1);
+}
+
+void CNaraTimerDlg::OnTimerMode(void)
+{
+	SetMode(TRUE);
+}
+
+void CNaraTimerDlg::OnAlarmMode(void)
+{
+	SetMode(FALSE);
 }
 
 void CNaraTimerDlg::OnMenuPin(void)
