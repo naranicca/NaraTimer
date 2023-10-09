@@ -568,7 +568,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		grid_color = WHITE;
 		pie_color = RED;
 		hand_color = WHITE;
-		handshead_color = RGB(39, 40, 41);
+		handshead_color = RGB(69, 70, 71);
 		timestr_color = RGB(220, 220, 220);
 		BORDER_COLOR = RGB(16, 41, 145);
 		break;
@@ -577,7 +577,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		grid_color = WHITE;
 		pie_color = RED;
 		hand_color = WHITE;
-		handshead_color = RGB(39, 40, 41);
+		handshead_color = RGB(69, 70, 71);
 		timestr_color = RGB(220, 220, 220);
 		BORDER_COLOR = RGB(30, 108, 78);
 		break;
