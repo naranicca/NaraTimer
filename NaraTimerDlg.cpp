@@ -1523,12 +1523,12 @@ void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 	menu.AppendMenu(MF_STRING|(mTopmost?MF_CHECKED:0), IDM_TOPMOST, L"Always On Top");
 	menu.AppendMenu(MF_SEPARATOR, 0, L"");
 	theme.CreatePopupMenu();
-	theme.AppendMenu(MF_STRING, IDM_THEMEDEFAULT, L"Light");
-	theme.AppendMenu(MF_STRING, IDM_THEMEBLACK, L"Dark");
-	theme.AppendMenu(MF_STRING, IDM_THEMEBLUE, L"Blue");
-	theme.AppendMenu(MF_STRING, IDM_THEMEGREEN, L"Green");
-	theme.AppendMenu(MF_STRING, IDM_THEMEORANGE, L"Orange");
-	theme.AppendMenu(MF_STRING, IDM_THEMEMINT, L"Mint");
+	theme.AppendMenu(MF_STRING | (mTheme == THEME_LIGHT? MF_CHECKED: 0), IDM_THEMEDEFAULT, L"Light");
+	theme.AppendMenu(MF_STRING | (mTheme == THEME_DARK? MF_CHECKED: 0), IDM_THEMEBLACK, L"Dark");
+	theme.AppendMenu(MF_STRING | (mTheme == THEME_BLUE? MF_CHECKED: 0), IDM_THEMEBLUE, L"Blue");
+	theme.AppendMenu(MF_STRING | (mTheme == THEME_GREEN? MF_CHECKED: 0), IDM_THEMEGREEN, L"Green");
+	theme.AppendMenu(MF_STRING | (mTheme == THEME_ORANGE? MF_CHECKED: 0), IDM_THEMEORANGE, L"Orange");
+	theme.AppendMenu(MF_STRING | (mTheme == THEME_MINT? MF_CHECKED: 0), IDM_THEMEMINT, L"Mint");
 	menu.AppendMenuW(MF_POPUP, (UINT_PTR)theme.Detach(), L"Themes");
 	menu.AppendMenuW(MF_STRING | (mDigitalWatch ? MF_CHECKED : 0), IDM_TOGGLEDIGITALWATCH, L"Digital Watch");
 	menu.AppendMenuW(MF_STRING | (mHasDate ? MF_CHECKED : 0), IDM_TOGGLEDATE, L"Date");
