@@ -183,6 +183,7 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, CDialogEx)
 	ON_WM_WINDOWPOSCHANGED()
 	ON_WM_QUERYDRAGICON()
 	ON_WM_DESTROY()
+	ON_EN_CHANGE(IDC_EDIT, OnTitleChanging)
 	ON_MESSAGE(WM_PIN, OnPinToggle)
 	ON_COMMAND(IDM_NEW, OnNew)
 	ON_COMMAND(IDM_TIMERMODE, OnTimerMode)
@@ -257,7 +258,7 @@ BOOL CNaraTimerDlg::OnInitDialog()
 	mTickSound = AfxGetApp()->GetProfileInt(L"Theme", L"TickSound", 0);
 
 	reposition();
-	mTitleEdit.Create(WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | ES_CENTER, CRect(0, 0, 10, 10), this, 0);
+	mTitleEdit.Create(WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | ES_CENTER, CRect(0, 0, 10, 10), this, IDC_EDIT);
 	mTitleEdit.ShowWindow(SW_HIDE);
 
 	SetTimer(TID_REFRESH, 1000, NULL);
@@ -568,7 +569,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		grid_color = WHITE;
 		pie_color = RED;
 		hand_color = WHITE;
-		handshead_color = RGB(39, 40, 41);
+		handshead_color = RGB(69, 70, 71);
 		timestr_color = RGB(220, 220, 220);
 		BORDER_COLOR = RGB(16, 41, 145);
 		break;
@@ -577,7 +578,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		grid_color = WHITE;
 		pie_color = RED;
 		hand_color = WHITE;
-		handshead_color = RGB(39, 40, 41);
+		handshead_color = RGB(69, 70, 71);
 		timestr_color = RGB(220, 220, 220);
 		BORDER_COLOR = RGB(30, 108, 78);
 		break;
@@ -1309,14 +1310,7 @@ void CNaraTimerDlg::SetTitle()
 {
 	if(!mIsMiniMode)
 	{
-		mTitleHeight = GetTitleHeight();
-		OnPaint();
-		CFont font;
-		GetFont(font, mTitleHeight, TRUE);
-		mTitleEdit.ShowWindow(SW_SHOW);
-		mTitleEdit.SetFont(&font, FALSE);
-		mTitleEdit.MoveWindow(&mTitleRect);
-		mTitleEdit.SetFocus();
+		OnTitleChanging();
 		mTitleEdit.SetSel(0, -1);
 	}
 }
@@ -1699,6 +1693,21 @@ LRESULT CNaraTimerDlg::OnPinToggle(WPARAM wParam, LPARAM lParam)
 {
 	SetTopmost(!mTopmost);
 	return S_OK;
+}
+
+void CNaraTimerDlg::OnTitleChanging(void)
+{
+	if(mTitleHeight == 0)
+	{
+		mTitleHeight = GetTitleHeight();
+		OnPaint();
+		CFont font;
+		GetFont(font, mTitleHeight, TRUE);
+		mTitleEdit.SetFont(&font, FALSE);
+	}
+	mTitleEdit.MoveWindow(&mTitleRect);
+	mTitleEdit.SetFocus();
+	mTitleEdit.ShowWindow(SW_SHOW);
 }
 
 
