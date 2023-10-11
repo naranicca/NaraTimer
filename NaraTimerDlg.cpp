@@ -1704,9 +1704,9 @@ void CNaraTimerDlg::OnTitleChanging(void)
 		CFont font;
 		GetFont(font, mTitleHeight, TRUE);
 		mTitleEdit.SetFont(&font, FALSE);
-		mTitleEdit.MoveWindow(&mTitleRect);
-		mTitleEdit.SetFocus();
 	}
+	mTitleEdit.MoveWindow(&mTitleRect);
+	mTitleEdit.SetFocus();
 	mTitleEdit.ShowWindow(SW_SHOW);
 }
 
