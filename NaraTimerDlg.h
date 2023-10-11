@@ -102,6 +102,7 @@ protected:
 	afx_msg void OnWindowPosChanged(WINDOWPOS* pos);
 	afx_msg void OnDestroy();
 	afx_msg LRESULT OnPinToggle(WPARAM wParam, LPARAM lparam);
+	afx_msg void OnTitleChanging();
 	afx_msg void OnNew();
 	afx_msg void OnTimerMode();
 	afx_msg void OnAlarmMode();

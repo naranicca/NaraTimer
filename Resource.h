@@ -3,6 +3,7 @@
 #define IDD_ABOUTBOX					100
 #define IDS_ABOUTBOX					101
 #define IDD_NARATIMER_DIALOG			102
+#define IDC_EDIT						103
 #define IDR_MAINFRAME					128
 #define IDR_WAVE1						129
 #define IDR_WAVE2						130
