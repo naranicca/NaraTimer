@@ -638,24 +638,6 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	dc->SetBkMode(TRANSPARENT);
 	GetClientRect(&mTimerRect);
 	CopyRect(&border_rect, rt);
-#if 0
-	// shadows
-	if(!mIsMiniMode)
-	{
-		COLORREF c = RGB(0, 0, 0);
-		CBrush* bro = (CBrush*)dc->SelectStockObject(NULL_BRUSH);
-		for (int i = 0; i < 20; i++)
-		{
-			CPen pen(PS_SOLID, ROUND(2 * scale), c);
-			CPen* peno = dc->SelectObject(&pen);
-			int off = ROUND((RESIZE_MARGIN + i) * scale);
-			dc->RoundRect(rt->left + off, rt->top + off, rt->right - off, rt->bottom - off, ROUND(ROUND_CORNER * 2 * scale) - 2 * off, ROUND(ROUND_CORNER * 2 * scale) - 2 * off);
-			dc->SelectObject(peno);
-			c = blend_color(blend_color(bk_color, c), c);
-		}
-		dc->SelectObject(bro);
-	}
-#endif
 	if (mTitleHeight > 0)
 	{
 		int off = TITLE_OFFSET;
@@ -1084,11 +1066,10 @@ void CNaraTimerDlg::OnPaint()
 {
 	if (IsIconic())
 	{
-		CPaintDC dc(this); // 그리기를 위한 디바이스 컨텍스트입니다.
+		CPaintDC dc(this);
 
 		SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
 
-		// 클라이언트 사각형에서 아이콘을 가운데에 맞춥니다.
 		int cxIcon = GetSystemMetrics(SM_CXICON);
 		int cyIcon = GetSystemMetrics(SM_CYICON);
 		CRect rect;
@@ -1096,7 +1077,6 @@ void CNaraTimerDlg::OnPaint()
 		int x = (rect.Width() - cxIcon + 1) / 2;
 		int y = (rect.Height() - cyIcon + 1) / 2;
 
-		// 아이콘을 그립니다.
 		dc.DrawIcon(x, y, m_hIcon);
 	}
 	else
@@ -1258,7 +1238,6 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 	{
 		if (!IS_TIMER_MODE)
 		{
-			static int m = 0;
 			static int s = 0;
 			int cm = CTime::GetCurrentTime().GetMinute();
 			int cs = CTime::GetCurrentTime().GetSecond();
@@ -1370,14 +1349,7 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 		if (mTimeSet == 0 && !CTRL_DOWN)
 		{
 			KillTimer(TID_TICK);
-			if (IS_ALARM_MODE)
-			{
-				SetMode(TRUE);
-			}
-			else
-			{
-				SetMode(FALSE);
-			}
+			SetMode(IS_ALARM_MODE);
 		}
 		else
 		{
