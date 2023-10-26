@@ -45,4 +45,8 @@
 #endif
 #endif
 
+#include <gdiPlus.h>
+#pragma comment(lib, "gdiPlus")
+using namespace Gdiplus;
+
 

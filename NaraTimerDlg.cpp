@@ -32,6 +32,7 @@ COLORREF BORDER_COLOR = RED;
 #define SET_WINDOWED_STYLE	ModifyStyle(WS_CAPTION|WS_POPUP, WS_THICKFRAME|WS_SYSMENU|WS_MINIMIZEBOX|WS_MAXIMIZEBOX)
 #define SET_BUTTON(id, idi, idi_hover) { mButtonIcon[id] = idi; mButtonIconHover[id] = idi_hover; }
 #define PT_IN_RECT(pt, rt)	((pt).x >= (rt).left && (pt).x < (rt).right && (pt).y >= (rt).top && (pt).y < (rt).bottom)
+#define DEFINE_PEN(name, color, opaque, width)	Pen name(Color(opaque, GetRValue(color), GetGValue(color), GetBValue(color)), width)
 
 #define WM_PIN				(WM_USER+1)
 
@@ -543,9 +544,9 @@ int CNaraTimerDlg::GetTitleHeight(void)
 
 void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border)
 {
+	Graphics g(*dc);
+	g.SetSmoothingMode(SmoothingModeHighQuality);
 	RECT border_rect;
-	CPen * peno;
-	CBrush* bro;
 	POINT pt0, pt1;
 	int clock;
 	int start = 0;
@@ -723,48 +724,34 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		}
 
 		// ddraw grids
-		CPen penm(PS_SOLID, ROUND(1 * scale), grid_color);
-		peno = (CPen*)dc->SelectObject(&penm);
+		DEFINE_PEN(penm, grid_color, 255, 1 * scale);
 		clock = (IS_TIMER_MODE ? 6 : 5);
 		for (int i = 0; i < 360; i += clock)
 		{
 			pt0 = deg2pt((float)i, r - (mGridSize >> 1));
 			pt1 = deg2pt((float)i, r + (mGridSize >> 1));
-			dc->MoveTo(x + r + pt0.x, y + r + pt0.y);
-			dc->LineTo(x + r + pt1.x, y + r + pt1.y);
+			g.DrawLine(&penm, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
 		}
-		dc->SelectObject(peno);
-		CPen penh(PS_SOLID, ROUND(3 * scale), grid_color);
-		peno = (CPen*)dc->SelectObject(&penh);
+		DEFINE_PEN(penh, grid_color, 255, 3 * scale);
 		for (int i = 0; i < 360; i += 30)
 		{
 			pt0 = deg2pt((float)i, r - mGridSize);
 			pt1 = deg2pt((float)i, r + mGridSize);
-			dc->MoveTo(x + r + pt0.x, y + r + pt0.y);
-			dc->LineTo(x + r + pt1.x, y + r + pt1.y);
+			g.DrawLine(&penh, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
 		}
-		dc->SelectObject(peno);
 	}
 	else
 	{
-		CPen pen(PS_SOLID, (int)(3 * scale + 0.5f), grid_color);
-		peno = (CPen*)dc->SelectObject(&pen);
-		bro = (CBrush*)dc->SelectStockObject(NULL_BRUSH);
-		dc->Ellipse(x, y, x + (r << 1), y + (r << 1));
-		dc->SelectObject(peno);
-		dc->SelectObject(bro);
+		DEFINE_PEN(pen, grid_color, 255, 3 * scale);
+		g.DrawEllipse(&pen, x, y, r << 1, r << 1);
 	}
 
 	// hands head shadow
 	int sz = ROUND(r * handshead_size);
-	mRadiusHandsHead = sz;
-	CBrush brgrey2(blend_color(blend_color(0, bk_color), bk_color));
-	peno = (CPen*)dc->SelectStockObject(NULL_PEN);
-	bro = (CBrush*)dc->SelectObject(&brgrey2);
 	int off = ROUND(sz * 0.15);
-	dc->Ellipse(x + r + off - sz, y + r + off - sz, x + r + off + sz, y + r + off + sz);
-	dc->SelectObject(peno);
-	dc->SelectObject(bro);
+	mRadiusHandsHead = sz;
+	SolidBrush brgrey2(Color(64, 0, 0, 0));
+	g.FillEllipse(&brgrey2, x + r + off - sz, y + r + off - sz, 2 * sz, 2 * sz);
 
 	// draw red pie
 	LONGLONG t_remain = (mTimeSet > 0 ? mTimeSet - GetTickCount64() : 0);
@@ -780,7 +767,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		int o = c.GetMinute() * 60 + c.GetSecond();
 		deg = 360.f * (t_remain + o * 1000) / MAX_TIME360;
 	}
-	DrawPie(dc, r, deg, rt, pie_color);
+	DrawPie(&g, r, deg, rt, pie_color);
 	CString str = L"";
 	if (deg > -mDegOffset)
 	{
@@ -891,56 +878,40 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	// Hands
 	if (deg < -mDegOffset) deg = -mDegOffset;
 	float pt = (r * 0.08f);
-	CPen pencl(PS_SOLID, ROUND(pt), handshead_color);
-	peno = (CPen*)dc->SelectObject(&pencl);
+	DEFINE_PEN(pencl, handshead_color, 255, pt);
+	pencl.SetStartCap(LineCapRound);
+	pencl.SetEndCap(LineCapRound);
 	if (hand_color == handshead_color)
 	{
 		pt0 = deg2pt(deg, ROUND(r * hand_size - pt/2 + scale));
-		dc->MoveTo(x + r, y + r);
-		dc->LineTo(x + r + pt0.x, y + r + pt0.y);
-		dc->SelectObject(peno);
+		g.DrawLine(&pencl, x + r, y + r, x + r + pt0.x, y + r + pt0.y);
 	}
 	else
 	{
 		pt0 = deg2pt(deg, ROUND(sz * 1.8f));
 		pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2 - scale));
-		dc->MoveTo(x + r + pt0.x, y + r + pt0.y);
-		dc->LineTo(x + r + pt1.x, y + r + pt1.y);
-		dc->SelectObject(peno);
+		g.DrawLine(&pencl, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
 
-		CPen p(PS_SOLID, ROUND(pt * 0.5f), handshead_color);
-		peno = dc->SelectObject(&p);
+		DEFINE_PEN(p, handshead_color, 255, pt * 0.5f);
 		pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2 - scale));
-		dc->MoveTo(x + r, y + r);
-		dc->LineTo(x + r + pt1.x, y + r + pt1.y);
-		dc->SelectObject(peno);
+		g.DrawLine(&p, x + r, y + r, x + r + pt1.x, y + r + pt1.y);
 
-		CPen pen(PS_SOLID, ROUND(pt * 0.5f), hand_color);
-		peno = dc->SelectObject(&pen);
+		DEFINE_PEN(pen, hand_color, 255, pt * 0.5f);
+		pen.SetStartCap(LineCapRound);
+		pen.SetEndCap(LineCapRound);
 		pt0 = deg2pt(deg, sz + sz);
 		pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2 - scale));
-		dc->MoveTo(x + r + pt0.x, y + r + pt0.y);
-		dc->LineTo(x + r + pt1.x, y + r + pt1.y);
-		dc->SelectObject(peno);
+		g.DrawLine(&pen, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
 	}
 	// Hands head
-	CBrush brgrey(handshead_color);
-	bro = (CBrush*)dc->SelectObject(&brgrey);
-	peno = (CPen*)dc->SelectStockObject(NULL_PEN);
-	dc->Ellipse(x + r - sz, y + r - sz, x + r + sz, y + r + sz);
-	if (hand_color != handshead_color)
+	SolidBrush brgrey(Color(255, GetRValue(handshead_color), GetGValue(handshead_color), GetBValue(handshead_color)));
+	g.FillEllipse(&brgrey, x + r - sz, y + r - sz, 2 * sz, 2 * sz);
+	if(hand_color != handshead_color)
 	{
-		CPen* peno = (CPen*)dc->SelectStockObject(NULL_PEN);
-		CBrush br(hand_color);
-		CBrush* bro = dc->SelectObject(&br);
+		SolidBrush br(Color(255, GetRValue(hand_color), GetGValue(hand_color), GetBValue(hand_color)));
 		int s = ROUND(sz * 0.3f);
-		dc->Ellipse(x + r - s, y + r - s, x + r + s, y + r + s);
-		dc->SelectObject(bro);
-		dc->SelectObject(peno);
+		g.FillEllipse(&br, x + r - s, y + r - s, 2 * s, 2 * s);
 	}
-	dc->SelectObject(bro);
-	dc->SelectObject(peno);
-	dc->SelectObject(fonto);
 
 	if (draw_border)
 	{
@@ -1003,11 +974,10 @@ void CNaraTimerDlg::DrawBorder(CDC * dc, RECT * rt, float scale)
 	}
 }
 
-void CNaraTimerDlg::DrawPie(CDC* dc, int r, float deg, RECT* rect, COLORREF c)
+void CNaraTimerDlg::DrawPie(Graphics * g, int r, float deg, RECT* rect, COLORREF c)
 {
 	if(c == -1) c = RED;
-	CBrush brred(c), * bro;
-	CPen pen(PS_SOLID, 1, c), * peno;
+	SolidBrush brred(Color(255, GetRValue(c), GetGValue(c), GetBValue(c)));
 	RECT rt;
 	if (rect == NULL)
 	{
@@ -1018,29 +988,21 @@ void CNaraTimerDlg::DrawPie(CDC* dc, int r, float deg, RECT* rect, COLORREF c)
 	int y = ((rect->bottom + rect->top) >> 1) - r;
 	if (deg > 0)
 	{
-		bro = dc->SelectObject(&brred);
-		CPen pen(PS_SOLID, 1, c);
-		peno = (CPen*)dc->SelectObject(&pen);
 		POINT t = deg2pt(deg, r);
 		if (t.x == 0 && deg > 200)
 		{
-			dc->Ellipse(x, y, x + (r << 1), y + (r << 1));
+			g->FillEllipse(&brred, Rect(x, y, r << 1, r << 1));
 		}
 		else
 		{
 			if (t.x != 0 || deg > 90)
 			{
-				dc->Pie(x, y, x + (r << 1), y + (r << 1), x + r, 0, x + r + t.x, y + r + t.y);
+				g->FillPie(&brred, Rect(x, y, (r << 1), r << 1), -90, -deg - mDegOffset);
 			}
 		}
-		dc->SelectObject(peno);
-		dc->SelectObject(bro);
 	}
-	CPen pg(PS_SOLID, 1, IS_TIMER_MODE? RGB(128, 128, 128) : c);
-	peno = dc->SelectObject(&pg);
-	dc->MoveTo(x + r, y + 1);
-	dc->LineTo(x + r, y + r);
-	dc->SelectObject(peno);
+	Pen pg(IS_TIMER_MODE? Color(255, 128, 128, 128): Color(255, GetRValue(c), GetGValue(c), GetBValue(c)), 1);
+	g->DrawLine(&pg, x + r, y + 1, x + r, y + r);
 }
 
 BOOL CNaraTimerDlg::OnEraseBkgnd(CDC* pDC)
@@ -1094,7 +1056,7 @@ void CNaraTimerDlg::OnPaint()
 		int w_crt = crt.right - crt.left;
 		int h_crt = crt.bottom - crt.top;
 		int sz = MAX(w_crt, h_crt);
-		float scale = (sz < 720 ? 2.f : 1.f);
+		float scale = 1;// (sz < 720 ? 2.f : 1.f);
 		static RECT trt, trt_target;
 
 		mIsMiniMode = (MIN(w_crt, h_crt) < 200 || w_crt > (h_crt << 1));

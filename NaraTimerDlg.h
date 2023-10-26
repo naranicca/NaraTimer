@@ -76,7 +76,7 @@ protected:
 	float pt2deg(CPoint pt);
 	ULONGLONG deg2time(float deg, BOOL stick = FALSE);
 	void DrawTimer(CDC* dc, RECT* rt, float scale = 1.f, BOOL draw_border=TRUE);
-	void DrawPie(CDC* cd, int r, float deg, RECT* rect = NULL, COLORREF c=-1);
+	void DrawPie(Graphics * g, int r, float deg, RECT* rect = NULL, COLORREF c=-1);
 	void DrawBorder(CDC * dc, RECT * rt, float scale);
 	ULONGLONG GetTimestamp(void);
 	void GetFont(CFont& font, int height, BOOL bold = FALSE);

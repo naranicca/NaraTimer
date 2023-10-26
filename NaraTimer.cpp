@@ -11,6 +11,7 @@
 #define new DEBUG_NEW
 #endif
 
+ULONG_PTR gdiplusToken;
 
 // CNaraTimerApp
 
@@ -30,6 +31,13 @@ CNaraTimerApp theApp;
 
 BOOL CNaraTimerApp::InitInstance()
 {
+	GdiplusStartupInput  gdiplusStartupInput;
+	if(::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL) != Ok)
+	{
+		AfxMessageBox(_T("failed to initialize GDI+"));
+		return false;
+	}
+
 	INITCOMMONCONTROLSEX InitCtrls;
 	InitCtrls.dwSize = sizeof(InitCtrls);
 	InitCtrls.dwICC = ICC_WIN95_CLASSES;
@@ -60,6 +68,8 @@ BOOL CNaraTimerApp::InitInstance()
 		TRACE(traceAppMsg, 0, "경고: 대화 상자를 만들지 못했으므로 애플리케이션이 예기치 않게 종료됩니다.\n");
 		TRACE(traceAppMsg, 0, "경고: 대화 상자에서 MFC 컨트롤을 사용하는 경우 #define _AFX_NO_MFC_CONTROLS_IN_DIALOGS를 수행할 수 없습니다.\n");
 	}
+
+	::GdiplusShutdown(gdiplusToken);
 
 	if (pShellManager != nullptr)
 	{
