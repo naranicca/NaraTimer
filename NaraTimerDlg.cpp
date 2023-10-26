@@ -606,7 +606,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		pie_color = RED;
 		hand_color = RGB(220, 220, 220);
 		handshead_color = RGB(77, 88, 94);
-		timestr_color = RGB(220, 220, 220);
+		timestr_color = RGB(20, 20, 20);
 		BORDER_COLOR = RED;
 		break;
 	}
@@ -838,7 +838,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		int font_size = (r / 3);
 		GetFont(font, font_size, TRUE);
 		CFont* fonto = (CFont*)dc->SelectObject(&font);
-		SetRect(&mTimeRect, x, y + r, x + r + r, y + r + r);
+		SetRect(&mTimeRect, x, y + r, x + r + r, y + r + r - r/3);
 		dc->SetTextColor(timestr_color);
 		dc->SetBkMode(TRANSPARENT);
 		if (mSetting)
