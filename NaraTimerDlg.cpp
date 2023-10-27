@@ -818,16 +818,16 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		}
 	}
 
-	// draw time info
+	// draw digital watch
 	if ((mDigitalWatch && IS_ALARM_MODE) || mIsMiniMode)
 	{
-		CFont font;
-		int font_size = (r / 3);
-		GetFont(font, font_size, TRUE);
-		CFont* fonto = (CFont*)dc->SelectObject(&font);
-		SetRect(&mTimeRect, x, y + r, x + r + r, y + r + r - r/3);
-		dc->SetTextColor(timestr_color);
-		dc->SetBkMode(TRANSPARENT);
+		NONCLIENTMETRICS metrics;
+		metrics.cbSize = sizeof(NONCLIENTMETRICS);
+		::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &metrics, 0);
+		FontFamily ff(metrics.lfMessageFont.lfFaceName);
+		int font_size = (r / 4);
+		Gdiplus::Font font(&ff, font_size, FontStyleBold, UnitPixel);
+		g.SetTextRenderingHint(TextRenderingHintAntiAlias);
 		if (mSetting)
 		{
 			str = mTimeStr;
@@ -840,8 +840,13 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 			str.Format(L"%d:%02d:%02d", (h == 0 ? 12 : h) , t.GetMinute(), t.GetSecond());
 			SetWindowText(str);
 		}
-		dc->DrawText(str, &mTimeRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-		dc->SelectObject(fonto);
+		SetRect(&mTimeRect, x, y + r, x + r + r, y + r + r - r/3);
+		SolidBrush br(Color(255, GetRValue(timestr_color), GetGValue(timestr_color), GetBValue(timestr_color)));
+		RectF rtf(mTimeRect.left, mTimeRect.top, mTimeRect.right - mTimeRect.left, mTimeRect.bottom - mTimeRect.top);
+		Gdiplus::StringFormat sf;
+		sf.SetAlignment(StringAlignmentCenter);
+		sf.SetLineAlignment(StringAlignmentCenter);
+		g.DrawString(str.GetBuffer(), -1, &font, rtf, &sf, &br);
 	}
 
 	// draw date complications
