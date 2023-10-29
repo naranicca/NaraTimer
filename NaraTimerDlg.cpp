@@ -542,6 +542,24 @@ int CNaraTimerDlg::GetTitleHeight(void)
 	return (int)(min(w, h) * 0.1f);
 }
 
+static void DrawRoundRect(Gdiplus::Graphics * g, Pen * p, Gdiplus::Rect & rect, UINT8 radius)
+{
+	if(g == NULL) return;
+	GraphicsPath path;
+
+	path.AddLine(rect.X + radius, rect.Y, rect.X + rect.Width - (radius * 2), rect.Y);
+	path.AddArc(rect.X + rect.Width - (radius * 2), rect.Y, radius * 2, radius * 2, 270, 90);
+	path.AddLine(rect.X + rect.Width, rect.Y + radius, rect.X + rect.Width, rect.Y + rect.Height - (radius * 2));
+	path.AddArc(rect.X + rect.Width - (radius * 2), rect.Y + rect.Height - (radius * 2), radius * 2,
+		radius * 2, 0, 90);
+	path.AddLine(rect.X + rect.Width - (radius * 2), rect.Y + rect.Height, rect.X + radius, rect.Y + rect.Height);
+	path.AddArc(rect.X, rect.Y + rect.Height - (radius * 2), radius * 2, radius * 2, 90, 90);
+	path.AddLine(rect.X, rect.Y + rect.Height - (radius * 2), rect.X, rect.Y + radius);
+	path.AddArc(rect.X, rect.Y, radius * 2, radius * 2, 180, 90);
+	path.CloseFigure();
+	g->DrawPath(p, &path);
+}
+
 void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border)
 {
 	Graphics g(*dc);
@@ -840,7 +858,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 			str.Format(L"%d:%02d:%02d", (h == 0 ? 12 : h) , t.GetMinute(), t.GetSecond());
 			SetWindowText(str);
 		}
-		SetRect(&mTimeRect, x, y + r, x + r + r, y + r + r - r/3);
+		SetRect(&mTimeRect, x, y + r + sz, x + r + r, y + r + r - r/3);
 		SolidBrush br(Color(255, GetRValue(timestr_color), GetGValue(timestr_color), GetBValue(timestr_color)));
 		RectF rtf(mTimeRect.left, mTimeRect.top, mTimeRect.right - mTimeRect.left, mTimeRect.bottom - mTimeRect.top);
 		Gdiplus::StringFormat sf;
@@ -920,48 +938,35 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 
 	if (draw_border)
 	{
+		//int corner = ROUND(ROUND_CORNER * scale);
+		//Pen pen(Color(255, GetRValue(BORDER_COLOR), GetGValue(BORDER_COLOR), GetBValue(BORDER_COLOR)), ROUND(RESIZE_MARGIN * 2 * scale));
+		//DrawRoundRect(&g, &pen, Rect(border_rect.left, border_rect.top, border_rect.right - border_rect.left, border_rect.bottom - border_rect.top), corner);
 		DrawBorder(dc, &border_rect, scale);
 	}
 }
 
 void CNaraTimerDlg::DrawBorder(CDC * dc, RECT * rt, float scale)
 {
-	int corner = ROUND(ROUND_CORNER * 2 * scale);
+	Graphics g(*dc);
+	g.SetSmoothingMode(SmoothingModeHighQuality);
+	int corner = ROUND(ROUND_CORNER * scale);
 	// border
 	{
-		CPen pen(PS_SOLID, ROUND(RESIZE_MARGIN * 2 * scale), BORDER_COLOR);
-		CPen* peno = dc->SelectObject(&pen);
-		CBrush* bro = (CBrush*)dc->SelectStockObject(NULL_BRUSH);
-		dc->RoundRect(rt->left, rt->top, rt->right, rt->bottom, corner, corner);
-		dc->SelectObject(peno);
-		dc->SelectObject(bro);
+		Pen pen(Color(255, GetRValue(BORDER_COLOR), GetGValue(BORDER_COLOR), GetBValue(BORDER_COLOR)), ROUND(RESIZE_MARGIN * 2 * scale));
+		DrawRoundRect(&g, &pen, Rect(rt->left, rt->top, rt->right - rt->left, rt->bottom - rt->top), corner);
 	}
 	// border highlight
 	{
-		CBrush* bro = (CBrush*)dc->SelectStockObject(NULL_BRUSH);
-		COLORREF c = RGB(255, 255, 255);
-		c = blend_color(blend_color(c, BORDER_COLOR), BORDER_COLOR);
-		CPen pen(PS_SOLID, ROUND(3 * scale), c);
-		CPen* peno = dc->SelectObject(&pen);
-		dc->RoundRect(rt->left, rt->top, rt->right<<1, rt->bottom<<1, corner, corner);
-		dc->SelectObject(peno);
-		dc->SelectObject(bro);
+		Pen pen(Color(64, 255, 255, 255), 3 * scale);
+		DrawRoundRect(&g, &pen, Rect(rt->left, rt->top, (rt->right << 1) - rt->left, (rt->bottom << 1) - rt->top), corner);
 	}
 	// border shadow
 	{
-		CBrush* bro = (CBrush*)dc->SelectStockObject(NULL_BRUSH);
-		COLORREF c = RGB(0, 0, 0);
-		c = blend_color(blend_color(c, BORDER_COLOR), BORDER_COLOR);
-		CPen pen(PS_SOLID, ROUND(3 * scale), c);
-		CPen* peno = dc->SelectObject(&pen);
-		dc->RoundRect(rt->left-100, rt->top-100, rt->right, rt->bottom, corner, corner);
-		dc->SelectObject(peno);
-		CPen pen2(PS_SOLID, ROUND(1 * scale), c);
-		peno = dc->SelectObject(&pen2);
-		int off = ROUND(RESIZE_MARGIN * scale);
-		dc->RoundRect(rt->left + off, rt->top + off, rt->right - off, rt->bottom - off, corner - 2*off, corner - 2*off);
-		dc->SelectObject(peno);
-		dc->SelectObject(bro);
+		Pen pen(Color(64, 0, 0, 0), 3 * scale);
+		DrawRoundRect(&g, &pen, Rect(rt->left - 100, rt->top - 100, rt->right - rt->left + 100, rt->bottom - rt->top + 100), corner);
+		Pen pen2(Color(64, 0, 0, 0), (1 * scale));
+		int off = (RESIZE_MARGIN * scale);
+		DrawRoundRect(&g, &pen2, Rect(rt->left + off, rt->top + off, rt->right - rt->left - 2 * off, rt->bottom - rt->top - 2 * off), corner - off);
 	}
 
 	// draw icon
