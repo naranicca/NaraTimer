@@ -1238,16 +1238,6 @@ void CNaraTimerDlg::SetMode(BOOL is_timer)
 		mIsTimer = FALSE;
 	}
 	mTimeSet = 0;
-	RECT crt;
-	GetClientRect(&crt);
-	for(int m = mRadiusHandsHead >> 1; m > 0; m >>= 1)
-	{
-		LONGLONG d = GetTimestamp();
-		if (d < 30) Sleep((DWORD)(30 - d));
-		CClientDC dc(this);
-		RECT rt = { crt.left + m, crt.top + m,crt.right - m,crt.bottom - m };
-		DrawTimer(&dc, &rt, 1.f);
-	}
 	SetWindowText(L"NaraTimer");
 }
 
