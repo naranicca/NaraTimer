@@ -68,6 +68,7 @@ protected:
 	int mButtonIconHover[NUM_BUTTONS];
 	BOOL mIsMiniMode;
 	BOOL mResizing;
+	WCHAR mFontFace[LF_FACESIZE];
 
 	void reposition(void);
 	int HitTest(CPoint pt);

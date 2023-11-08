@@ -258,6 +258,12 @@ BOOL CNaraTimerDlg::OnInitDialog()
 	mHasDate = AfxGetApp()->GetProfileInt(L"Theme", L"HasDate", 1);
 	mTickSound = AfxGetApp()->GetProfileInt(L"Theme", L"TickSound", 0);
 
+	// get font name
+	NONCLIENTMETRICS metrics;
+	metrics.cbSize = sizeof(NONCLIENTMETRICS);
+	::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &metrics, 0);
+	memcpy(&mFontFace, &metrics.lfMessageFont.lfFaceName, sizeof(metrics.lfMessageFont.lfFaceName));
+
 	reposition();
 	mTitleEdit.Create(WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | ES_CENTER, CRect(0, 0, 10, 10), this, IDC_EDIT);
 	mTitleEdit.ShowWindow(SW_HIDE);
@@ -836,12 +842,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	// draw digital watch
 	if ((mDigitalWatch && IS_ALARM_MODE) || mIsMiniMode)
 	{
-		NONCLIENTMETRICS metrics;
-		metrics.cbSize = sizeof(NONCLIENTMETRICS);
-		::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &metrics, 0);
-		FontFamily ff(metrics.lfMessageFont.lfFaceName);
-		int font_size = (r / 4);
-		Gdiplus::Font font(&ff, font_size, FontStyleBold, UnitPixel);
+		Gdiplus::Font font(mFontFace, ROUND(r / 4), FontStyleBold, UnitPixel);
 		g.SetTextRenderingHint(TextRenderingHintAntiAlias);
 		if (mSetting)
 		{
