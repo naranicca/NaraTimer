@@ -518,14 +518,21 @@ ULONGLONG CNaraTimerDlg::deg2time(float deg, BOOL stick)
 	}
 }
 
-void CNaraTimerDlg::GetFont(CFont &font, int height, BOOL bold)
+static void GetLogfont(LOGFONTW * lf, int height, BOOL bold)
 {
 	NONCLIENTMETRICS metrics;
 	metrics.cbSize = sizeof(NONCLIENTMETRICS);
 	::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &metrics, 0);
 	metrics.lfMessageFont.lfHeight = height;
 	metrics.lfMessageFont.lfWeight = (bold ? FW_BOLD : FW_NORMAL);
-	font.CreateFontIndirect(&metrics.lfMessageFont);
+	memcpy(lf, &metrics.lfMessageFont, sizeof(LOGFONTW));
+}
+
+void CNaraTimerDlg::GetFont(CFont &font, int height, BOOL bold)
+{
+	LOGFONTW lf;
+	GetLogfont(&lf, height, bold);
+	font.CreateFontIndirect(&lf);
 }
 
 ULONGLONG CNaraTimerDlg::GetTimestamp(void)
@@ -567,6 +574,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 {
 	Graphics g(*dc);
 	g.SetSmoothingMode(SmoothingModeHighQuality);
+	g.SetTextRenderingHint(TextRenderingHintAntiAlias);
 	RECT border_rect;
 	POINT pt0, pt1;
 	int clock;
@@ -691,20 +699,30 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	{
 		CFont font;
 		int fh = ROUND(mTitleHeight * scale);
-		GetFont(font, fh, TRUE);
-		CFont* fonto = dc->SelectObject(&font);
-		dc->SetBkMode(TRANSPARENT);
+		LOGFONTW lf;
+		GetLogfont(&lf, fh, TRUE);
+		font.CreateFontIndirectW(&lf);
+		mTitleEdit.SetFont(&font);
+		Gdiplus::Font gfont(dc->m_hDC, &lf);
+
 		mTitleRect.left = ROUND(ROUND_CORNER * scale);
 		mTitleRect.top = y - mGridSize - tsize - fh;
 		mTitleRect.right = rt->right - ROUND(ROUND_CORNER * scale);
 		mTitleRect.bottom = mTitleRect.top + fh;
-		dc->SetTextColor(grid_color);
-		dc->DrawText(mTitle, &mTitleRect, DT_VCENTER | DT_CENTER | DT_SINGLELINE);
+		StringFormat sf;
+		sf.SetAlignment(StringAlignmentCenter);
+		sf.SetLineAlignment(StringAlignmentFar);
+		sf.SetTrimming(StringTrimmingEllipsisWord);
+		SolidBrush br(Color(255, GetRValue(grid_color), GetGValue(grid_color), GetBValue(grid_color)));
+		int top = ROUND(RESIZE_MARGIN * 1.2f * scale);
+		int h = (int)((mTitleRect.bottom - top) / fh) * fh;
+		top = mTitleRect.bottom - h;
+		g.DrawString(mTitle.GetBuffer(), -1, &gfont, RectF(mTitleRect.left, top, \
+			mTitleRect.right - mTitleRect.left, mTitleRect.bottom - top), &sf, &br);
 		mTitleRect.left = ROUND(mTitleRect.left / scale);
 		mTitleRect.top = ROUND(mTitleRect.top / scale);
 		mTitleRect.right = ROUND(mTitleRect.right / scale);
 		mTitleRect.bottom = ROUND(mTitleRect.bottom / scale);
-		dc->SelectObject(fonto);
 	}
 	else
 	{
@@ -843,7 +861,6 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	if ((mDigitalWatch && IS_ALARM_MODE) || mIsMiniMode)
 	{
 		Gdiplus::Font font(mFontFace, ROUND(r / 4), FontStyleBold, UnitPixel);
-		g.SetTextRenderingHint(TextRenderingHintAntiAlias);
 		if (mSetting)
 		{
 			str = mTimeStr;
