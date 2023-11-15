@@ -709,16 +709,22 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		mTitleRect.top = y - mGridSize - tsize - fh;
 		mTitleRect.right = rt->right - ROUND(ROUND_CORNER * scale);
 		mTitleRect.bottom = mTitleRect.top + fh;
-		StringFormat sf;
-		sf.SetAlignment(StringAlignmentCenter);
-		sf.SetLineAlignment(StringAlignmentFar);
-		sf.SetTrimming(StringTrimmingEllipsisWord);
-		SolidBrush br(Color(255, GetRValue(grid_color), GetGValue(grid_color), GetBValue(grid_color)));
-		int top = ROUND(RESIZE_MARGIN * 1.2f * scale);
-		int h = (int)((mTitleRect.bottom - top) / fh) * fh;
-		top = mTitleRect.bottom - h;
-		g.DrawString(mTitle.GetBuffer(), -1, &gfont, RectF(mTitleRect.left, top, \
-			mTitleRect.right - mTitleRect.left, mTitleRect.bottom - top), &sf, &br);
+
+		CString t;
+		mTitleEdit.GetWindowText(t);
+		if(t == mTitle)
+		{
+			StringFormat sf;
+			sf.SetAlignment(StringAlignmentCenter);
+			sf.SetLineAlignment(StringAlignmentFar);
+			sf.SetTrimming(StringTrimmingEllipsisWord);
+			SolidBrush br(Color(255, GetRValue(grid_color), GetGValue(grid_color), GetBValue(grid_color)));
+			int top = ROUND(RESIZE_MARGIN * 1.2f * scale);
+			int h = (int)((mTitleRect.bottom - top) / fh) * fh;
+			top = mTitleRect.bottom - h;
+			g.DrawString(mTitle.GetBuffer(), -1, &gfont, RectF(mTitleRect.left, top, \
+				mTitleRect.right - mTitleRect.left, mTitleRect.bottom - top), &sf, &br);
+		}
 		mTitleRect.left = ROUND(mTitleRect.left / scale);
 		mTitleRect.top = ROUND(mTitleRect.top / scale);
 		mTitleRect.right = ROUND(mTitleRect.right / scale);
