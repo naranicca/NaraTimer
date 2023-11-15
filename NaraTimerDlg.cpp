@@ -959,26 +959,33 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 
 void CNaraTimerDlg::DrawBorder(CDC * dc, RECT * rt, float scale)
 {
+	WINDOWPLACEMENT pl;
+	GetWindowPlacement(&pl);
+	BOOL maximized = (pl.showCmd == SW_MAXIMIZE);
+
 	Graphics g(*dc);
 	g.SetSmoothingMode(SmoothingModeHighQuality);
-	int corner = ROUND(ROUND_CORNER * scale);
+	int corner = (maximized ? 0 : ROUND(ROUND_CORNER * scale));
 	// border
 	{
 		Pen pen(Color(255, GetRValue(BORDER_COLOR), GetGValue(BORDER_COLOR), GetBValue(BORDER_COLOR)), ROUND(RESIZE_MARGIN * 2 * scale));
 		DrawRoundRect(&g, &pen, Rect(rt->left, rt->top, rt->right - rt->left, rt->bottom - rt->top), corner);
 	}
-	// border highlight
+	if(!maximized)
 	{
-		Pen pen(Color(64, 255, 255, 255), 3 * scale);
-		DrawRoundRect(&g, &pen, Rect(rt->left, rt->top, (rt->right << 1) - rt->left, (rt->bottom << 1) - rt->top), corner);
-	}
-	// border shadow
-	{
-		Pen pen(Color(64, 0, 0, 0), 3 * scale);
-		DrawRoundRect(&g, &pen, Rect(rt->left - 100, rt->top - 100, rt->right - rt->left + 100, rt->bottom - rt->top + 100), corner);
-		Pen pen2(Color(64, 0, 0, 0), (1 * scale));
-		int off = (RESIZE_MARGIN * scale);
-		DrawRoundRect(&g, &pen2, Rect(rt->left + off, rt->top + off, rt->right - rt->left - 2 * off, rt->bottom - rt->top - 2 * off), corner - off);
+		// border highlight
+		{
+			Pen pen(Color(64, 255, 255, 255), 3 * scale);
+			DrawRoundRect(&g, &pen, Rect(rt->left, rt->top, (rt->right << 1) - rt->left, (rt->bottom << 1) - rt->top), corner);
+		}
+		// border shadow
+		{
+			Pen pen(Color(64, 0, 0, 0), 3 * scale);
+			DrawRoundRect(&g, &pen, Rect(rt->left - 100, rt->top - 100, rt->right - rt->left + 100, rt->bottom - rt->top + 100), corner);
+			Pen pen2(Color(64, 0, 0, 0), (1 * scale));
+			int off = (RESIZE_MARGIN * scale);
+			DrawRoundRect(&g, &pen2, Rect(rt->left + off, rt->top + off, rt->right - rt->left - 2 * off, rt->bottom - rt->top - 2 * off), corner - off);
+		}
 	}
 
 	// draw icon
