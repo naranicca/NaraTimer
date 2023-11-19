@@ -671,7 +671,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	if (mTitleHeight > 0)
 	{
 		int off = TITLE_OFFSET;
-		rt->top += ROUND(off * scale);
+		rt->top += off;
 		mTimerRect.top += off;
 	}
 
@@ -692,13 +692,13 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	int r = (MIN(w, h) >> 1) - (mGridSize + (mGridSize >> 1) + tsize);
 	int x = (rt->left + rt->right - (r << 1)) >> 1;
 	int y = (rt->top + rt->bottom - (r << 1)) >> 1;
-	mRadius = ROUND(r / scale);
+	mRadius = r;
 
 	// draw title
 	if (mTitleHeight > 0)
 	{
 		CFont font;
-		int fh = ROUND(mTitleHeight * scale);
+		int fh = mTitleHeight;
 		LOGFONTW lf;
 		GetLogfont(&lf, fh, TRUE);
 		font.CreateFontIndirectW(&lf);
@@ -769,7 +769,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		}
 
 		// ddraw grids
-		DEFINE_PEN(penm, grid_color, 255, 1 * scale);
+		DEFINE_PEN(penm, grid_color, 255, r / 100.f);
 		clock = (IS_TIMER_MODE ? 6 : 5);
 		for (int i = 0; i < 360; i += clock)
 		{
@@ -777,7 +777,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 			pt1 = deg2pt((float)i, r + (mGridSize >> 1));
 			g.DrawLine(&penm, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
 		}
-		DEFINE_PEN(penh, grid_color, 255, 3 * scale);
+		DEFINE_PEN(penh, grid_color, 255, 3 * r / 100.f);
 		for (int i = 0; i < 360; i += 30)
 		{
 			pt0 = deg2pt((float)i, r - mGridSize);
@@ -1104,6 +1104,7 @@ void CNaraTimerDlg::OnPaint()
 			bmp_init(&mBmp, &dc, crt2.right, crt2.bottom);
 			bmpo = mdc.SelectObject(&mBmp);
 
+			if(LBUTTON_DOWN) scale = 0.5f; // to spped up
 			DrawTimer(&mdc, &crt2, scale);
 			dc.StretchBlt(crt.left, crt.top, w_crt, h_crt, &mdc, 0, 0, crt2.right, crt2.bottom, SRCCOPY);
 		}
