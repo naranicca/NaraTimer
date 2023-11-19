@@ -686,8 +686,8 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	int th = (trt.bottom - trt.top);
 	int tsize = ROUND(max(tw, th) * 1.1f);
 
-	int w = (rt->right - rt->left - RESIZE_MARGIN * 2);
-	int h = (rt->bottom - rt->top - RESIZE_MARGIN * 2);
+	int w = (rt->right - rt->left - RESIZE_MARGIN * scale * 2);
+	int h = (rt->bottom - rt->top - RESIZE_MARGIN * scale * 2);
 	mGridSize = min(ROUND(min(w, h) * 0.023f), 20);
 	int r = (MIN(w, h) >> 1) - (mGridSize + (mGridSize >> 1) + tsize);
 	int x = (rt->left + rt->right - (r << 1)) >> 1;
