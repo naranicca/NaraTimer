@@ -671,7 +671,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	if (mTitleHeight > 0)
 	{
 		int off = TITLE_OFFSET;
-		rt->top += off;
+		rt->top += ROUND(off * scale);
 		mTimerRect.top += off;
 	}
 
@@ -692,13 +692,13 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	int r = (MIN(w, h) >> 1) - (mGridSize + (mGridSize >> 1) + tsize);
 	int x = (rt->left + rt->right - (r << 1)) >> 1;
 	int y = (rt->top + rt->bottom - (r << 1)) >> 1;
-	mRadius = r;
+	mRadius = ROUND(r / scale);
 
 	// draw title
 	if (mTitleHeight > 0)
 	{
 		CFont font;
-		int fh = mTitleHeight;
+		int fh = ROUND(mTitleHeight * scale);
 		LOGFONTW lf;
 		GetLogfont(&lf, fh, TRUE);
 		font.CreateFontIndirectW(&lf);
@@ -769,7 +769,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		}
 
 		// ddraw grids
-		DEFINE_PEN(penm, grid_color, 255, r / 100.f);
+		DEFINE_PEN(penm, grid_color, 255, 1 * scale);
 		clock = (IS_TIMER_MODE ? 6 : 5);
 		for (int i = 0; i < 360; i += clock)
 		{
@@ -777,7 +777,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 			pt1 = deg2pt((float)i, r + (mGridSize >> 1));
 			g.DrawLine(&penm, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
 		}
-		DEFINE_PEN(penh, grid_color, 255, 3 * r / 100.f);
+		DEFINE_PEN(penh, grid_color, 255, 3 * scale);
 		for (int i = 0; i < 360; i += 30)
 		{
 			pt0 = deg2pt((float)i, r - mGridSize);
@@ -971,25 +971,25 @@ void CNaraTimerDlg::DrawBorder(CDC * dc, RECT * rt, float scale)
 
 	Graphics g(*dc);
 	g.SetSmoothingMode(SmoothingModeHighQuality);
-	int corner = (maximized ? 0 : ROUND_CORNER);
+	int corner = (maximized ? 0 : ROUND(ROUND_CORNER * scale));
 	// border
 	{
-		Pen pen(Color(255, GetRValue(BORDER_COLOR), GetGValue(BORDER_COLOR), GetBValue(BORDER_COLOR)), (RESIZE_MARGIN * 2));
+		Pen pen(Color(255, GetRValue(BORDER_COLOR), GetGValue(BORDER_COLOR), GetBValue(BORDER_COLOR)), ROUND(RESIZE_MARGIN * 2 * scale));
 		DrawRoundRect(&g, &pen, Rect(rt->left, rt->top, rt->right - rt->left, rt->bottom - rt->top), corner);
 	}
 	if(!maximized)
 	{
 		// border highlight
 		{
-			Pen pen(Color(64, 255, 255, 255), 3);
+			Pen pen(Color(64, 255, 255, 255), 3 * scale);
 			DrawRoundRect(&g, &pen, Rect(rt->left, rt->top, (rt->right << 1) - rt->left, (rt->bottom << 1) - rt->top), corner);
 		}
 		// border shadow
 		{
-			Pen pen(Color(64, 0, 0, 0), 3);
+			Pen pen(Color(64, 0, 0, 0), 3 * scale);
 			DrawRoundRect(&g, &pen, Rect(rt->left - 100, rt->top - 100, rt->right - rt->left + 100, rt->bottom - rt->top + 100), corner);
-			Pen pen2(Color(64, 0, 0, 0), 1);
-			int off = RESIZE_MARGIN;
+			Pen pen2(Color(64, 0, 0, 0), (1 * scale));
+			int off = (RESIZE_MARGIN * scale);
 			DrawRoundRect(&g, &pen2, Rect(rt->left + off, rt->top + off, rt->right - rt->left - 2 * off, rt->bottom - rt->top - 2 * off), corner - off);
 		}
 	}
@@ -1002,8 +1002,8 @@ void CNaraTimerDlg::DrawBorder(CDC * dc, RECT * rt, float scale)
 		{
 			RECT* brt = &mButtonRect[i];
 			HICON icon = static_cast<HICON>(::LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(id), IMAGE_ICON, 256, 256, LR_DEFAULTCOLOR));
-			DrawIconEx(dc->m_hDC, rt->left + brt->left, rt->top + brt->top, icon,
-				(brt->right - brt->left), (brt->bottom - brt->top), 0, NULL, DI_NORMAL);
+			DrawIconEx(dc->m_hDC, rt->left + ROUND(brt->left* scale), rt->top + ROUND(brt->top* scale), icon,
+				ROUND((brt->right - brt->left) * scale), ROUND((brt->bottom - brt->top) * scale), 0, NULL, DI_NORMAL);
 			DestroyIcon(icon);
 		}
 	}
@@ -1104,7 +1104,6 @@ void CNaraTimerDlg::OnPaint()
 			bmp_init(&mBmp, &dc, crt2.right, crt2.bottom);
 			bmpo = mdc.SelectObject(&mBmp);
 
-			if(LBUTTON_DOWN) scale = 0.5f; // to spped up
 			DrawTimer(&mdc, &crt2, scale);
 			dc.StretchBlt(crt.left, crt.top, w_crt, h_crt, &mdc, 0, 0, crt2.right, crt2.bottom, SRCCOPY);
 		}
