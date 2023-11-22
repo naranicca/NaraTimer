@@ -16,8 +16,11 @@ int RESIZE_MARGIN = 15;
 int ROUND_CORNER = 50;
 COLORREF BORDER_COLOR = RED;
 
+float TIMES_UP = -100.f;
+
 #define TID_TICK			(0)
 #define TID_REFRESH			(1)
+#define TID_TIMESUP			(2)
 
 #pragma comment(lib, "winmm")
 #include <mmsystem.h>
@@ -292,6 +295,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 		switch (pMsg->wParam)
 		{
 		case VK_ESCAPE:
+			TIMES_UP = -100.f;
 			if (mTimeSet && GetFocus()->GetSafeHwnd() != mTitleEdit.GetSafeHwnd())
 			{
 				CString str = (IS_TIMER_MODE ? L"Stop the timer?" : L"Stop the alarm?");
@@ -957,6 +961,29 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		g.FillEllipse(&br, x + r - s, y + r - s, 2 * s, 2 * s);
 	}
 
+	// TIME'S UP message
+	if(TIMES_UP >= 0)
+	{
+		CFont font;
+		GetFont(font, rt->bottom - rt->top, TRUE);
+		fonto = dc->SelectObject(&font);
+		RECT trt = { 0, };
+		dc->DrawText(L"TIME'S UP!", &trt, DT_SINGLELINE | DT_CALCRECT);
+		int w = trt.right - trt.left;
+		float t = GetTickCount64() - TIMES_UP;
+		trt.left = t * (rt->left - w - rt->right) / 5000 + rt->right;
+		trt.top = rt->top;
+		trt.right = trt.left + w;
+		trt.bottom = rt->bottom;
+		dc->SetTextColor(timestr_color);
+		dc->DrawText(L"TIME'S UP!", &trt, DT_SINGLELINE | DT_VCENTER);
+		dc->SelectObject(fonto);
+		if(trt.right < 0)
+		{
+			TIMES_UP = GetTickCount64();
+		}
+	}
+
 	if (draw_border)
 	{
 		DrawBorder(dc, &border_rect, scale);
@@ -1206,6 +1233,10 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 {
 	if (nIDEvent == TID_TICK)
 	{
+		if(TIMES_UP >= 0)
+		{
+			KillTimer(TID_TIMESUP); // TIMESUP timer is not needed if TICK timer is on
+		}
 		if (!mSetting && mTimeSet != 0)
 		{
 			if (GetTickCount64() + CHK_INTERVAL < mTimeSet)
@@ -1224,6 +1255,9 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				mMuteTick = 5;
 				PlaySound((LPCWSTR)MAKEINTRESOURCE(IDR_WAVE1), GetModuleHandle(NULL), SND_ASYNC | SND_RESOURCE);
 				Stop();
+
+				TIMES_UP = GetTickCount64();
+				SetTimer(TID_TIMESUP, 100, NULL);
 			}
 		}
 		else if (mTimeSet == 0 && mIsMiniMode)
@@ -1244,6 +1278,14 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				Invalidate(FALSE);
 			}
 		}
+	}
+	else if(nIDEvent == TID_TIMESUP)
+	{
+		if(TIMES_UP < 0)
+		{
+			KillTimer(TID_TIMESUP);
+		}
+		Invalidate(FALSE);
 	}
 	CDialogEx::OnTimer(nIDEvent);
 }
@@ -1286,6 +1328,11 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 	this->SetFocus();
 	mTitleEdit.ShowWindow(SW_HIDE);
 
+	if(TIMES_UP >= 0)
+	{
+		TIMES_UP = -100.f;
+		return;
+	}
 	if (IsTitleArea(pt))
 	{
 		SetTitle();
