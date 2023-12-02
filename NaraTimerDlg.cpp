@@ -646,7 +646,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	}
 	if (IS_TIMER_MODE)
 	{
-		hand_size = 0.22f;
+		hand_size = 0.27f;
 		handshead_size = 0.14f;
 		hand_color = handshead_color;
 	}
@@ -772,8 +772,8 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 			dc->DrawText(str, &rt, DT_CENTER | DT_VCENTER);
 		}
 
-		// ddraw grids
-		DEFINE_PEN(penm, grid_color, 255, 1 * scale);
+		// draw grids
+		DEFINE_PEN(penm, grid_color, 255, r / 100);
 		clock = (IS_TIMER_MODE ? 6 : 5);
 		for (int i = 0; i < 360; i += clock)
 		{
@@ -781,7 +781,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 			pt1 = deg2pt((float)i, r + (mGridSize >> 1));
 			g.DrawLine(&penm, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
 		}
-		DEFINE_PEN(penh, grid_color, 255, 3 * scale);
+		DEFINE_PEN(penh, grid_color, 255, r / 33);
 		for (int i = 0; i < 360; i += 30)
 		{
 			pt0 = deg2pt((float)i, r - mGridSize);
