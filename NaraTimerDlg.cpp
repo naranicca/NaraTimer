@@ -17,6 +17,7 @@ int ROUND_CORNER = 50;
 COLORREF BORDER_COLOR = RED;
 
 float TIMES_UP = -100.f;
+BOOL TITLE_CHANGING = FALSE;
 
 #define TID_TICK			(0)
 #define TID_REFRESH			(1)
@@ -318,6 +319,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			}
 			this->SetFocus();
 			Invalidate(FALSE);
+			TITLE_CHANGING = FALSE;
 			return TRUE;
 		case VK_DOWN:
 		case VK_OEM_MINUS:
@@ -574,6 +576,21 @@ static void DrawRoundRect(Gdiplus::Graphics * g, Pen * p, Gdiplus::Rect & rt, in
 	g->DrawPath(p, &path);
 }
 
+static void FillRoundRect(Gdiplus::Graphics * g, Brush * br, Gdiplus::Rect & rt, int r)
+{
+	GraphicsPath path;
+	path.AddLine(rt.X + r, rt.Y, rt.X + rt.Width - (r * 2), rt.Y);
+	path.AddArc(rt.X + rt.Width - (r * 2), rt.Y, r * 2, r * 2, 270, 90);
+	path.AddLine(rt.X + rt.Width, rt.Y + r, rt.X + rt.Width, rt.Y + rt.Height - (r * 2));
+	path.AddArc(rt.X + rt.Width - (r * 2), rt.Y + rt.Height - (r * 2), r * 2, r * 2, 0, 90);
+	path.AddLine(rt.X + rt.Width - (r * 2), rt.Y + rt.Height, rt.X + r, rt.Y + rt.Height);
+	path.AddArc(rt.X, rt.Y + rt.Height - (r * 2), r * 2, r * 2, 90, 90);
+	path.AddLine(rt.X, rt.Y + rt.Height - (r * 2), rt.X, rt.Y + r);
+	path.AddArc(rt.X, rt.Y, r * 2, r * 2, 180, 90);
+	path.CloseFigure();
+	g->FillPath(br, &path);
+}
+
 void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border)
 {
 	Graphics g(*dc);
@@ -714,9 +731,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		mTitleRect.right = rt->right - ROUND(ROUND_CORNER * scale);
 		mTitleRect.bottom = mTitleRect.top + fh;
 
-		CString t;
-		mTitleEdit.GetWindowText(t);
-		if(t == mTitle)
+		if(!TITLE_CHANGING)
 		{
 			StringFormat sf;
 			sf.SetAlignment(StringAlignmentCenter);
@@ -726,6 +741,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 			int top = ROUND(RESIZE_MARGIN * 1.2f * scale);
 			int h = (int)((mTitleRect.bottom - top) / fh) * fh;
 			top = mTitleRect.bottom - h;
+			mTitleRect.top = top;
 			g.DrawString(mTitle.GetBuffer(), -1, &gfont, RectF(mTitleRect.left, top, \
 				mTitleRect.right - mTitleRect.left, mTitleRect.bottom - top), &sf, &br);
 		}
@@ -737,7 +753,8 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	else
 	{
 		int cx = (int)(((rt->right + rt->left) >> 1) / scale);
-		SetRect(&mTitleRect, cx - (tw >> 1), RESIZE_MARGIN, cx + (tw >> 1), y - mGridSize - tsize);
+		//SetRect(&mTitleRect, cx - (tw >> 1), RESIZE_MARGIN, cx + (tw >> 1), max(RESIZE_MARGIN + 16, y - mGridSize - tsize));
+		SetRect(&mTitleRect, ROUND_CORNER, RESIZE_MARGIN+5, (rt->right - ROUND_CORNER)/scale, max(RESIZE_MARGIN + 5 + 24, y - mGridSize - tsize));
 	}
 
 	if (font_size > 5 * scale)
@@ -981,6 +998,24 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		if(trt.right < 0)
 		{
 			TIMES_UP = GetTickCount64();
+		}
+	}
+	else
+	{
+		POINT pt;
+		GetCursorPos(&pt);
+		ScreenToClient(&pt);
+		if(PT_IN_RECT(pt, mTitleRect))
+		{
+			SolidBrush br(Color(32, 128, 128, 128));
+			int w = mTitleRect.right - mTitleRect.left;
+			int h = mTitleRect.bottom - mTitleRect.top;
+			int r = min(min(w, h) / 4, 16);
+			FillRoundRect(&g, &br, Rect(mTitleRect.left, mTitleRect.top, w, h), r);
+			if(mTitle.IsEmpty())
+			{
+				dc->DrawText(L"title...", &mTitleRect, DT_SINGLELINE | DT_CENTER | DT_VCENTER | DT_END_ELLIPSIS);
+			}
 		}
 	}
 
@@ -1320,6 +1355,7 @@ void CNaraTimerDlg::SetTitle()
 	{
 		OnTitleChanging();
 		mTitleEdit.SetSel(0, -1);
+		TITLE_CHANGING = TRUE;
 	}
 }
 
@@ -1327,6 +1363,7 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 {
 	this->SetFocus();
 	mTitleEdit.ShowWindow(SW_HIDE);
+	TITLE_CHANGING = FALSE;
 
 	if(TIMES_UP >= 0)
 	{
@@ -1415,6 +1452,8 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 
 void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 {
+	static BOOL hovering_title = FALSE;
+	BOOL hovering_title_now = FALSE;
 	int cx = (mTimerRect.right + mTimerRect.left) >> 1;
 	int cy = (mTimerRect.bottom + mTimerRect.top) >> 1;
 	int d = SQ(pt.x - cx) + SQ(pt.y - cy);
@@ -1459,6 +1498,7 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 		if(IsTitleArea(pt))
 		{
 			::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_IBEAM));
+			hovering_title_now = TRUE;
 		}
 		else if(!mIsMiniMode && d < (mRadiusHandsHead * mRadiusHandsHead))
 		{
@@ -1469,6 +1509,11 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 			int ht = HitTest(pt);
 			SetArrowCursor(ht);
 		}
+	}
+	if(hovering_title != hovering_title_now)
+	{
+		Invalidate(FALSE);
+		hovering_title = hovering_title_now;
 	}
 	CDialogEx::OnMouseMove(nFlags, pt);
 }
@@ -1711,9 +1756,11 @@ void CNaraTimerDlg::OnTitleChanging(void)
 		GetFont(font, mTitleHeight, TRUE);
 		mTitleEdit.SetFont(&font, FALSE);
 	}
+	mTitleRect.top = mTitleRect.bottom - mTitleHeight;
 	mTitleEdit.MoveWindow(&mTitleRect);
 	mTitleEdit.SetFocus();
 	mTitleEdit.ShowWindow(SW_SHOW);
+	TITLE_CHANGING = TRUE;
 }
 
 
