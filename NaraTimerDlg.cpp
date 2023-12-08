@@ -670,7 +670,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	else
 	{
 		hand_size = 1.f;
-		handshead_size = 0.07f;
+		handshead_size = 0.1f;
 	}
 
 	if(mIsMiniMode)
@@ -942,29 +942,27 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 
 	// Hands
 	if (deg < -mDegOffset) deg = -mDegOffset;
-	float pt = (r * 0.08f);
-	DEFINE_PEN(pencl, handshead_color, 255, pt);
-	pencl.SetStartCap(LineCapRound);
-	pencl.SetEndCap(LineCapRound);
 	if (hand_color == handshead_color)
 	{
+		float pt = (r * 0.08f);
+		DEFINE_PEN(pencl, handshead_color, 255, pt);
+		pencl.SetStartCap(LineCapRound);
+		pencl.SetEndCap(LineCapRound);
 		pt0 = deg2pt(deg, ROUND(r * hand_size - pt/2 + scale));
 		g.DrawLine(&pencl, x + r, y + r, x + r + pt0.x, y + r + pt0.y);
 	}
 	else
 	{
-		pt0 = deg2pt(deg, ROUND(sz * 1.8f));
+		float pt = (r * 0.1f);
+		DEFINE_PEN(pencl, handshead_color, 255, pt);
+		pencl.SetEndCap(LineCapTriangle);
 		pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2 - scale));
-		g.DrawLine(&pencl, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
-
-		DEFINE_PEN(p, handshead_color, 255, pt * 0.5f);
-		pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2 - scale));
-		g.DrawLine(&p, x + r, y + r, x + r + pt1.x, y + r + pt1.y);
+		g.DrawLine(&pencl, x + r, y + r, x + r + pt1.x, y + r + pt1.y);
 
 		DEFINE_PEN(pen, hand_color, 255, pt * 0.5f);
-		pen.SetStartCap(LineCapRound);
-		pen.SetEndCap(LineCapRound);
-		pt0 = deg2pt(deg, sz + sz);
+		pen.SetStartCap(LineCapSquare);
+		pen.SetEndCap(LineCapTriangle);
+		pt0 = deg2pt(deg, sz + sz/2);
 		pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2 - scale));
 		g.DrawLine(&pen, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
 	}
