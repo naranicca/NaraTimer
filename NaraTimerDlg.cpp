@@ -998,7 +998,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 			TIMES_UP = GetTickCount64();
 		}
 	}
-	else
+	else if(!LBUTTON_DOWN)
 	{
 		POINT pt;
 		GetCursorPos(&pt);
@@ -1496,7 +1496,10 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 		if(IsTitleArea(pt))
 		{
 			::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_IBEAM));
-			hovering_title_now = TRUE;
+			if(!LBUTTON_DOWN)
+			{
+				hovering_title_now = TRUE;
+			}
 		}
 		else if(!mIsMiniMode && d < (mRadiusHandsHead * mRadiusHandsHead))
 		{
