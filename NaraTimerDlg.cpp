@@ -296,7 +296,11 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 		switch (pMsg->wParam)
 		{
 		case VK_ESCAPE:
-			TIMES_UP = -100.f;
+			if(TIMES_UP >= 0 || TITLE_CHANGING == FALSE)
+			{
+				TIMES_UP = -100.f;
+				return TRUE;
+			}
 			if (mTimeSet && GetFocus()->GetSafeHwnd() != mTitleEdit.GetSafeHwnd())
 			{
 				CString str = (IS_TIMER_MODE ? L"Stop the timer?" : L"Stop the alarm?");
