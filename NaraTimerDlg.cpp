@@ -262,6 +262,23 @@ BOOL CNaraTimerDlg::OnInitDialog()
 	mHasDate = AfxGetApp()->GetProfileInt(L"Theme", L"HasDate", 1);
 	mTickSound = AfxGetApp()->GetProfileInt(L"Theme", L"TickSound", 0);
 
+	int nargs;
+	LPWSTR * args = CommandLineToArgvW(GetCommandLine(), &nargs);
+	CString str;
+	for(int i = 1; i < nargs; i++)
+	{
+		if(CString(L"--position") == args[i])
+		{
+			int l = _wtoi(args[i + 1]);
+			int t = _wtoi(args[i + 2]);
+			int r = _wtoi(args[i + 3]);
+			int b = _wtoi(args[i + 4]);
+			MoveWindow(l, t, r - l, b - t, FALSE);
+			i += 4;
+		}
+	}
+	LocalFree(args);
+
 	// get font name
 	NONCLIENTMETRICS metrics;
 	metrics.cbSize = sizeof(NONCLIENTMETRICS);
@@ -1588,9 +1605,16 @@ void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 
 void CNaraTimerDlg::OnNew(void)
 {
+	CString param;
+	WINDOWPLACEMENT pl;
+	GetWindowPlacement(&pl);
+	if(pl.showCmd != SW_MAXIMIZE)
+	{
+		param.Format(L"--position %d %d %d %d", pl.rcNormalPosition.left, pl.rcNormalPosition.top, pl.rcNormalPosition.right, pl.rcNormalPosition.bottom);
+	}
 	wchar_t path[MAX_PATH];
 	GetModuleFileName(GetModuleHandle(NULL), path, MAX_PATH);
-	ShellExecute(GetSafeHwnd(), L"open", path, NULL, NULL, 1);
+	ShellExecute(GetSafeHwnd(), L"open", path, param, NULL, 1);
 }
 
 void CNaraTimerDlg::OnTimerMode(void)
