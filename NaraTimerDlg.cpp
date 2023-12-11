@@ -338,6 +338,65 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			{
 				SetWindowText(mTitle);
 			}
+			if(!mSetting)
+			{
+				WCHAR * str = mTitle.GetBuffer();
+				int len = mTitle.GetLength();
+				int time = 0;
+				int num = 0;
+				for(int i = 0; i < len; i++)
+				{
+					if(str[i] >= L'0' && str[i] <= L'9')
+					{
+						num = (num * 10) + (int)(str[i] - L'0');
+					}
+					else if(str[i] == L':')
+					{
+						time = time * 100 + num;
+						num = 0;
+						if(i == len - 1) time = -1;
+					}
+					else
+					{
+						time = -1;
+						break;
+					}
+				}
+				if(time >= 0)
+				{
+					time = (time * 100) + num;
+					CTime c = CTime::GetCurrentTime();
+					if(IS_ALARM_MODE)
+					{
+						int s = 0;
+						if(time > 9999)
+						{
+							s = (time % 100);
+							time /= 100;
+						}
+						int m = (time % 100);
+						int h = (time / 100);
+						int dh = (h >= c.GetHour() ? h - c.GetHour() : h - c.GetHour() + 12) * 3600;
+						int dm = (m - c.GetMinute()) * 60;
+						int ds = (s - c.GetSecond());
+						if(dh + dm + ds >= 0)
+						{
+							mTimeSet = GetTickCount64() + (dh + dm + ds) * 1000;
+							mHM.cx = h;
+							mHM.cy = m;
+							SetTimer(TID_TICK, CHK_INTERVAL, NULL);
+						}
+					}
+					else if(time <= 10000)
+					{
+						int h = (time / 10000);
+						int m = (time / 100) % 100;
+						int s = (time % 100);
+						mTimeSet = GetTickCount64() + (h * 3600 + m * 60 + s) * 1000;
+						SetTimer(TID_TICK, CHK_INTERVAL, NULL);
+					}
+				}
+			}
 			this->SetFocus();
 			Invalidate(FALSE);
 			TITLE_CHANGING = FALSE;
