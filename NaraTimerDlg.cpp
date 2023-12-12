@@ -582,7 +582,7 @@ ULONGLONG CNaraTimerDlg::deg2time(float deg, BOOL stick)
 		{
 			t = ((t + 30000) / 60000) * 60000;
 		}
-		mTimeStr = L"";
+		mTimeStr.Format(L"%d:%02d", (t / 60000), ((t % 60000) + 500) / 1000);
 		return GetTickCount64() + t;
 	}
 	else
@@ -965,7 +965,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	}
 
 	// draw digital watch
-	if ((mDigitalWatch && IS_ALARM_MODE) || mIsMiniMode)
+	if(mDigitalWatch || mIsMiniMode)
 	{
 		Gdiplus::Font font(mFontFace, ROUND(r / 4), FontStyleBold, UnitPixel);
 		if (mSetting)
@@ -1380,7 +1380,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 	}
 	else if (nIDEvent == TID_REFRESH)
 	{
-		if (!IS_TIMER_MODE)
+		if (!IS_TIMER_MODE || mDigitalWatch)
 		{
 			static int s = 0;
 			int cm = CTime::GetCurrentTime().GetMinute();
