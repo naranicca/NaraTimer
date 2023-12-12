@@ -338,7 +338,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			{
 				SetWindowText(mTitle);
 			}
-			if(!mSetting)
+			if(!mSetting && !mTitle.IsEmpty())
 			{
 				WCHAR * str = mTitle.GetBuffer();
 				int len = mTitle.GetLength();
@@ -789,7 +789,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 
 	int w = (rt->right - rt->left - RESIZE_MARGIN * scale * 2);
 	int h = (rt->bottom - rt->top - RESIZE_MARGIN * scale * 2);
-	mGridSize = min(ROUND(min(w, h) * 0.023f), 20);
+	mGridSize = ROUND(min(w, h) * 0.023f);
 	int r = (MIN(w, h) >> 1) - (mGridSize + (mGridSize >> 1) + tsize);
 	int x = (rt->left + rt->right - (r << 1)) >> 1;
 	int y = (rt->top + rt->bottom - (r << 1)) >> 1;
@@ -1849,6 +1849,7 @@ void CNaraTimerDlg::OnTitleChanging(void)
 	mTitleEdit.SetFocus();
 	mTitleEdit.ShowWindow(SW_SHOW);
 	TITLE_CHANGING = TRUE;
+	TIMES_UP = -100.f;
 }
 
 
