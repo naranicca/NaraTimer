@@ -337,6 +337,10 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			else
 			{
 				SetWindowText(mTitle);
+				if(mIsMiniMode)
+				{
+					mResizing = TRUE;
+				}
 			}
 			if(!mSetting && !mTitle.IsEmpty())
 			{
@@ -376,6 +380,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 						}
 						int m = (time % 100);
 						int h = (time / 100);
+						if(h == 12 && c.GetHour() == 0) h = 0;
 						int dh = (h >= c.GetHour() ? h - c.GetHour() : h - c.GetHour() + 12) * 3600;
 						int dm = (m - c.GetMinute()) * 60;
 						int ds = (s - c.GetSecond());
@@ -806,10 +811,10 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		mTitleEdit.SetFont(&font);
 		Gdiplus::Font gfont(dc->m_hDC, &lf);
 
-		mTitleRect.left = ROUND(ROUND_CORNER * scale);
-		mTitleRect.top = y - mGridSize - tsize - fh;
-		mTitleRect.right = rt->right - ROUND(ROUND_CORNER * scale);
-		mTitleRect.bottom = mTitleRect.top + fh;
+			mTitleRect.left = ROUND(ROUND_CORNER * scale);
+			mTitleRect.top = y - mGridSize - tsize - fh;
+			mTitleRect.right = rt->right - ROUND(ROUND_CORNER * scale);
+			mTitleRect.bottom = mTitleRect.top + fh;
 
 		if(!TITLE_CHANGING)
 		{
@@ -917,7 +922,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	CString str = L"";
 	if (deg > -mDegOffset)
 	{
-		ULONGLONG ts = t_remain / 1000;
+		ULONGLONG ts = (t_remain + 500) / 1000;
 		if (ts < 3600)
 		{
 			str.Format(L"-%d:%02d", (int)(ts / 60), (int)(ts % 60));
@@ -968,7 +973,11 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	if(mDigitalWatch || mIsMiniMode)
 	{
 		Gdiplus::Font font(mFontFace, ROUND(r / 4), FontStyleBold, UnitPixel);
-		if (mSetting)
+		if(mIsMiniMode && TIMES_UP >= 0)
+		{
+			str = L"TIME'S UP";
+		}
+		else if (mSetting)
 		{
 			str = mTimeStr;
 		}
@@ -1057,7 +1066,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	}
 
 	// TIME'S UP message
-	if(TIMES_UP >= 0)
+	if(TIMES_UP >= 0 && !mIsMiniMode)
 	{
 		CFont font;
 		GetFont(font, rt->bottom - rt->top, TRUE);
@@ -1092,7 +1101,11 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 			FillRoundRect(&g, &br, Rect(mTitleRect.left, mTitleRect.top, w, h), r);
 			if(mTitle.IsEmpty())
 			{
+				CFont font;
+				GetFont(font, ROUND(h * 0.8f), FALSE);
+				CFont * fonto = dc->SelectObject(&font);
 				dc->DrawText(L"title...", &mTitleRect, DT_SINGLELINE | DT_CENTER | DT_VCENTER | DT_END_ELLIPSIS);
+				dc->SelectObject(fonto);
 			}
 		}
 	}
@@ -1249,6 +1262,7 @@ void CNaraTimerDlg::OnPaint()
 		}
 		else
 		{
+			if(TITLE_CHANGING) return;
 			scale = (h_crt < 256? 8.f : 4.f);
 			SetRect(&crt2, 0, 0, ROUND(w_crt * scale), ROUND(h_crt * scale));
 			bmp_init(&mBmp, &dc, crt2.right, crt2.bottom);
@@ -1844,8 +1858,24 @@ void CNaraTimerDlg::OnTitleChanging(void)
 		GetFont(font, mTitleHeight, TRUE);
 		mTitleEdit.SetFont(&font, FALSE);
 	}
-	mTitleRect.top = mTitleRect.bottom - mTitleHeight;
-	mTitleEdit.MoveWindow(&mTitleRect);
+	if(mIsMiniMode)
+	{
+		RECT crt;
+		GetClientRect(&crt);
+		crt.left = ROUND_CORNER;
+		crt.top = ROUND_CORNER;
+		crt.right = crt.right - ROUND_CORNER;
+		crt.bottom = crt.bottom - ROUND_CORNER;
+		CFont font;
+		GetFont(font, crt.bottom - crt.top, TRUE);
+		mTitleEdit.SetFont(&font, FALSE);
+		mTitleEdit.MoveWindow(&crt);
+	}
+	else
+	{
+		mTitleRect.top = mTitleRect.bottom - mTitleHeight;
+		mTitleEdit.MoveWindow(&mTitleRect);
+	}
 	mTitleEdit.SetFocus();
 	mTitleEdit.ShowWindow(SW_SHOW);
 	TITLE_CHANGING = TRUE;
