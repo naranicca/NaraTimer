@@ -1002,7 +1002,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	if(mHasDate && IS_ALARM_MODE)
 	{
 		CFont font;
-		GetFont(font, r / 6, TRUE);
+		GetFont(font, r / 5, TRUE);
 		CFont* fonto = dc->SelectObject(&font);
 		RECT trt = { 0, };
 		CTime t = CTime::GetCurrentTime();
@@ -1012,7 +1012,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		int w = ROUND((trt.right - trt.left) * 1.05f);
 		int h = trt.bottom - trt.top;
 		trt.left = (x + r - (w >> 1));
-		trt.top = (y + r + r - ROUND(r / 3.f));
+		trt.top = (y + r + r - ROUND(r / 2.5f));
 		trt.right = trt.left + w ;
 		trt.bottom = trt.top + h;
 		CBrush br(bk_color);
