@@ -696,7 +696,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		grid_color = WHITE;
 		pie_color = RED;
 		hand_color = WHITE;
-		handshead_color = RGB(150, 150, 150);
+		handshead_color = RGB(50, 50, 50);
 		timestr_color = RGB(220, 220, 220);
 		BORDER_COLOR = RGB(22, 23, 24);
 		break;
@@ -842,59 +842,51 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		SetRect(&mTitleRect, ROUND_CORNER, RESIZE_MARGIN+5, (rt->right - ROUND_CORNER)/scale, max(RESIZE_MARGIN + 5 + 24, y - mGridSize - tsize));
 	}
 
-	if (font_size > 5 * scale)
+	if (IS_TIMER_MODE)
 	{
-		if (IS_TIMER_MODE)
-		{
-			mDegOffset = 0;
-		}
-		else
-		{
-			int m = CTime::GetCurrentTime().GetMinute();
-			int s = CTime::GetCurrentTime().GetSecond();
-			mDegOffset = -360000.f * (m * 60 + s) / mTime360;
-		}
-		// draw numbers
-		dc->SetTextColor(grid_color);
-		clock = CTime::GetCurrentTime().GetHour();
-		for (int i = 0; i < 360; i += 30)
-		{
-			pt0 = deg2pt((float)i, r + mGridSize + (tsize >> 1));
-			RECT rt = { x + r + pt0.x - (tw >> 1), y + r + pt0.y - (th >> 1), x + r + pt0.x + (tw >> 1), y + r + pt0.y + (th >> 1) };
-			CString str;
-			if (IS_TIMER_MODE)
-			{
-				str.Format(L"%d", (int)(i / 30) * 5);
-			}
-			else
-			{
-				int t = (int)(i / 30) + clock;
-				str.Format(L"%d", (t == 0 ? 12 : (t <= 24 ? (t > 12 ? t - 12 : t) : t - 24)));
-			}
-			dc->DrawText(str, &rt, DT_CENTER | DT_VCENTER);
-		}
-
-		// draw grids
-		DEFINE_PEN(penm, grid_color, 255, r / 100);
-		clock = (IS_TIMER_MODE ? 6 : 5);
-		for (int i = 0; i < 360; i += clock)
-		{
-			pt0 = deg2pt((float)i, r - (mGridSize >> 1));
-			pt1 = deg2pt((float)i, r + (mGridSize >> 1));
-			g.DrawLine(&penm, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
-		}
-		DEFINE_PEN(penh, grid_color, 255, r / 33);
-		for (int i = 0; i < 360; i += 30)
-		{
-			pt0 = deg2pt((float)i, r - mGridSize);
-			pt1 = deg2pt((float)i, r + mGridSize);
-			g.DrawLine(&penh, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
-		}
+		mDegOffset = 0;
 	}
 	else
 	{
-		DEFINE_PEN(pen, grid_color, 255, 3 * scale);
-		g.DrawEllipse(&pen, x, y, r << 1, r << 1);
+		int m = CTime::GetCurrentTime().GetMinute();
+		int s = CTime::GetCurrentTime().GetSecond();
+		mDegOffset = -360000.f * (m * 60 + s) / mTime360;
+	}
+	// draw numbers
+	dc->SetTextColor(grid_color);
+	clock = CTime::GetCurrentTime().GetHour();
+	for (int i = 0; i < 360; i += 30)
+	{
+		pt0 = deg2pt((float)i, r + mGridSize + (tsize >> 1));
+		RECT rt = { x + r + pt0.x - (tw >> 1), y + r + pt0.y - (th >> 1), x + r + pt0.x + (tw >> 1), y + r + pt0.y + (th >> 1) };
+		CString str;
+		if (IS_TIMER_MODE)
+		{
+			str.Format(L"%d", (int)(i / 30) * 5);
+		}
+		else
+		{
+			int t = (int)(i / 30) + clock;
+			str.Format(L"%d", (t == 0 ? 12 : (t <= 24 ? (t > 12 ? t - 12 : t) : t - 24)));
+		}
+		dc->DrawText(str, &rt, DT_CENTER | DT_VCENTER);
+	}
+
+	// draw grids
+	DEFINE_PEN(penm, grid_color, 255, r / 100);
+	clock = (IS_TIMER_MODE ? 6 : 5);
+	for (int i = 0; i < 360; i += clock)
+	{
+		pt0 = deg2pt((float)i, r - (mGridSize >> 1));
+		pt1 = deg2pt((float)i, r + (mGridSize >> 1));
+		g.DrawLine(&penm, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
+	}
+	DEFINE_PEN(penh, grid_color, 255, r / 33);
+	for (int i = 0; i < 360; i += 30)
+	{
+		pt0 = deg2pt((float)i, r - mGridSize);
+		pt1 = deg2pt((float)i, r + mGridSize);
+		g.DrawLine(&penh, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
 	}
 
 	// hands head shadow
