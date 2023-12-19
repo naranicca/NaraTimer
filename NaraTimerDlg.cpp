@@ -1116,6 +1116,8 @@ void CNaraTimerDlg::DrawBorder(CDC * dc, RECT * rt, float scale)
 
 	Graphics g(*dc);
 	g.SetSmoothingMode(SmoothingModeHighQuality);
+	g.SetInterpolationMode(Gdiplus::InterpolationModeHighQuality);
+	g.SetCompositingQuality(Gdiplus::CompositingQualityHighQuality);
 	int corner = (maximized ? 0 : ROUND(ROUND_CORNER * scale));
 	// border
 	{
@@ -1556,7 +1558,7 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 			deg = -mDegOffset;
 		}
 		mOldDeg = deg;
-		mTimeSet = deg2time(deg, d > (mRadius + (mGridSize >> 1)) * (mRadius + (mGridSize >> 1)));
+		mTimeSet = deg2time(deg, d <= (mRadius + (mGridSize >> 1)) * (mRadius + (mGridSize >> 1)));
 		Invalidate(FALSE);
 	}
 	else
