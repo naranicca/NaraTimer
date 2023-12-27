@@ -80,6 +80,7 @@ protected:
 	void DrawPie(Graphics * g, int r, float deg, RECT* rect = NULL, COLORREF c=-1);
 	void DrawBorder(CDC * dc, RECT * rt, float scale);
 	ULONGLONG GetTimestamp(void);
+	void GetLogfont(LOGFONTW * lf, int height, BOOL bold);
 	void GetFont(CFont& font, int height, BOOL bold = FALSE);
 	int GetTitleHeight(void);
 	BOOL IsTitleArea(CPoint pt);
@@ -108,6 +109,7 @@ protected:
 	afx_msg void OnTimerMode();
 	afx_msg void OnAlarmMode();
 	afx_msg void OnMenuPin();
+	afx_msg void OnMenuFont();
 	afx_msg void OnThemeLight();
 	afx_msg void OnThemeDark();
 	afx_msg void OnThemeBlue();

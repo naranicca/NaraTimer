@@ -113,6 +113,7 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	mIsMiniMode = FALSE;
 	mResizing = FALSE;
 	mMuteTick = 0;
+	memset((void*)mFontFace, 0, sizeof(mFontFace));
 }
 
 void CNaraTimerDlg::Stop(void)
@@ -194,6 +195,7 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, CDialogEx)
 	ON_COMMAND(IDM_TIMERMODE, OnTimerMode)
 	ON_COMMAND(IDM_ALARMMODE, OnAlarmMode)
 	ON_COMMAND(IDM_TOPMOST, OnMenuPin)
+	ON_COMMAND(IDM_FONT, OnMenuFont)
 	ON_COMMAND(IDM_THEMEDEFAULT, OnThemeLight)
 	ON_COMMAND(IDM_THEMEBLACK, OnThemeDark)
 	ON_COMMAND(IDM_THEMEBLUE, OnThemeBlue)
@@ -261,6 +263,19 @@ BOOL CNaraTimerDlg::OnInitDialog()
 	mDigitalWatch = AfxGetApp()->GetProfileInt(L"Theme", L"DigitalWatch", 1);
 	mHasDate = AfxGetApp()->GetProfileInt(L"Theme", L"HasDate", 1);
 	mTickSound = AfxGetApp()->GetProfileInt(L"Theme", L"TickSound", 0);
+	CString font = AfxGetApp()->GetProfileStringW(L"Setting", L"Font", L"");
+	int len = font.GetLength();
+	if(len > 0 && len < LF_FACESIZE)
+	{
+		memcpy(mFontFace, font.GetBuffer(), sizeof(WCHAR) * font.GetLength());
+	}
+	else
+	{
+		NONCLIENTMETRICS metrics;
+		metrics.cbSize = sizeof(NONCLIENTMETRICS);
+		::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &metrics, 0);
+		memcpy(&mFontFace, &metrics.lfMessageFont.lfFaceName, sizeof(metrics.lfMessageFont.lfFaceName));
+	}
 
 	int nargs;
 	LPWSTR * args = CommandLineToArgvW(GetCommandLine(), &nargs);
@@ -278,12 +293,6 @@ BOOL CNaraTimerDlg::OnInitDialog()
 		}
 	}
 	LocalFree(args);
-
-	// get font name
-	NONCLIENTMETRICS metrics;
-	metrics.cbSize = sizeof(NONCLIENTMETRICS);
-	::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &metrics, 0);
-	memcpy(&mFontFace, &metrics.lfMessageFont.lfFaceName, sizeof(metrics.lfMessageFont.lfFaceName));
 
 	reposition();
 	mTitleEdit.Create(WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | ES_CENTER, CRect(0, 0, 10, 10), this, IDC_EDIT);
@@ -609,7 +618,7 @@ ULONGLONG CNaraTimerDlg::deg2time(float deg, BOOL stick)
 	}
 }
 
-static void GetLogfont(LOGFONTW * lf, int height, BOOL bold)
+void CNaraTimerDlg::GetLogfont(LOGFONTW * lf, int height, BOOL bold)
 {
 	NONCLIENTMETRICS metrics;
 	metrics.cbSize = sizeof(NONCLIENTMETRICS);
@@ -617,6 +626,7 @@ static void GetLogfont(LOGFONTW * lf, int height, BOOL bold)
 	metrics.lfMessageFont.lfHeight = height;
 	metrics.lfMessageFont.lfWeight = (bold ? FW_BOLD : FW_NORMAL);
 	memcpy(lf, &metrics.lfMessageFont, sizeof(LOGFONTW));
+	memcpy(lf->lfFaceName, mFontFace, sizeof(lf->lfFaceName));
 }
 
 void CNaraTimerDlg::GetFont(CFont &font, int height, BOOL bold)
@@ -811,16 +821,16 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		mTitleEdit.SetFont(&font);
 		Gdiplus::Font gfont(dc->m_hDC, &lf);
 
-			mTitleRect.left = ROUND(ROUND_CORNER * scale);
-			mTitleRect.top = y - mGridSize - tsize - fh;
-			mTitleRect.right = rt->right - ROUND(ROUND_CORNER * scale);
-			mTitleRect.bottom = mTitleRect.top + fh;
+		mTitleRect.left = ROUND(ROUND_CORNER * scale);
+		mTitleRect.top = y - mGridSize - tsize - fh;
+		mTitleRect.right = rt->right - ROUND(ROUND_CORNER * scale);
+		mTitleRect.bottom = mTitleRect.top + fh;
 
 		if(!TITLE_CHANGING)
 		{
 			StringFormat sf;
 			sf.SetAlignment(StringAlignmentCenter);
-			sf.SetLineAlignment(StringAlignmentFar);
+			sf.SetLineAlignment(StringAlignmentCenter);
 			sf.SetTrimming(StringTrimmingEllipsisWord);
 			SolidBrush br(Color(255, GetRValue(grid_color), GetGValue(grid_color), GetBValue(grid_color)));
 			int top = ROUND(RESIZE_MARGIN * 1.2f * scale);
@@ -1664,6 +1674,7 @@ void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 	theme.AppendMenu(MF_STRING | (mTheme == THEME_ORANGE? MF_CHECKED: 0), IDM_THEMEORANGE, L"Orange");
 	theme.AppendMenu(MF_STRING | (mTheme == THEME_MINT? MF_CHECKED: 0), IDM_THEMEMINT, L"Mint");
 	menu.AppendMenuW(MF_POPUP, (UINT_PTR)theme.Detach(), L"Themes");
+	menu.AppendMenuW(MF_STRING, IDM_FONT, L"Font...");
 	menu.AppendMenuW(MF_STRING | (mDigitalWatch ? MF_CHECKED : 0), IDM_TOGGLEDIGITALWATCH, L"Digital Watch");
 	menu.AppendMenuW(MF_STRING | (mHasDate ? MF_CHECKED : 0), IDM_TOGGLEDATE, L"Date");
 	menu.AppendMenuW(MF_STRING | (mTickSound ? MF_CHECKED : 0), IDM_TOGGLETICKSOUND, L"Ticking Sound");
@@ -1697,6 +1708,20 @@ void CNaraTimerDlg::OnAlarmMode(void)
 void CNaraTimerDlg::OnMenuPin(void)
 {
 	SetTopmost(!mTopmost);
+}
+
+void CNaraTimerDlg::OnMenuFont(void)
+{
+	LOGFONT lf;
+	GetLogfont(&lf, 10, FALSE);
+	CFontDialog dlg(&lf, CF_ANSIONLY|CF_NOSIZESEL, NULL, NULL);
+	if(dlg.DoModal() == IDOK)
+	{
+		LOGFONT lf;
+		dlg.GetCurrentFont(&lf);
+		memcpy(mFontFace, lf.lfFaceName, sizeof(mFontFace));
+		AfxGetApp()->WriteProfileString(L"Setting", L"Font", CString(mFontFace));
+	}
 }
 
 void CNaraTimerDlg::OnThemeLight(void)
