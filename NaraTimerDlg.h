@@ -45,6 +45,8 @@ protected:
 	int mHasDate;
 	int mRadius;
 	int mRadiusHandsHead;
+	int mRoundCorner;
+	int mResizeMargin;
 	BOOL mSetting;
 	ULONGLONG mTso;
 	float mOldDeg;
@@ -69,6 +71,8 @@ protected:
 	BOOL mIsMiniMode;
 	BOOL mResizing;
 	WCHAR mFontFace[LF_FACESIZE];
+	int mInstructionIdx;
+	CString mVersion;
 
 	void reposition(void);
 	int HitTest(CPoint pt);
@@ -110,6 +114,8 @@ protected:
 	afx_msg void OnAlarmMode();
 	afx_msg void OnMenuPin();
 	afx_msg void OnMenuFont();
+	afx_msg void OnMenuHelp();
+	afx_msg void OnMenuAbout();
 	afx_msg void OnThemeLight();
 	afx_msg void OnThemeDark();
 	afx_msg void OnThemeBlue();
