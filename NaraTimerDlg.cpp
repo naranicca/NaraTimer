@@ -16,6 +16,7 @@ COLORREF BORDER_COLOR = RED;
 
 float TIMES_UP = -100.f;
 BOOL TITLE_CHANGING = FALSE;
+BOOL UPDATE_TITLERECT = TRUE;
 
 #define TID_TICK			(0)
 #define TID_REFRESH			(1)
@@ -786,6 +787,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			this->SetFocus();
 			Invalidate(FALSE);
 			TITLE_CHANGING = FALSE;
+			UPDATE_TITLERECT = TRUE;
 			return TRUE;
 		case VK_DOWN:
 		case VK_OEM_MINUS:
@@ -1187,6 +1189,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	mRadius = ROUND(r / scale);
 
 	// draw title
+	static RECT trt_full;
 	if (mTitleHeight > 0)
 	{
 		CFont font;
@@ -1197,24 +1200,51 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		mTitleEdit.SetFont(&font);
 		Gdiplus::Font gfont(dc->m_hDC, &lf);
 
-		mTitleRect.left = ROUND(mRoundCorner * scale);
-		mTitleRect.top = y - mGridSize - tsize - fh;
-		mTitleRect.right = rt->right - ROUND(mRoundCorner * scale);
-		mTitleRect.bottom = mTitleRect.top + fh;
-
 		if(!TITLE_CHANGING)
 		{
-			StringFormat sf;
-			sf.SetAlignment(StringAlignmentCenter);
-			sf.SetLineAlignment(StringAlignmentCenter);
-			sf.SetTrimming(StringTrimmingEllipsisWord);
-			SolidBrush br(Color(255, GetRValue(grid_color), GetGValue(grid_color), GetBValue(grid_color)));
-			int top = ROUND(mResizeMargin * 1.2f * scale);
-			int h = (int)((mTitleRect.bottom - top) / fh) * fh;
-			top = mTitleRect.bottom - h;
-			mTitleRect.top = top;
-			g.DrawString(mTitle.GetBuffer(), -1, &gfont, RectF(mTitleRect.left, top, \
-				mTitleRect.right - mTitleRect.left, mTitleRect.bottom - top), &sf, &br);
+			DRAWTEXTPARAMS p;
+			p.cbSize = sizeof(DRAWTEXTPARAMS);
+			p.iLeftMargin = 0;
+			p.iRightMargin = 0;
+			p.iTabLength = 4;
+			p.uiLengthDrawn = 0;
+			fonto = dc->SelectObject(&font);
+			if(UPDATE_TITLERECT)
+			{
+				mTitleRect.left = ROUND(mRoundCorner * scale);
+				mTitleRect.top = y - mGridSize - tsize - fh;
+				mTitleRect.right = rt->right - ROUND(mRoundCorner * scale);
+				mTitleRect.bottom = mTitleRect.top + fh;
+
+				int top = ROUND(mResizeMargin * 1.2f * scale);
+				int h = (int)((mTitleRect.bottom - top) / fh) * fh;
+				top = mTitleRect.bottom - h;
+				mTitleRect.top = top;
+
+				memcpy(&trt_full, &mTitleRect, sizeof(RECT));
+				dc->DrawTextEx(mTitle, &trt_full, DT_CENTER | DT_WORDBREAK | DT_CALCRECT, &p);
+				mTitleRect.top = mTitleRect.bottom - min(h, trt_full.bottom - trt_full.top);
+				UPDATE_TITLERECT = FALSE;
+			}
+			if(trt_full.bottom > mTitleRect.bottom)
+			{
+				RECT trt;
+				memcpy(&trt, &trt_full, sizeof(RECT));
+				COLORREF c1 = blend_color(blend_color(blend_color(blend_color(bk_color, grid_color), bk_color), bk_color), bk_color);
+				COLORREF c0 = blend_color(c1, bk_color);
+				trt.bottom = min(mTitleRect.bottom + (fh >> 1) + (fh >> 2), trt_full.bottom);
+				dc->SetTextColor(c0);
+				dc->DrawTextEx(mTitle, &trt, DT_CENTER | DT_WORDBREAK, &p);
+				trt.bottom = min(mTitleRect.bottom + (fh >> 1), trt_full.bottom);
+				dc->SetTextColor(c1);
+				dc->DrawTextEx(mTitle, &trt, DT_CENTER | DT_WORDBREAK, &p);
+			}
+			dc->SetTextColor(grid_color);
+			dc->SetBkColor(bk_color);
+			dc->SetBkMode(OPAQUE);
+			dc->DrawTextEx(mTitle, &mTitleRect, DT_CENTER | DT_WORDBREAK, &p);
+			dc->SetBkMode(TRANSPARENT);
+			dc->SelectObject(fonto);
 		}
 		mTitleRect.left = ROUND(mTitleRect.left / scale);
 		mTitleRect.top = ROUND(mTitleRect.top / scale);
@@ -1952,6 +1982,7 @@ void CNaraTimerDlg::SetTitle()
 		OnTitleChanging();
 		mTitleEdit.SetSel(0, -1);
 		TITLE_CHANGING = TRUE;
+		UPDATE_TITLERECT = TRUE;
 	}
 }
 
@@ -2351,6 +2382,7 @@ void CNaraTimerDlg::OnSize(UINT nType, int cx, int cy)
 			KillTimer(TID_TICK);
 		}
 	}
+	UPDATE_TITLERECT = TRUE;
 }
 
 void CNaraTimerDlg::OnGetMinMaxInfo(MINMAXINFO * lpMMI)
@@ -2411,6 +2443,7 @@ void CNaraTimerDlg::OnTitleChanging(void)
 	mTitleEdit.SetFocus();
 	mTitleEdit.ShowWindow(SW_SHOW);
 	TITLE_CHANGING = TRUE;
+	UPDATE_TITLERECT = TRUE;
 	TIMES_UP = -100.f;
 }
 

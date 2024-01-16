@@ -74,6 +74,7 @@ protected:
 	int mInstructionIdx;
 	CString mVersion;
 
+
 	void reposition(void);
 	int HitTest(CPoint pt);
 	void SetArrowCursor(int hittest);
