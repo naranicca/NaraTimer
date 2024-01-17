@@ -366,6 +366,10 @@ void NaraDialog::OnLButtonDown(UINT nFlags, CPoint pt)
 	{
 		OnOK();
 	}
+	else
+	{
+		SendMessage(WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(pt.x, pt.y));
+	}
 }
 
 void NaraDialog::OnMouseMove(UINT nFlags, CPoint pt)
