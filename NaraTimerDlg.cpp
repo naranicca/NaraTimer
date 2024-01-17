@@ -1226,24 +1226,18 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 				mTitleRect.top = mTitleRect.bottom - min(h, trt_full.bottom - trt_full.top);
 				UPDATE_TITLERECT = FALSE;
 			}
-			if(trt_full.bottom > mTitleRect.bottom)
-			{
-				RECT trt;
-				memcpy(&trt, &trt_full, sizeof(RECT));
-				COLORREF c1 = blend_color(blend_color(blend_color(blend_color(bk_color, grid_color), bk_color), bk_color), bk_color);
-				COLORREF c0 = blend_color(c1, bk_color);
-				trt.bottom = min(mTitleRect.bottom + (fh >> 1) + (fh >> 2), trt_full.bottom);
-				dc->SetTextColor(c0);
-				dc->DrawTextEx(mTitle, &trt, DT_CENTER | DT_WORDBREAK, &p);
-				trt.bottom = min(mTitleRect.bottom + (fh >> 1), trt_full.bottom);
-				dc->SetTextColor(c1);
-				dc->DrawTextEx(mTitle, &trt, DT_CENTER | DT_WORDBREAK, &p);
-			}
+			int ah = (trt_full.bottom > mTitleRect.bottom ? ROUND(fh * 0.6f) : 0);
+			RECT trt = { mTitleRect.left, mTitleRect.top, mTitleRect.right, mTitleRect.bottom + ah};
 			dc->SetTextColor(grid_color);
-			dc->SetBkColor(bk_color);
-			dc->SetBkMode(OPAQUE);
-			dc->DrawTextEx(mTitle, &mTitleRect, DT_CENTER | DT_WORDBREAK, &p);
-			dc->SetBkMode(TRANSPARENT);
+			dc->DrawTextEx(mTitle, &trt, DT_CENTER | DT_WORDBREAK, &p);
+			if(ah > 0)
+			{
+				Rect rt(trt.left, mTitleRect.bottom, trt.right - trt.left, ah);
+				Color c0(128, GetRValue(bk_color), GetGValue(bk_color), GetBValue(bk_color));
+				Color c1(255, GetRValue(bk_color), GetGValue(bk_color), GetBValue(bk_color));
+				LinearGradientBrush br(rt, c0, c1, LinearGradientModeVertical);
+				g.FillRectangle(&br, rt);
+			}
 			dc->SelectObject(fonto);
 		}
 		mTitleRect.left = ROUND(mTitleRect.left / scale);
