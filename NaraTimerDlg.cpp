@@ -1578,7 +1578,7 @@ void CNaraTimerDlg::DrawBorder(CDC * dc, RECT * rt, float scale)
 	{
 		// border highlight
 		{
-			Pen pen(Color(64, 255, 255, 255), 3 * scale);
+			Pen pen(Color(16, 255, 255, 255), 3 * scale);
 			DrawRoundRect(&g, &pen, Rect(rt->left, rt->top, (rt->right << 1) - rt->left, (rt->bottom << 1) - rt->top), corner);
 		}
 		// border shadow
