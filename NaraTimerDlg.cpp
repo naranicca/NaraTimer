@@ -795,7 +795,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			return TRUE;
 		case VK_DOWN:
 		case VK_OEM_MINUS:
-			if (mTimeSet > 60000)
+			if (!TITLE_CHANGING && mTimeSet > 60000)
 			{
 				mTimeSet -= 60000;
 				if (IS_ALARM_MODE)
@@ -816,7 +816,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			break;
 		case VK_UP:
 		case VK_OEM_PLUS:
-			if (mTimeSet > 0)
+			if (!TITLE_CHANGING && mTimeSet > 0)
 			{
 				mTimeSet += 60000;
 				if (IS_ALARM_MODE)
@@ -834,7 +834,10 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			}
 			break;
 		case VK_F2:
-			SetTitle();
+			if(!TITLE_CHANGING)
+			{
+				SetTitle();
+			}
 			break;
 		case VK_F12:
 			SetTopmost(!mTopmost);
@@ -2220,7 +2223,8 @@ void CNaraTimerDlg::OnNew(void)
 	GetWindowPlacement(&pl);
 	if(pl.showCmd != SW_MAXIMIZE)
 	{
-		param.Format(L"--position %d %d %d %d", pl.rcNormalPosition.left, pl.rcNormalPosition.top, pl.rcNormalPosition.right, pl.rcNormalPosition.bottom);
+		int off = (mResizeMargin >> 1);
+		param.Format(L"--position %d %d %d %d", pl.rcNormalPosition.left, pl.rcNormalPosition.top + off, pl.rcNormalPosition.right, pl.rcNormalPosition.bottom + off);
 	}
 	wchar_t path[MAX_PATH];
 	GetModuleFileName(GetModuleHandle(NULL), path, MAX_PATH);
