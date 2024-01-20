@@ -11,7 +11,26 @@
 #define THEME_ORANGE		(4)
 #define THEME_MINT			(5)
 
-class CNaraTimerDlg : public CDialogEx
+class NaraDialog : public CDialogEx
+{
+public:
+	NaraDialog(CWnd * pParent = NULL);
+	CWnd * GetParent(void);
+	int SetWindowBorder(int corner_size, int border_size);
+	void GetLogfont(LOGFONTW * lf, int height = 0, BOOL bold = FALSE);
+	void GetFont(CFont& font, int height = 0, BOOL bold = FALSE);
+protected:
+	CWnd * mParent;
+	RECT mCrt;
+	int mRoundCorner;
+	int mResizeMargin;
+	WCHAR mFontFace[LF_FACESIZE];
+
+	afx_msg void OnSize(UINT nType, int cx, int cy);
+	DECLARE_MESSAGE_MAP()
+};
+
+class CNaraTimerDlg : public NaraDialog
 {
 public:
 	CNaraTimerDlg(CWnd* pParent = nullptr);
@@ -33,7 +52,6 @@ public:
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);
 
-
 protected:
 	HICON m_hIcon;
 	CBitmap mBmp;
@@ -45,8 +63,6 @@ protected:
 	int mHasDate;
 	int mRadius;
 	int mRadiusHandsHead;
-	int mRoundCorner;
-	int mResizeMargin;
 	BOOL mSetting;
 	ULONGLONG mTso;
 	float mOldDeg;
@@ -70,10 +86,8 @@ protected:
 	int mButtonIconHover[NUM_BUTTONS];
 	BOOL mIsMiniMode;
 	BOOL mResizing;
-	WCHAR mFontFace[LF_FACESIZE];
 	int mInstructionIdx;
 	CString mVersion;
-
 
 	void reposition(void);
 	int HitTest(CPoint pt);
@@ -85,8 +99,6 @@ protected:
 	void DrawPie(Graphics * g, int r, float deg, RECT* rect = NULL, COLORREF c=-1);
 	void DrawBorder(CDC * dc, RECT * rt, float scale);
 	ULONGLONG GetTimestamp(void);
-	void GetLogfont(LOGFONTW * lf, int height, BOOL bold);
-	void GetFont(CFont& font, int height, BOOL bold = FALSE);
 	int GetTitleHeight(void);
 	BOOL IsTitleArea(CPoint pt);
 
@@ -107,7 +119,6 @@ protected:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
 	afx_msg void OnWindowPosChanged(WINDOWPOS* pos);
-	afx_msg void OnDestroy();
 	afx_msg LRESULT OnPinToggle(WPARAM wParam, LPARAM lparam);
 	afx_msg void OnTitleChanging();
 	afx_msg void OnNew();
