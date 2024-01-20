@@ -58,7 +58,7 @@ NaraDialog::NaraDialog(CWnd * pParent) : CDialogEx(IDD_NARATIMER_DIALOG, pParent
 {
 	mParent = pParent;
 	mRoundCorner = 10;
-	mResizeMargin = 10;
+	mResizeMargin = 0;
 	mCrt = { 0, };
 	memset((void*)mFontFace, 0, sizeof(mFontFace));
 }
@@ -74,8 +74,14 @@ CWnd * NaraDialog::GetParent(void)
 
 int NaraDialog::SetWindowBorder(int corner_size, int border_size)
 {
-	mRoundCorner = corner_size;
-	mResizeMargin = border_size;
+	if(corner_size >= 0)
+	{
+		mRoundCorner = corner_size;
+	}
+	if(border_size >= 0)
+	{
+		mResizeMargin = border_size;
+	}
 	return 0;
 }
 
@@ -98,6 +104,93 @@ void NaraDialog::GetFont(CFont &font, int height, BOOL bold)
 	LOGFONTW lf;
 	GetLogfont(&lf, height, bold);
 	font.CreateFontIndirect(&lf);
+}
+
+int NaraDialog::HitTest(CPoint pt)
+{
+	int ht = HTCLIENT;
+	if(mResizeMargin == 0) return HTCLIENT;
+	if (pt.x < mRoundCorner && pt.y < mRoundCorner)
+	{
+		int d = SQ(pt.x - mRoundCorner) + SQ(pt.y - mRoundCorner);
+		ht = (d >= SQ(mRoundCorner - mResizeMargin) ? HTTOPLEFT : HTCLIENT);
+	}
+	else if (pt.x > mCrt.right - mRoundCorner && pt.y < mRoundCorner)
+	{
+		int d = SQ(pt.x - mCrt.right + mRoundCorner) + SQ(pt.y - mRoundCorner);
+		ht = (d >= SQ(mRoundCorner - mResizeMargin) ? HTTOPRIGHT : HTCLIENT);
+	}
+	else if (pt.x < mRoundCorner && pt.y > mCrt.bottom - mRoundCorner)
+	{
+		int d = SQ(pt.x - mRoundCorner) + SQ(pt.y - mCrt.bottom + mRoundCorner);
+		ht = (d >= SQ(mRoundCorner - mResizeMargin) ? HTBOTTOMLEFT : HTCLIENT);
+	}
+	else if (pt.x > mCrt.right - mRoundCorner && pt.y > mCrt.bottom - mRoundCorner)
+	{
+		int d = SQ(pt.x - mCrt.right + mRoundCorner) + SQ(pt.y - mCrt.bottom + mRoundCorner);
+		ht = (d >= SQ(mRoundCorner - mResizeMargin) ? HTBOTTOMRIGHT : HTCLIENT);
+	}
+	else if (pt.y < mResizeMargin)
+	{
+		ht = (pt.x < mResizeMargin ? HTTOPLEFT : pt.x > mCrt.right - mResizeMargin ? HTTOPRIGHT : HTTOP);
+	}
+	else if (pt.y > mCrt.bottom - mResizeMargin)
+	{
+		ht = (pt.x < mResizeMargin ? HTBOTTOMLEFT : pt.x > mCrt.right - mResizeMargin ? HTBOTTOMRIGHT : HTBOTTOM);
+	}
+	else
+	{
+		ht = (pt.x < mResizeMargin ? HTLEFT : pt.x > mCrt.right - mResizeMargin ? HTRIGHT : HTCLIENT);
+	}
+	return ht;
+}
+
+void NaraDialog::SetArrowCursor(int hittest)
+{
+	switch (hittest)
+	{
+	case HTTOPLEFT:
+	case HTBOTTOMRIGHT:
+		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZENWSE));
+		break;
+	case HTTOPRIGHT:
+	case HTBOTTOMLEFT:
+		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZENESW));
+		break;
+	case HTLEFT:
+	case HTRIGHT:
+		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZEWE));
+		break;
+	case HTTOP:
+	case HTBOTTOM:
+		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZENS));
+		break;
+	case HTCLIENT:
+		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_ARROW));
+		break;
+	}
+}
+
+BOOL NaraDialog::PreTranslateMessage(MSG * pMsg)
+{
+	CPoint pt;
+	int ht;
+	switch(pMsg->message)
+	{
+	case WM_MOUSEMOVE:
+		if(!LBUTTON_DOWN)
+		{
+			pt.SetPoint(GET_X_LPARAM(pMsg->lParam), GET_Y_LPARAM(pMsg->lParam));
+			ht = HitTest(pt);
+			SetArrowCursor(ht);
+			if(ht != HTCLIENT)
+			{
+				return TRUE;
+			}
+		}
+		break;
+	}
+	return CDialogEx::PreTranslateMessage(pMsg);
 }
 
 void NaraDialog::OnSize(UINT nType, int cx, int cy)
@@ -146,6 +239,7 @@ protected:
 	int mCnt;
 	int mDlgHeight;
 	BOOL mOnOK;
+	RECT mOKrt;
 	int mY;
 	int AddText(int type, CString str, int h);
 
@@ -374,14 +468,14 @@ void CHelpDialog::OnPaint()
 			y += 64 + mFontHeight;
 		}
 	}
+	SetRect(&mOKrt, 0, y, mCrt.right, mCrt.bottom);
 	if(mOnOK)
 	{
-		RECT rt = { 0, y, mCrt.right, mCrt.bottom };
-		mdc.FillSolidRect(&rt, RGB(30, 144, 255));
+		mdc.FillSolidRect(&mOKrt, RGB(30, 144, 255));
 	}
 	mdc.MoveTo(0, y);
 	mdc.LineTo(mCrt.right, y);
-	mdc.DrawText(L"OK", 2, CRect(0, y, mCrt.right, mCrt.bottom), DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+	mdc.DrawText(L"OK", 2, &mOKrt, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
 	dc.BitBlt(0, 0, mCrt.right, mCrt.bottom, &mdc, 0, 0, SRCCOPY);
 	mdc.SelectObject(bmpo);
@@ -391,10 +485,7 @@ void CHelpDialog::OnPaint()
 void CHelpDialog::OnLButtonDown(UINT nFlags, CPoint pt)
 {
 	NaraDialog::OnLButtonDown(nFlags, pt);
-	RECT rt;
-	GetClientRect(&rt);
-	rt.top = rt.bottom - mFontHeight * 3;
-	if(PT_IN_RECT(pt, rt))
+	if(PT_IN_RECT(pt, mOKrt))
 	{
 		OnOK();
 	}
@@ -407,10 +498,7 @@ void CHelpDialog::OnLButtonDown(UINT nFlags, CPoint pt)
 void CHelpDialog::OnMouseMove(UINT nFlags, CPoint pt)
 {
 	NaraDialog::OnMouseMove(nFlags, pt);
-	RECT rt;
-	GetClientRect(&rt);
-	rt.top = rt.bottom - mFontHeight * 3;
-	BOOL onok = PT_IN_RECT(pt, rt);
+	BOOL onok = PT_IN_RECT(pt, mOKrt);
 	if(mOnOK != onok)
 	{
 		Invalidate(FALSE);
@@ -863,77 +951,6 @@ void CNaraTimerDlg::OnSysCommand(UINT nID, LPARAM lParam)
 	else
 	{
 		NaraDialog::OnSysCommand(nID, lParam);
-	}
-}
-
-int CNaraTimerDlg::HitTest(CPoint pt)
-{
-	int ht = HTCLIENT;
-	if (GetStyle() & WS_MAXIMIZE)
-	{
-		ht = (pt.y < mResizeMargin ? HTCAPTION : HTCLIENT);
-	}
-	else
-	{
-		if (pt.x < mRoundCorner && pt.y < mRoundCorner)
-		{
-			int d = SQ(pt.x - mRoundCorner) + SQ(pt.y - mRoundCorner);
-			ht = (d >= SQ(mRoundCorner - mResizeMargin) ? HTTOPLEFT : HTCLIENT);
-		}
-		else if (pt.x > mCrt.right - mRoundCorner && pt.y < mRoundCorner)
-		{
-			int d = SQ(pt.x - mCrt.right + mRoundCorner) + SQ(pt.y - mRoundCorner);
-			ht = (d >= SQ(mRoundCorner - mResizeMargin) ? HTTOPRIGHT : HTCLIENT);
-		}
-		else if (pt.x < mRoundCorner && pt.y > mCrt.bottom - mRoundCorner)
-		{
-			int d = SQ(pt.x - mRoundCorner) + SQ(pt.y - mCrt.bottom + mRoundCorner);
-			ht = (d >= SQ(mRoundCorner - mResizeMargin) ? HTBOTTOMLEFT : HTCLIENT);
-		}
-		else if (pt.x > mCrt.right - mRoundCorner && pt.y > mCrt.bottom - mRoundCorner)
-		{
-			int d = SQ(pt.x - mCrt.right + mRoundCorner) + SQ(pt.y - mCrt.bottom + mRoundCorner);
-			ht = (d >= SQ(mRoundCorner - mResizeMargin) ? HTBOTTOMRIGHT : HTCLIENT);
-		}
-		else if (pt.y < mResizeMargin)
-		{
-			ht = (pt.x < mResizeMargin ? HTTOPLEFT : pt.x > mCrt.right - mResizeMargin ? HTTOPRIGHT : HTTOP);
-		}
-		else if (pt.y > mCrt.bottom - mResizeMargin)
-		{
-			ht = (pt.x < mResizeMargin ? HTBOTTOMLEFT : pt.x > mCrt.right - mResizeMargin ? HTBOTTOMRIGHT : HTBOTTOM);
-		}
-		else
-		{
-			ht = (pt.x < mResizeMargin ? HTLEFT : pt.x > mCrt.right - mResizeMargin ? HTRIGHT : HTCLIENT);
-		}
-	}
-	return ht;
-}
-
-void CNaraTimerDlg::SetArrowCursor(int hittest)
-{
-	switch (hittest)
-	{
-	case HTTOPLEFT:
-	case HTBOTTOMRIGHT:
-		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZENWSE));
-		break;
-	case HTTOPRIGHT:
-	case HTBOTTOMLEFT:
-		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZENESW));
-		break;
-	case HTLEFT:
-	case HTRIGHT:
-		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZEWE));
-		break;
-	case HTTOP:
-	case HTBOTTOM:
-		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZENS));
-		break;
-	case HTCLIENT:
-		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_ARROW));
-		break;
 	}
 }
 
@@ -2097,11 +2114,6 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 		else if(!mIsMiniMode && d < (mRadiusHandsHead * mRadiusHandsHead))
 		{
 			::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_HAND));
-		}
-		else
-		{
-			int ht = HitTest(pt);
-			SetArrowCursor(ht);
 		}
 	}
 	if(hovering_title != hovering_title_now)

@@ -17,8 +17,11 @@ public:
 	NaraDialog(CWnd * pParent = NULL);
 	CWnd * GetParent(void);
 	int SetWindowBorder(int corner_size, int border_size);
+protected:
 	void GetLogfont(LOGFONTW * lf, int height = 0, BOOL bold = FALSE);
 	void GetFont(CFont& font, int height = 0, BOOL bold = FALSE);
+	int HitTest(CPoint pt);
+	void SetArrowCursor(int hittest);
 protected:
 	CWnd * mParent;
 	RECT mCrt;
@@ -26,6 +29,7 @@ protected:
 	int mResizeMargin;
 	WCHAR mFontFace[LF_FACESIZE];
 
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	DECLARE_MESSAGE_MAP()
 };
@@ -90,8 +94,6 @@ protected:
 	CString mVersion;
 
 	void reposition(void);
-	int HitTest(CPoint pt);
-	void SetArrowCursor(int hittest);
 	POINT deg2pt(float deg, int r);
 	float pt2deg(CPoint pt);
 	ULONGLONG deg2time(float deg, BOOL stick = FALSE);
