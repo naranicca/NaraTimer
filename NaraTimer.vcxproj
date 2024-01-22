@@ -188,6 +188,8 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="NaraTimer.h" />
     <ClInclude Include="NaraTimerDlg.h" />
+    <ClInclude Include="NaraUtil.h" />
+    <ClInclude Include="NaraWnd.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
@@ -195,6 +197,7 @@
   <ItemGroup>
     <ClCompile Include="NaraTimer.cpp" />
     <ClCompile Include="NaraTimerDlg.cpp" />
+    <ClCompile Include="NaraWnd.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
