@@ -3,6 +3,7 @@
 #include "NaraTimer.h"
 #include "NaraTimerDlg.h"
 #include "afxdialogex.h"
+#include "NaraUtil.h"
 
 #define RED					RGB(249, 99, 101)
 #define WHITE				RGB(255, 255, 255)
@@ -26,16 +27,11 @@ BOOL UPDATE_TITLERECT = TRUE;
 #pragma comment(lib, "winmm")
 #include <mmsystem.h>
 
-#define MIN(a, b)			((a) < (b) ? (a) : (b))
-#define MAX(a, b)			((a) > (b) ? (a) : (b))
-#define ROUND(a)			(int)((a) + 0.5f)
-#define SQ(x)				((x) * (x))
 #define LBUTTON_DOWN		(GetKeyState(VK_LBUTTON) & 0x8000)
 #define CTRL_DOWN			(GetKeyState(VK_CONTROL) & 0x8000)
 #define SET_DOCKED_STYLE	ModifyStyle(WS_CAPTION|WS_THICKFRAME|WS_SYSMENU|WS_MINIMIZEBOX|WS_MAXIMIZEBOX, WS_POPUP)
 #define SET_WINDOWED_STYLE	ModifyStyle(WS_CAPTION|WS_POPUP, WS_THICKFRAME|WS_SYSMENU|WS_MINIMIZEBOX|WS_MAXIMIZEBOX)
 #define SET_BUTTON(id, idi, idi_hover) { mButtonIcon[id] = idi; mButtonIconHover[id] = idi_hover; }
-#define PT_IN_RECT(pt, rt)	((pt).x >= (rt).left && (pt).x < (rt).right && (pt).y >= (rt).top && (pt).y < (rt).bottom)
 #define DEFINE_PEN(name, color, opaque, width)	Pen name(Color(opaque, GetRValue(color), GetGValue(color), GetBValue(color)), width)
 
 #define WM_PIN				(WM_USER+1)
@@ -65,6 +61,7 @@ NaraDialog::NaraDialog(CWnd * pParent) : CDialogEx(IDD_NARATIMER_DIALOG, pParent
 
 BEGIN_MESSAGE_MAP(NaraDialog, CDialogEx)
 	ON_WM_SIZE()
+	ON_WM_WINDOWPOSCHANGED()
 END_MESSAGE_MAP()
 
 CWnd * NaraDialog::GetParent(void)
@@ -210,6 +207,13 @@ void NaraDialog::OnSize(UINT nType, int cx, int cy)
 		rgn.CreateRoundRectRgn(0, 0, cx + 1, cy + 1, mRoundCorner * 2, mRoundCorner * 2);
 	}
 	SetWindowRgn((HRGN)rgn, FALSE);
+}
+
+void NaraDialog::OnWindowPosChanged(WINDOWPOS * pos)
+{
+	CDialogEx::OnWindowPosChanged(pos);
+	mShadow.SetCornerRadius(mRoundCorner);
+	mShadow.Reposition(this);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1557,6 +1561,7 @@ void CNaraTimerDlg::DrawBorder(CDC * dc, RECT * rt, float scale)
 		Pen pen(Color(255, GetRValue(BORDER_COLOR), GetGValue(BORDER_COLOR), GetBValue(BORDER_COLOR)), ROUND(mResizeMargin * 2 * scale));
 		DrawRoundRect(&g, &pen, Rect(rt->left, rt->top, rt->right - rt->left, rt->bottom - rt->top), corner);
 	}
+#if 0 // removed highlight and shadows of the border after window shadow was applied
 	if(!maximized)
 	{
 		// border highlight
@@ -1573,6 +1578,7 @@ void CNaraTimerDlg::DrawBorder(CDC * dc, RECT * rt, float scale)
 			DrawRoundRect(&g, &pen2, Rect(rt->left + off, rt->top + off, rt->right - rt->left - 2 * off, rt->bottom - rt->top - 2 * off), corner - off);
 		}
 	}
+#endif
 
 	// draw icon
 	for (int i = 0; i < NUM_BUTTONS; i++)

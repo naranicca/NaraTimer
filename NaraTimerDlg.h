@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "NaraWnd.h"
 
 #define BUTTON_CLOSE		(0)
 #define BUTTON_PIN			(1)
@@ -28,9 +29,11 @@ protected:
 	int mRoundCorner;
 	int mResizeMargin;
 	WCHAR mFontFace[LF_FACESIZE];
+	NaraShadow mShadow;
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
+	afx_msg void OnWindowPosChanged(WINDOWPOS * pos);
 	DECLARE_MESSAGE_MAP()
 };
 
