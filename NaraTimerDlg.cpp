@@ -1078,6 +1078,13 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	float hand_size;
 	float handshead_size;
 
+	bk_color = WHITE;
+	grid_color = RGB(0, 0, 0);
+	pie_color = RED;
+	hand_color = RGB(220, 220, 220);
+	handshead_color = RGB(77, 88, 94);
+	timestr_color = RGB(20, 20, 20);
+	BORDER_COLOR = RED;
 	switch(mTheme)
 	{
 	case THEME_DARK:
@@ -1090,49 +1097,16 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		BORDER_COLOR = RGB(22, 23, 24);
 		break;
 	case THEME_BLUE:
-		bk_color = RGB(16, 26, 59);
-		grid_color = WHITE;
-		pie_color = RED;
-		hand_color = WHITE;
-		handshead_color = RGB(69, 70, 71);
-		timestr_color = RGB(220, 220, 220);
 		BORDER_COLOR = RGB(16, 41, 145);
 		break;
 	case THEME_GREEN:
-		bk_color = RGB(20, 46, 29);
-		grid_color = WHITE;
-		pie_color = RED;
-		hand_color = WHITE;
-		handshead_color = RGB(69, 70, 71);
-		timestr_color = RGB(220, 220, 220);
 		BORDER_COLOR = RGB(30, 108, 78);
 		break;
 	case THEME_ORANGE:
-		bk_color = RGB(229, 119, 33);
-		grid_color = WHITE;
-		pie_color = RGB(24, 57, 186);
-		hand_color = RGB(108, 185, 66);
-		handshead_color = RGB(19, 20, 21);
-		timestr_color = RGB(220, 220, 220);
-		BORDER_COLOR = RGB(244, 76, 11);
+		BORDER_COLOR = RGB(229, 119, 33);
 		break;
 	case THEME_MINT:
-		bk_color = RGB(64, 224, 208);
-		grid_color = RGB(0, 0, 0);
-		pie_color = RGB(63, 67, 84);
-		hand_color = WHITE;
-		handshead_color = RGB(19, 20, 21);
-		timestr_color = RGB(20, 20, 20);
-		BORDER_COLOR = RGB(204, 202, 205);
-		break;
-	default:
-		bk_color = WHITE;
-		grid_color = RGB(0, 0, 0);
-		pie_color = RED;
-		hand_color = RGB(220, 220, 220);
-		handshead_color = RGB(77, 88, 94);
-		timestr_color = RGB(20, 20, 20);
-		BORDER_COLOR = RED;
+		BORDER_COLOR = RGB(64, 224, 208);
 		break;
 	}
 	if (IS_TIMER_MODE)
