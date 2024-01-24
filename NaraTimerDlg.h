@@ -11,6 +11,8 @@
 #define THEME_GREEN			(3)
 #define THEME_ORANGE		(4)
 #define THEME_MINT			(5)
+#define THEME_PINK			(6)
+#define NUM_THEMES			(7)
 
 class NaraDialog : public CDialogEx
 {
@@ -140,6 +142,7 @@ protected:
 	afx_msg void OnThemeGreen();
 	afx_msg void OnThemeOrange();
 	afx_msg void OnThemeMint();
+	afx_msg void OnThemePink();
 	afx_msg void OnToggleDigitalWatch();
 	afx_msg void OnToggleDate();
 	afx_msg void OnToggleTickSound();

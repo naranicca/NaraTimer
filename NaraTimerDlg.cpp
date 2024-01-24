@@ -63,6 +63,7 @@ BEGIN_MESSAGE_MAP(NaraDialog, CDialogEx)
 	ON_WM_SIZE()
 	ON_WM_ACTIVATE()
 	ON_WM_WINDOWPOSCHANGED()
+	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
 CWnd * NaraDialog::GetParent(void)
@@ -240,6 +241,7 @@ public:
 	int AddString(CString str);
 	int AddBoldString(CString str);
 	int AddIcon(int id);
+	int EnableTimer(BOOL enable = TRUE);
 protected:
 	int mType[MAX_NUM_ITEM];
 	CString mText[MAX_NUM_ITEM];
@@ -252,6 +254,7 @@ protected:
 	BOOL mOnOK;
 	RECT mOKrt;
 	int mY;
+	int mTimerID;
 	int AddText(int type, CString str, int h);
 
 	virtual BOOL OnInitDialog();
@@ -260,6 +263,7 @@ protected:
 	afx_msg void OnPaint();
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	DECLARE_MESSAGE_MAP()
 };
 
@@ -268,6 +272,7 @@ BEGIN_MESSAGE_MAP(CHelpDialog, NaraDialog)
 	ON_WM_PAINT()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_MOUSEMOVE()
+	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
 CHelpDialog::CHelpDialog(CWnd * parent) : NaraDialog(parent)
@@ -276,6 +281,7 @@ CHelpDialog::CHelpDialog(CWnd * parent) : NaraDialog(parent)
 	Clear();
 	mOnOK = FALSE;
 	mY = -1;
+	mTimerID = -1;
 
 	NONCLIENTMETRICS metrics;
 	metrics.cbSize = sizeof(NONCLIENTMETRICS);
@@ -355,6 +361,11 @@ BOOL CHelpDialog::OnInitDialog()
 	rt.top = rt.bottom - mFontHeight * 3;
 	mOnOK = PT_IN_RECT(pt, rt);
 
+	if(mTimerID >= 0)
+	{
+		SetTimer(mTimerID, 1000, NULL);
+	}
+
 	return TRUE;
 }
 
@@ -427,6 +438,19 @@ int CHelpDialog::AddIcon(int id)
 	return AddText(TYPE_ICON, str, 64);
 }
 
+int CHelpDialog::EnableTimer(BOOL enable)
+{
+	if(enable)
+	{
+		mTimerID = 0;
+	}
+	else
+	{
+		mTimerID = -1;
+	}
+	return 0;
+}
+
 BOOL CHelpDialog::OnEraseBkgnd(CDC* pDC)
 {
 	return 0;
@@ -445,8 +469,8 @@ void CHelpDialog::OnPaint()
 
 	mdc.FillSolidRect(&mCrt, RGB(64, 64, 64));
 	mdc.SetTextColor(WHITE);
-	int x = mResizeMargin;
-	int y = mResizeMargin;
+	int x = 10;
+	int y = 10;
 	for(int i = 0; i < mCnt; i++)
 	{
 		RECT rt = { x, y, mCrt.right - x, y + mFontHeight * 3 };
@@ -514,6 +538,20 @@ void CHelpDialog::OnMouseMove(UINT nFlags, CPoint pt)
 	{
 		Invalidate(FALSE);
 		mOnOK = onok;
+	}
+}
+
+void CHelpDialog::OnTimer(UINT_PTR nIDEvent)
+{
+	static int theme = THEME_LIGHT;
+	if(mTimerID == -1)
+	{
+		KillTimer(0);
+	}
+	else if(mTimerID == 0)
+	{
+		theme = (theme == NUM_THEMES - 1 ? 0 : theme + 1);
+		((CNaraTimerDlg *)GetParent())->SetTheme(theme);
 	}
 }
 
@@ -642,6 +680,7 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, NaraDialog)
 	ON_COMMAND(IDM_THEMEGREEN, OnThemeGreen)
 	ON_COMMAND(IDM_THEMEORANGE, OnThemeOrange)
 	ON_COMMAND(IDM_THEMEMINT, OnThemeMint)
+	ON_COMMAND(IDM_THEMEPINK, OnThemePink)
 	ON_COMMAND(IDM_TOGGLEDIGITALWATCH, OnToggleDigitalWatch)
 	ON_COMMAND(IDM_TOGGLEDATE, OnToggleDate)
 	ON_COMMAND(IDM_TOGGLETICKSOUND, OnToggleTickSound)
@@ -1107,6 +1146,9 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		break;
 	case THEME_MINT:
 		BORDER_COLOR = RGB(64, 224, 208);
+		break;
+	case THEME_PINK:
+		BORDER_COLOR = RGB(251, 162, 139);
 		break;
 	}
 	if (IS_TIMER_MODE)
@@ -1835,6 +1877,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				dlg.DoModal();
 				mInstructionIdx--;
 
+				int theme = mTheme;
 				dlg.Clear();
 				dlg.AddHeading(L"One More Thing");
 				dlg.AddString(L"Want to change options and preferences?");
@@ -1843,7 +1886,10 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				dlg.AddString(L"You can set various options on context menu");
 				dlg.AddString(L"and can even change the theme");
 				dlg.AddString(L"");
+				dlg.EnableTimer();
 				dlg.DoModal();
+				dlg.EnableTimer(FALSE);
+				SetTheme(theme);
 				mInstructionIdx--;
 
 				dlg.Clear();
@@ -2167,6 +2213,7 @@ void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 	theme.AppendMenu(MF_STRING | (mTheme == THEME_GREEN? MF_CHECKED: 0), IDM_THEMEGREEN, L"Green");
 	theme.AppendMenu(MF_STRING | (mTheme == THEME_ORANGE? MF_CHECKED: 0), IDM_THEMEORANGE, L"Orange");
 	theme.AppendMenu(MF_STRING | (mTheme == THEME_MINT? MF_CHECKED: 0), IDM_THEMEMINT, L"Mint");
+	theme.AppendMenu(MF_STRING | (mTheme == THEME_PINK? MF_CHECKED: 0), IDM_THEMEPINK, L"Pink");
 	menu.AppendMenuW(MF_POPUP, (UINT_PTR)theme.Detach(), L"Themes");
 	menu.AppendMenuW(MF_STRING, IDM_FONT, L"Font...");
 	menu.AppendMenuW(MF_STRING | (mDigitalWatch ? MF_CHECKED : 0), IDM_TOGGLEDIGITALWATCH, L"Digital Watch");
@@ -2260,6 +2307,11 @@ void CNaraTimerDlg::OnThemeOrange(void)
 void CNaraTimerDlg::OnThemeMint(void)
 {
 	SetTheme(THEME_MINT);
+}
+
+void CNaraTimerDlg::OnThemePink(void)
+{
+	SetTheme(THEME_PINK);
 }
 
 void CNaraTimerDlg::OnToggleDigitalWatch(void)
