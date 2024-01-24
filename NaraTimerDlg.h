@@ -33,6 +33,7 @@ protected:
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
+	afx_msg void OnActivate(UINT nState, CWnd * pWndOther, BOOL bMinimized);
 	afx_msg void OnWindowPosChanged(WINDOWPOS * pos);
 	DECLARE_MESSAGE_MAP()
 };

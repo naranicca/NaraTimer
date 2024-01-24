@@ -184,7 +184,7 @@ void NaraShadow::Reposition(CWnd * parent, int size)
 	{
 		RECT wrt;
 		parent->GetWindowRect(&wrt);
-		Reposition(parent, &wrt, size);
+		Reposition(parent, &wrt, size >= 0? size: mSize);
 		memset(&mDst, 0, sizeof(RECT));
 	}
 }

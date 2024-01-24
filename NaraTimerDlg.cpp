@@ -61,6 +61,7 @@ NaraDialog::NaraDialog(CWnd * pParent) : CDialogEx(IDD_NARATIMER_DIALOG, pParent
 
 BEGIN_MESSAGE_MAP(NaraDialog, CDialogEx)
 	ON_WM_SIZE()
+	ON_WM_ACTIVATE()
 	ON_WM_WINDOWPOSCHANGED()
 END_MESSAGE_MAP()
 
@@ -209,11 +210,17 @@ void NaraDialog::OnSize(UINT nType, int cx, int cy)
 	SetWindowRgn((HRGN)rgn, FALSE);
 }
 
+void NaraDialog::OnActivate(UINT nState, CWnd * pWndOther, BOOL bMinimized)
+{
+	CDialogEx::OnActivate(nState, pWndOther, bMinimized);
+	mShadow.Reposition(this, nState == WA_INACTIVE ? 6 : 12);
+}
+
 void NaraDialog::OnWindowPosChanged(WINDOWPOS * pos)
 {
 	CDialogEx::OnWindowPosChanged(pos);
 	mShadow.SetCornerRadius(mRoundCorner);
-	mShadow.Reposition(this);
+	mShadow.Reposition(this, -1);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
