@@ -1324,7 +1324,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	}
 
 	// draw date complications
-	if(mHasDate && IS_ALARM_MODE)
+	if(mHasDate)
 	{
 		CFont font;
 		GetFont(font, r / 5, TRUE);
