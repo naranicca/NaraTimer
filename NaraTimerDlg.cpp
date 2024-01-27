@@ -1199,7 +1199,24 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		else
 		{
 			int t = (int)(i / 30) + clock;
-			str.Format(L"%d", (t == 0 ? 12 : (t <= 24 ? (t > 12 ? t - 12 : t) : t - 24)));
+			if(t >= 24) t -= 24;
+			if(i == 0)
+			{
+				rt.left -= tw;
+				rt.right += tw;
+				if(t < 12)
+				{
+					str.Format(L"%d am", (t == 0 ? 12 : (t > 12 ? t - 12 : t)));
+				}
+				else
+				{
+					str.Format(L"%d pm", (t == 0 ? 12 : (t > 12 ? t - 12 : t)));
+				}
+			}
+			else
+			{
+				str.Format(L"%d", (t == 0 ? 12 : (t > 12 ? t - 12 : t)));
+			}
 		}
 		dc->DrawText(str, &rt, DT_CENTER | DT_VCENTER);
 	}
