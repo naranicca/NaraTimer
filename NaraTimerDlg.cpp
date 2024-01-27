@@ -65,7 +65,8 @@ public:
 	int AddString(CString str);
 	int AddBoldString(CString str);
 	int AddIcon(int id);
-	int EnableTimer(BOOL enable = TRUE);
+	void EnableTimer(int id) { mTimerID = id; mTimerIdx = 0; }
+	void DisableTimer(void) { mTimerID = -1; }
 protected:
 	int mType[MAX_NUM_ITEM];
 	CString mText[MAX_NUM_ITEM];
@@ -79,6 +80,7 @@ protected:
 	RECT mOKrt;
 	int mY;
 	int mTimerID;
+	UINT mTimerIdx;
 	int AddText(int type, CString str, int h);
 
 	virtual BOOL OnInitDialog();
@@ -115,7 +117,7 @@ CHelpDialog::CHelpDialog(CWnd * parent) : NaraDialog(IDD_NARATIMER_DIALOG, paren
 	mFont.CreateFontIndirect(&metrics.lfMessageFont);
 	mFontHeight = metrics.lfMessageFont.lfHeight;
 
-	metrics.lfMessageFont.lfHeight = ROUND(mFontHeight * 1.5);
+	metrics.lfMessageFont.lfHeight = ROUND(mFontHeight * 1.2);
 	metrics.lfMessageFont.lfWeight = FW_BOLD;
 	mFontBold.CreateFontIndirect(&metrics.lfMessageFont);
 
@@ -189,7 +191,7 @@ BOOL CHelpDialog::OnInitDialog()
 
 	if(mTimerID >= 0)
 	{
-		SetTimer(mTimerID, 1000, NULL);
+		SetTimer(mTimerID, 300, NULL);
 	}
 
 	return TRUE;
@@ -262,19 +264,6 @@ int CHelpDialog::AddIcon(int id)
 	CString str;
 	str.Format(L"%d", id);
 	return AddText(TYPE_ICON, str, 64);
-}
-
-int CHelpDialog::EnableTimer(BOOL enable)
-{
-	if(enable)
-	{
-		mTimerID = 0;
-	}
-	else
-	{
-		mTimerID = -1;
-	}
-	return 0;
 }
 
 BOOL CHelpDialog::OnEraseBkgnd(CDC* pDC)
@@ -376,16 +365,65 @@ void CHelpDialog::OnMouseLeave(void)
 
 void CHelpDialog::OnTimer(UINT_PTR nIDEvent)
 {
-	static int theme = THEME_DEFAULT;
+	CNaraTimerDlg * timer = (CNaraTimerDlg *)GetParent();
 	if(mTimerID == -1)
 	{
 		KillTimer(0);
+		KillTimer(1);
+		mTimerIdx = 0;
 	}
 	else if(mTimerID == 0)
 	{
-		theme = (theme == NUM_THEMES - 1 ? 0 : theme + 1);
-		((CNaraTimerDlg *)GetParent())->SetTheme(theme);
+		if(mTimerIdx == 1)
+		{
+			timer->SetTitle(L"T");
+		}
+		else if(mTimerIdx == 2)
+		{
+			timer->SetTitle(L"Ti");
+		}
+		else if(mTimerIdx == 3)
+		{
+			timer->SetTitle(L"Tit");
+		}
+		else if(mTimerIdx == 4)
+		{
+			timer->SetTitle(L"Ti");
+		}
+		else if(mTimerIdx == 5)
+		{
+			timer->SetTitle(L"T");
+		}
+		else if(mTimerIdx == 6)
+		{
+			timer->SetTitle(L" ");
+		}
+		else if(mTimerIdx == 7)
+		{
+			timer->SetTitle(L"5");
+		}
+		else if(mTimerIdx == 8)
+		{
+			timer->SetTitle(L"5:");
+		}
+		else if(mTimerIdx == 9)
+		{
+			timer->SetTitle(L"5:0", TRUE);
+		}
+		else if(mTimerIdx == 10)
+		{
+			timer->SetTitle(L"5:00", TRUE);
+		}
+		else if(mTimerIdx == 12)
+		{
+			timer->SetTitle(L"5:00", FALSE);
+		}
 	}
+	else if(mTimerID == 1)
+	{
+		timer->SetTheme(mTimerIdx % NUM_THEMES);
+	}
+	mTimerIdx++;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -644,7 +682,7 @@ BOOL CNaraTimerDlg::OnInitDialog()
 	mTitleEdit.Create(WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | ES_CENTER, CRect(0, 0, 10, 10), this, IDC_EDIT);
 	mTitleEdit.ShowWindow(SW_HIDE);
 
-	SetTimer(TID_REFRESH, 1000, NULL);
+	SetTimer(TID_REFRESH, 500, NULL);
 	SetTopmost(FALSE);
 
 	SetWindowText(L"NaraTimer");
@@ -1693,9 +1731,13 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				dlg.AddString(L"Setting title to \'5:00\' will set 5-minute timer (timer mode)");
 				dlg.AddString(L"or set alarm for 5 (alaram mode)");
 				dlg.AddString(L"");
-				dlg.SetY(mTitleRect.bottom + 10);
+				dlg.SetY(((mTimerRect.bottom + mTimerRect.top) >> 1) + mRadius + 5);
+				dlg.EnableTimer(0);
 				dlg.DoModal();
+				dlg.DisableTimer();
 				mInstructionIdx--;
+				Stop();
+				SetTitle(L"");
 
 				dlg.Clear();
 				dlg.AddHeading(L"Use Pin");
@@ -1717,9 +1759,9 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				dlg.AddString(L"You can set various options on context menu");
 				dlg.AddString(L"and can even change the theme");
 				dlg.AddString(L"");
-				dlg.EnableTimer();
+				dlg.EnableTimer(1);
 				dlg.DoModal();
-				dlg.EnableTimer(FALSE);
+				dlg.DisableTimer();
 				SetTheme(theme);
 				mInstructionIdx--;
 
@@ -1820,6 +1862,20 @@ void CNaraTimerDlg::SetMode(BOOL is_timer)
 	}
 	mTimeSet = 0;
 	SetWindowText(L"NaraTimer");
+}
+
+void CNaraTimerDlg::SetTitle(CString str, BOOL still_editing)
+{
+	OnTitleChanging();
+	mTitle = str;
+	mTitleEdit.SetWindowText(str);
+	TITLE_CHANGING = FALSE;
+	Invalidate(FALSE);
+	mTitleEdit.ShowWindow(SW_HIDE);
+	if(!still_editing)
+	{
+		PostMessage(WM_KEYDOWN, VK_RETURN, 0);
+	}
 }
 
 void CNaraTimerDlg::SetTitle()

@@ -20,7 +20,7 @@ public:
 	CNaraTimerDlg(CWnd* pParent = nullptr);
 	void Stop(void);
 	void SetMode(BOOL is_timer = TRUE);
-	void SetTitle();
+	void SetTitle(CString str, BOOL still_editing=FALSE);
 	void SetTopmost(BOOL topmost=TRUE);
 	void SetTheme(int theme);
 	void PlayTickSound(void);
@@ -77,6 +77,7 @@ protected:
 	POINT deg2pt(float deg, int r);
 	float pt2deg(CPoint pt);
 	ULONGLONG deg2time(float deg, BOOL stick = FALSE);
+	void SetTitle();
 	void DrawTimer(CDC* dc, RECT* rt, float scale = 1.f, BOOL draw_border=TRUE);
 	void DrawPie(Graphics * g, int r, float deg, RECT* rect = NULL, COLORREF c=-1);
 	void DrawBorder(CDC * dc, RECT * rt, float scale);
