@@ -402,33 +402,41 @@ void CHelpDialog::OnTimer(UINT_PTR nIDEvent)
 		}
 		else if(mTimerIdx == 4)
 		{
-			timer->SetTitle(L"Ti");
+			timer->SetTitle(L"Titl");
 		}
 		else if(mTimerIdx == 5)
 		{
-			timer->SetTitle(L"T");
+			timer->SetTitle(L"Tit");
 		}
 		else if(mTimerIdx == 6)
 		{
-			timer->SetTitle(L" ");
+			timer->SetTitle(L"Ti");
 		}
 		else if(mTimerIdx == 7)
 		{
-			timer->SetTitle(L"5");
+			timer->SetTitle(L"T");
 		}
 		else if(mTimerIdx == 8)
 		{
-			timer->SetTitle(L"5:");
+			timer->SetTitle(L" ");
 		}
 		else if(mTimerIdx == 9)
 		{
-			timer->SetTitle(L"5:0", TRUE);
+			timer->SetTitle(L"5", TRUE);
 		}
 		else if(mTimerIdx == 10)
 		{
-			timer->SetTitle(L"5:00", TRUE);
+			timer->SetTitle(L"5:");
+		}
+		else if(mTimerIdx == 11)
+		{
+			timer->SetTitle(L"5:0", TRUE);
 		}
 		else if(mTimerIdx == 12)
+		{
+			timer->SetTitle(L"5:00", TRUE);
+		}
+		else if(mTimerIdx == 14)
 		{
 			timer->SetTitle(L"5:00", FALSE);
 		}
@@ -790,8 +798,12 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 						}
 						int m = (time % 100);
 						int h = (time / 100);
-						if(h == 12 && c.GetHour() == 0) h = 0;
-						int dh = (h >= c.GetHour() ? h - c.GetHour() : h - c.GetHour() + 12) * 3600;
+						int h_cur = c.GetHour();
+						if(h < h_cur)
+						{
+							h += ((h + 24 - h_cur <= 12) ? 24 : 12);
+						}
+						int dh = (h - h_cur) * 3600;
 						int dm = (m - c.GetMinute()) * 60;
 						int ds = (s - c.GetSecond());
 						if(dh + dm + ds >= 0)
