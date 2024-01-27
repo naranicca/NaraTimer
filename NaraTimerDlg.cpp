@@ -29,6 +29,7 @@ BOOL UPDATE_TITLERECT = TRUE;
 
 #define LBUTTON_DOWN		(GetKeyState(VK_LBUTTON) & 0x8000)
 #define CTRL_DOWN			(GetKeyState(VK_CONTROL) & 0x8000)
+#define SHIFT_DOWN			(GetKeyState(VK_LSHIFT) & 0x8000)
 #define SET_DOCKED_STYLE	ModifyStyle(WS_CAPTION|WS_THICKFRAME|WS_SYSMENU|WS_MINIMIZEBOX|WS_MAXIMIZEBOX, WS_POPUP)
 #define SET_WINDOWED_STYLE	ModifyStyle(WS_CAPTION|WS_POPUP, WS_THICKFRAME|WS_SYSMENU|WS_MINIMIZEBOX|WS_MAXIMIZEBOX)
 #define SET_BUTTON(id, idi, idi_hover) { mButtonIcon[id] = idi; mButtonIconHover[id] = idi_hover; }
@@ -370,9 +371,22 @@ void CHelpDialog::OnTimer(UINT_PTR nIDEvent)
 	{
 		KillTimer(0);
 		KillTimer(1);
+		KillTimer(2);
 		mTimerIdx = 0;
 	}
 	else if(mTimerID == 0)
+	{
+		int i = (mTimerIdx % 6);
+		if(i == 0)
+		{
+			timer->SetMode(TRUE);
+		}
+		else if(i == 3)
+		{
+			timer->SetMode(FALSE);
+		}
+	}
+	else if(mTimerID == 1)
 	{
 		if(mTimerIdx == 1)
 		{
@@ -419,7 +433,7 @@ void CHelpDialog::OnTimer(UINT_PTR nIDEvent)
 			timer->SetTitle(L"5:00", FALSE);
 		}
 	}
-	else if(mTimerID == 1)
+	else if(mTimerID == 2)
 	{
 		timer->SetTheme(mTimerIdx % NUM_THEMES);
 	}
@@ -675,6 +689,11 @@ BOOL CNaraTimerDlg::OnInitDialog()
 			MoveWindow(l, t, r - l, b - t, FALSE);
 			i += 4;
 		}
+		else if(CString(L"--mode") == args[i])
+		{
+			SetMode(_wtoi(args[i + 1]));
+			i++;
+		}
 	}
 	LocalFree(args);
 
@@ -689,6 +708,9 @@ BOOL CNaraTimerDlg::OnInitDialog()
 
 	mRunning = TRUE;
 	mThread = AfxBeginThread(FnThreadTicking, this);
+
+	Sleep(100);
+	SetForegroundWindow();
 
 	return TRUE;
 }
@@ -1193,6 +1215,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	mRadiusHandsHead = sz;
 	SolidBrush brgrey2(Color(64, 0, 0, 0));
 	g.FillEllipse(&brgrey2, x + r + off - sz, y + r + off - sz, 2 * sz, 2 * sz);
+	mButtonRect[BUTTON_CENTER].SetRect(x + r + off - sz, y + r + off - sz, x + r + off + sz, y + r + off + sz);
 
 	// draw red pie
 	LONGLONG t_remain = (mTimeSet > 0 ? mTimeSet - GetTickCount64() : 0);
@@ -1415,6 +1438,23 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		{
 			pen.SetDashStyle(DashStyleDot);
 			g.DrawEllipse(&pen, x + r - mRadiusHandsHead - 5, y + r - mRadiusHandsHead - 5, mRadiusHandsHead*2+10, mRadiusHandsHead*2+10);
+			CFont font;
+			GetFont(font, ROUND(r * 0.3), TRUE);
+			CFont * fonto = dc->SelectObject(&font);
+			RECT trt = { 0, };
+			CString str = (IS_TIMER_MODE ? L"Timer" : L"Alarm");
+			dc->DrawText(str, &trt, DT_SINGLELINE | DT_CALCRECT);
+			int w = trt.right - trt.left;
+			int h = trt.bottom - trt.top;
+			trt.left = x + r - (w >> 1);
+			trt.right = trt.left + w;
+			trt.bottom = y + (r >> 1) + (h >> 1);
+			trt.top = trt.bottom - h;
+			SolidBrush br(Color(220, 128, 128, 128));
+			FillRoundRect(&g, &br, Rect(trt.left - 10, trt.top - 10, w + 20, h + 20), 10);
+			dc->SetTextColor(RGB(255, 255, 255));
+			dc->DrawText(str, &trt, DT_SINGLELINE);
+			dc->SelectObject(fonto);
 		}
 		else if(mInstructionIdx == -3)
 		{
@@ -1708,7 +1748,9 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				dlg.AddString(L"You can change the mode by clicking here");
 				dlg.AddString(L"");
 				dlg.SetY(((mTimerRect.bottom + mTimerRect.top) >> 1) + mRadiusHandsHead + 10);
+				dlg.EnableTimer(0);
 				dlg.DoModal();
+				dlg.DisableTimer();
 				mInstructionIdx--;
 
 				dlg.Clear();
@@ -1732,7 +1774,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				dlg.AddString(L"or set alarm for 5 (alaram mode)");
 				dlg.AddString(L"");
 				dlg.SetY(((mTimerRect.bottom + mTimerRect.top) >> 1) + mRadius + 5);
-				dlg.EnableTimer(0);
+				dlg.EnableTimer(1);
 				dlg.DoModal();
 				dlg.DisableTimer();
 				mInstructionIdx--;
@@ -1759,7 +1801,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				dlg.AddString(L"You can set various options on context menu");
 				dlg.AddString(L"and can even change the theme");
 				dlg.AddString(L"");
-				dlg.EnableTimer(1);
+				dlg.EnableTimer(2);
 				dlg.DoModal();
 				dlg.DisableTimer();
 				SetTheme(theme);
@@ -1938,25 +1980,7 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 	int cx = (mTimerRect.right + mTimerRect.left) >> 1;
 	int cy = (mTimerRect.bottom + mTimerRect.top) >> 1;
 	int d = SQ(pt.x - cx) + SQ(pt.y - cy);
-	if(!mIsMiniMode && d < (mRadiusHandsHead * mRadiusHandsHead))
-	{
-		GetTimestamp();
-		CClientDC dc(this);
-		int m = mRadiusHandsHead >> 1;
-		RECT rt = { mCrt.left + m, mCrt.top + m, mCrt.right - m, mCrt.bottom - m };
-		DrawTimer(&dc, &rt, 1.f);
-		if (mTimeSet == 0 && !CTRL_DOWN)
-		{
-			KillTimer(TID_TICK);
-			SetMode(IS_ALARM_MODE);
-		}
-		else
-		{
-			OnNew();
-		}
-		Invalidate(FALSE);
-	}
-	else if(!mIsMiniMode && d < SQ(mRadius + mGridSize))
+	if(!mIsMiniMode && d < SQ(mRadius + mGridSize))
 	{
 		KillTimer(TID_TICK);
 		float deg = pt2deg(pt);
@@ -1980,6 +2004,8 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 
 void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 {
+	NaraDialog::OnMouseMove(nFlags, pt);
+
 	static BOOL hovering_title = FALSE;
 	BOOL hovering_title_now = FALSE;
 	int cx = (mTimerRect.right + mTimerRect.left) >> 1;
@@ -2041,11 +2067,12 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 		Invalidate(FALSE);
 		hovering_title = hovering_title_now;
 	}
-	NaraDialog::OnMouseMove(nFlags, pt);
 }
 
 void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 {
+	NaraDialog::OnLButtonUp(nFlags, pt);
+
 	if (mSetting)
 	{
 		ReleaseCapture();
@@ -2074,12 +2101,27 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 			{
 				PostMessage(WM_PIN, 0, 0);
 			}
+			else if(mButtonHover == BUTTON_CENTER)
+			{
+				CClientDC dc(this);
+				int m = mRadiusHandsHead >> 1;
+				RECT rt = { mCrt.left + m, mCrt.top + m, mCrt.right - m, mCrt.bottom - m };
+				DrawTimer(&dc, &rt, 1.f);
+				if (mTimeSet == 0 && !SHIFT_DOWN)
+				{
+					KillTimer(TID_TICK);
+					SetMode(IS_ALARM_MODE);
+				}
+				else
+				{
+					OnNew();
+				}
+			}
 		}
 		mButtonHover = -1;
 		Invalidate(FALSE);
 		ReleaseCapture();
 	}
-	NaraDialog::OnLButtonUp(nFlags, pt);
 }
 
 void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
@@ -2120,7 +2162,7 @@ void CNaraTimerDlg::OnNew(void)
 	if(pl.showCmd != SW_MAXIMIZE)
 	{
 		int off = (mResizeMargin >> 1);
-		param.Format(L"--position %d %d %d %d", pl.rcNormalPosition.left, pl.rcNormalPosition.top + off, pl.rcNormalPosition.right, pl.rcNormalPosition.bottom + off);
+		param.Format(L"--position %d %d %d %d --mode %d", pl.rcNormalPosition.left, pl.rcNormalPosition.top + off, pl.rcNormalPosition.right, pl.rcNormalPosition.bottom + off, IS_TIMER_MODE);
 	}
 	wchar_t path[MAX_PATH];
 	GetModuleFileName(GetModuleHandle(NULL), path, MAX_PATH);
@@ -2239,6 +2281,8 @@ void CNaraTimerDlg::reposition(void)
 	x = (mCrt.right - mRoundCorner + r);
 	mButtonRect[BUTTON_CLOSE].SetRect(x - sz, y, x, y + sz);
 	SET_BUTTON(BUTTON_CLOSE, IDI_CLOSE, IDI_CLOSE_HOVER);
+	// hand's head - rect is updated in DrawTimer()
+	SET_BUTTON(BUTTON_CENTER, NULL, NULL);
 }
 
 void CNaraTimerDlg::OnSize(UINT nType, int cx, int cy)

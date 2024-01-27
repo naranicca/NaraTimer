@@ -3,7 +3,8 @@
 
 #define BUTTON_CLOSE		(0)
 #define BUTTON_PIN			(1)
-#define NUM_BUTTONS			(2)
+#define BUTTON_CENTER		(2)
+#define NUM_BUTTONS			(3)
 
 #define THEME_DEFAULT		(0)
 #define THEME_DARK			(1)
