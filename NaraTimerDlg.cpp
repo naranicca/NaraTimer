@@ -786,7 +786,8 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 				}
 				if(time >= 0)
 				{
-					time = (time * 100) + num;
+					int scale = (time == 0 ? 100 : 1);
+					time = ((time * 100) + num) * scale;
 					CTime c = CTime::GetCurrentTime();
 					if(IS_ALARM_MODE)
 					{
@@ -799,19 +800,22 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 						int m = (time % 100);
 						int h = (time / 100);
 						int h_cur = c.GetHour();
-						if(h < h_cur)
+						if(h <= 12)
 						{
-							h += ((h + 24 - h_cur <= 12) ? 24 : 12);
-						}
-						int dh = (h - h_cur) * 3600;
-						int dm = (m - c.GetMinute()) * 60;
-						int ds = (s - c.GetSecond());
-						if(dh + dm + ds >= 0)
-						{
-							mTimeSet = GetTickCount64() + (dh + dm + ds) * 1000;
-							mHM.cx = h;
-							mHM.cy = m;
-							SetTimer(TID_TICK, CHK_INTERVAL, NULL);
+							if(h < h_cur)
+							{
+								h += ((h + 24 - h_cur <= 12) ? 24 : 12);
+							}
+							int dh = (h - h_cur) * 3600;
+							int dm = (m - c.GetMinute()) * 60;
+							int ds = (s - c.GetSecond());
+							if(dh + dm + ds >= 0)
+							{
+								mTimeSet = GetTickCount64() + (dh + dm + ds) * 1000;
+								mHM.cx = h;
+								mHM.cy = m;
+								SetTimer(TID_TICK, CHK_INTERVAL, NULL);
+							}
 						}
 					}
 					else if(time <= 10000)
