@@ -5,7 +5,7 @@
 #define BUTTON_PIN			(1)
 #define NUM_BUTTONS			(2)
 
-#define THEME_LIGHT			(0)
+#define THEME_DEFAULT		(0)
 #define THEME_DARK			(1)
 #define THEME_BLUE			(2)
 #define THEME_GREEN			(3)
@@ -13,32 +13,6 @@
 #define THEME_MINT			(5)
 #define THEME_PINK			(6)
 #define NUM_THEMES			(7)
-
-class NaraDialog : public CDialogEx
-{
-public:
-	NaraDialog(CWnd * pParent = NULL);
-	CWnd * GetParent(void);
-	int SetWindowBorder(int corner_size, int border_size);
-protected:
-	void GetLogfont(LOGFONTW * lf, int height = 0, BOOL bold = FALSE);
-	void GetFont(CFont& font, int height = 0, BOOL bold = FALSE);
-	int HitTest(CPoint pt);
-	void SetArrowCursor(int hittest);
-protected:
-	CWnd * mParent;
-	RECT mCrt;
-	int mRoundCorner;
-	int mResizeMargin;
-	WCHAR mFontFace[LF_FACESIZE];
-	NaraShadow mShadow;
-
-	virtual BOOL PreTranslateMessage(MSG* pMsg);
-	afx_msg void OnSize(UINT nType, int cx, int cy);
-	afx_msg void OnActivate(UINT nState, CWnd * pWndOther, BOOL bMinimized);
-	afx_msg void OnWindowPosChanged(WINDOWPOS * pos);
-	DECLARE_MESSAGE_MAP()
-};
 
 class CNaraTimerDlg : public NaraDialog
 {
@@ -136,7 +110,7 @@ protected:
 	afx_msg void OnMenuFont();
 	afx_msg void OnMenuHelp();
 	afx_msg void OnMenuAbout();
-	afx_msg void OnThemeLight();
+	afx_msg void OnThemeDefault();
 	afx_msg void OnThemeDark();
 	afx_msg void OnThemeBlue();
 	afx_msg void OnThemeGreen();

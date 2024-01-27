@@ -53,3 +53,42 @@
 #define MAX_UINT32      ((uint32)0xFFFFFFFF)
 #define MIN_UINT32      ((uint32)0)
 
+/* min/max *******************************************************************/
+inline void PrepareMouseLeave(HWND hwnd)
+{
+	TRACKMOUSEEVENT te;
+	memset(&te, 0, sizeof(TRACKMOUSEEVENT));
+	te.cbSize = sizeof(TRACKMOUSEEVENT);
+	te.dwFlags = TME_LEAVE;
+	te.hwndTrack = hwnd;
+	te.dwHoverTime = 0;
+	::_TrackMouseEvent(&te);
+}
+
+inline void SetArrowCursor(int hittest)
+{
+	switch (hittest)
+	{
+	case HTTOPLEFT:
+	case HTBOTTOMRIGHT:
+		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZENWSE));
+		break;
+	case HTTOPRIGHT:
+	case HTBOTTOMLEFT:
+		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZENESW));
+		break;
+	case HTLEFT:
+	case HTRIGHT:
+		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZEWE));
+		break;
+	case HTTOP:
+	case HTBOTTOM:
+		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZENS));
+		break;
+	case HTCLIENT:
+		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_ARROW));
+		break;
+	}
+}
+
+

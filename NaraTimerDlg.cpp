@@ -49,182 +49,6 @@ static COLORREF blend_color(COLORREF c0, COLORREF c1)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// my dialog 
-NaraDialog::NaraDialog(CWnd * pParent) : CDialogEx(IDD_NARATIMER_DIALOG, pParent)
-{
-	mParent = pParent;
-	mRoundCorner = 10;
-	mResizeMargin = 0;
-	mCrt = { 0, };
-	memset((void*)mFontFace, 0, sizeof(mFontFace));
-}
-
-BEGIN_MESSAGE_MAP(NaraDialog, CDialogEx)
-	ON_WM_SIZE()
-	ON_WM_ACTIVATE()
-	ON_WM_WINDOWPOSCHANGED()
-	ON_WM_TIMER()
-END_MESSAGE_MAP()
-
-CWnd * NaraDialog::GetParent(void)
-{
-	return mParent;
-}
-
-int NaraDialog::SetWindowBorder(int corner_size, int border_size)
-{
-	if(corner_size >= 0)
-	{
-		mRoundCorner = corner_size;
-	}
-	if(border_size >= 0)
-	{
-		mResizeMargin = border_size;
-	}
-	return 0;
-}
-
-void NaraDialog::GetLogfont(LOGFONTW * lf, int height, BOOL bold)
-{
-	NONCLIENTMETRICS metrics;
-	metrics.cbSize = sizeof(NONCLIENTMETRICS);
-	::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &metrics, 0);
-	if(height)
-	{
-		metrics.lfMessageFont.lfHeight = height;
-	}
-	metrics.lfMessageFont.lfWeight = (bold ? FW_BOLD : FW_NORMAL);
-	memcpy(lf, &metrics.lfMessageFont, sizeof(LOGFONTW));
-	memcpy(lf->lfFaceName, mFontFace, sizeof(lf->lfFaceName));
-}
-
-void NaraDialog::GetFont(CFont &font, int height, BOOL bold)
-{
-	LOGFONTW lf;
-	GetLogfont(&lf, height, bold);
-	font.CreateFontIndirect(&lf);
-}
-
-int NaraDialog::HitTest(CPoint pt)
-{
-	int ht = HTCLIENT;
-	if(mResizeMargin == 0) return HTCLIENT;
-	if (pt.x < mRoundCorner && pt.y < mRoundCorner)
-	{
-		int d = SQ(pt.x - mRoundCorner) + SQ(pt.y - mRoundCorner);
-		ht = (d >= SQ(mRoundCorner - mResizeMargin) ? HTTOPLEFT : HTCLIENT);
-	}
-	else if (pt.x > mCrt.right - mRoundCorner && pt.y < mRoundCorner)
-	{
-		int d = SQ(pt.x - mCrt.right + mRoundCorner) + SQ(pt.y - mRoundCorner);
-		ht = (d >= SQ(mRoundCorner - mResizeMargin) ? HTTOPRIGHT : HTCLIENT);
-	}
-	else if (pt.x < mRoundCorner && pt.y > mCrt.bottom - mRoundCorner)
-	{
-		int d = SQ(pt.x - mRoundCorner) + SQ(pt.y - mCrt.bottom + mRoundCorner);
-		ht = (d >= SQ(mRoundCorner - mResizeMargin) ? HTBOTTOMLEFT : HTCLIENT);
-	}
-	else if (pt.x > mCrt.right - mRoundCorner && pt.y > mCrt.bottom - mRoundCorner)
-	{
-		int d = SQ(pt.x - mCrt.right + mRoundCorner) + SQ(pt.y - mCrt.bottom + mRoundCorner);
-		ht = (d >= SQ(mRoundCorner - mResizeMargin) ? HTBOTTOMRIGHT : HTCLIENT);
-	}
-	else if (pt.y < mResizeMargin)
-	{
-		ht = (pt.x < mResizeMargin ? HTTOPLEFT : pt.x > mCrt.right - mResizeMargin ? HTTOPRIGHT : HTTOP);
-	}
-	else if (pt.y > mCrt.bottom - mResizeMargin)
-	{
-		ht = (pt.x < mResizeMargin ? HTBOTTOMLEFT : pt.x > mCrt.right - mResizeMargin ? HTBOTTOMRIGHT : HTBOTTOM);
-	}
-	else
-	{
-		ht = (pt.x < mResizeMargin ? HTLEFT : pt.x > mCrt.right - mResizeMargin ? HTRIGHT : HTCLIENT);
-	}
-	return ht;
-}
-
-void NaraDialog::SetArrowCursor(int hittest)
-{
-	switch (hittest)
-	{
-	case HTTOPLEFT:
-	case HTBOTTOMRIGHT:
-		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZENWSE));
-		break;
-	case HTTOPRIGHT:
-	case HTBOTTOMLEFT:
-		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZENESW));
-		break;
-	case HTLEFT:
-	case HTRIGHT:
-		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZEWE));
-		break;
-	case HTTOP:
-	case HTBOTTOM:
-		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZENS));
-		break;
-	case HTCLIENT:
-		SetCursor(AfxGetApp()->LoadStandardCursor(IDC_ARROW));
-		break;
-	}
-}
-
-BOOL NaraDialog::PreTranslateMessage(MSG * pMsg)
-{
-	CPoint pt;
-	int ht;
-	switch(pMsg->message)
-	{
-	case WM_MOUSEMOVE:
-		if(!LBUTTON_DOWN)
-		{
-			pt.SetPoint(GET_X_LPARAM(pMsg->lParam), GET_Y_LPARAM(pMsg->lParam));
-			ht = HitTest(pt);
-			SetArrowCursor(ht);
-			if(ht != HTCLIENT)
-			{
-				return TRUE;
-			}
-		}
-		break;
-	}
-	return CDialogEx::PreTranslateMessage(pMsg);
-}
-
-void NaraDialog::OnSize(UINT nType, int cx, int cy)
-{
-	CDialogEx::OnSize(nType, cx, cy);
-
-	GetClientRect(&mCrt);
-	int sz = MIN(cx, cy);
-
-	CRgn rgn;
-	if (nType == SIZE_MAXIMIZED)
-	{
-		rgn.CreateRectRgn(0, 0, cx, cy);
-	}
-	else
-	{
-		rgn.CreateRoundRectRgn(0, 0, cx + 1, cy + 1, mRoundCorner * 2, mRoundCorner * 2);
-	}
-	SetWindowRgn((HRGN)rgn, FALSE);
-}
-
-void NaraDialog::OnActivate(UINT nState, CWnd * pWndOther, BOOL bMinimized)
-{
-	CDialogEx::OnActivate(nState, pWndOther, bMinimized);
-	mShadow.Reposition(this, nState == WA_INACTIVE ? 6 : 12);
-}
-
-void NaraDialog::OnWindowPosChanged(WINDOWPOS * pos)
-{
-	CDialogEx::OnWindowPosChanged(pos);
-	mShadow.SetCornerRadius(mRoundCorner);
-	mShadow.Reposition(this, -1);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // help dialog 
 #define TYPE_HEADING		(0)
 #define TYPE_TEXT			(1)
@@ -263,6 +87,7 @@ protected:
 	afx_msg void OnPaint();
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnMouseLeave(void);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	DECLARE_MESSAGE_MAP()
 };
@@ -272,10 +97,11 @@ BEGIN_MESSAGE_MAP(CHelpDialog, NaraDialog)
 	ON_WM_PAINT()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_MOUSEMOVE()
+	ON_WM_MOUSELEAVE()
 	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
-CHelpDialog::CHelpDialog(CWnd * parent) : NaraDialog(parent)
+CHelpDialog::CHelpDialog(CWnd * parent) : NaraDialog(IDD_NARATIMER_DIALOG, parent)
 {
 	mFontHeight = 0;
 	Clear();
@@ -541,9 +367,16 @@ void CHelpDialog::OnMouseMove(UINT nFlags, CPoint pt)
 	}
 }
 
+void CHelpDialog::OnMouseLeave(void)
+{
+	CDialogEx::OnMouseLeave();
+	mOnOK = FALSE;
+	Invalidate(FALSE);
+}
+
 void CHelpDialog::OnTimer(UINT_PTR nIDEvent)
 {
-	static int theme = THEME_LIGHT;
+	static int theme = THEME_DEFAULT;
 	if(mTimerID == -1)
 	{
 		KillTimer(0);
@@ -558,7 +391,7 @@ void CHelpDialog::OnTimer(UINT_PTR nIDEvent)
 ///////////////////////////////////////////////////////////////////////////////
 // main dialog
 CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
-	: NaraDialog(pParent)
+	: NaraDialog(IDD_NARATIMER_DIALOG, pParent)
 {
 	// set class name
 	WNDCLASS c = {};
@@ -567,7 +400,7 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	AfxRegisterClass(&c);
 
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
-	mTheme = THEME_LIGHT;
+	mTheme = THEME_DEFAULT;
 	mTimeSet = 0;
 	mSetting = FALSE;
 	mOldDeg = 0;
@@ -674,7 +507,7 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, NaraDialog)
 	ON_COMMAND(IDM_FONT, OnMenuFont)
 	ON_COMMAND(ID_HELP, OnMenuHelp)
 	ON_COMMAND(IDM_ABOUT, OnMenuAbout)
-	ON_COMMAND(IDM_THEMEDEFAULT, OnThemeLight)
+	ON_COMMAND(IDM_THEMEDEFAULT, OnThemeDefault)
 	ON_COMMAND(IDM_THEMEBLACK, OnThemeDark)
 	ON_COMMAND(IDM_THEMEBLUE, OnThemeBlue)
 	ON_COMMAND(IDM_THEMEGREEN, OnThemeGreen)
@@ -772,7 +605,7 @@ BOOL CNaraTimerDlg::OnInitDialog()
 			AfxGetApp()->WriteProfileStringW(L"Setting", L"Version", mVersion);
 		}
 	}
-	mTheme = AfxGetApp()->GetProfileInt(L"Theme", L"CurrentTheme", THEME_LIGHT);
+	mTheme = AfxGetApp()->GetProfileInt(L"Theme", L"CurrentTheme", THEME_DEFAULT);
 	mDigitalWatch = AfxGetApp()->GetProfileInt(L"Theme", L"DigitalWatch", 1);
 	mHasDate = AfxGetApp()->GetProfileInt(L"Theme", L"HasDate", 1);
 	mTickSound = AfxGetApp()->GetProfileInt(L"Theme", L"TickSound", 0);
@@ -1622,11 +1455,9 @@ void CNaraTimerDlg::DrawPie(Graphics * g, int r, float deg, RECT* rect, COLORREF
 {
 	if(c == -1) c = RED;
 	SolidBrush brred(Color(255, GetRValue(c), GetGValue(c), GetBValue(c)));
-	RECT rt;
 	if (rect == NULL)
 	{
-		rect = &rt;
-		GetClientRect(&rt);
+		rect = &mCrt;
 	}
 	int x = ((rect->right + rect->left) >> 1) - r;
 	int y = ((rect->bottom + rect->top) >> 1) - r;
@@ -2207,7 +2038,7 @@ void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 	menu.AppendMenu(MF_STRING|(mTopmost?MF_CHECKED:0), IDM_TOPMOST, L"Always On Top");
 	menu.AppendMenu(MF_SEPARATOR, 0, L"");
 	theme.CreatePopupMenu();
-	theme.AppendMenu(MF_STRING | (mTheme == THEME_LIGHT? MF_CHECKED: 0), IDM_THEMEDEFAULT, L"Light");
+	theme.AppendMenu(MF_STRING | (mTheme == THEME_DEFAULT? MF_CHECKED: 0), IDM_THEMEDEFAULT, L"Default");
 	theme.AppendMenu(MF_STRING | (mTheme == THEME_DARK? MF_CHECKED: 0), IDM_THEMEBLACK, L"Dark");
 	theme.AppendMenu(MF_STRING | (mTheme == THEME_BLUE? MF_CHECKED: 0), IDM_THEMEBLUE, L"Blue");
 	theme.AppendMenu(MF_STRING | (mTheme == THEME_GREEN? MF_CHECKED: 0), IDM_THEMEGREEN, L"Green");
@@ -2279,9 +2110,9 @@ void CNaraTimerDlg::OnMenuAbout(void)
 	mInstructionIdx = 999;
 }
 
-void CNaraTimerDlg::OnThemeLight(void)
+void CNaraTimerDlg::OnThemeDefault(void)
 {
-	SetTheme(THEME_LIGHT);
+	SetTheme(THEME_DEFAULT);
 }
 
 void CNaraTimerDlg::OnThemeDark(void)
@@ -2338,20 +2169,18 @@ void CNaraTimerDlg::OnToggleTickSound(void)
 void CNaraTimerDlg::reposition(void)
 {
 	int x, y, r, sz, bsz;
-	RECT rt;
-	GetClientRect(&rt);
 
-	bsz = ROUND(MIN(rt.right - rt.left, rt.bottom - rt.top) * 0.1f);
+	bsz = ROUND(MIN(mCrt.right - mCrt.left, mCrt.bottom - mCrt.top) * 0.1f);
 	r = (int)((mRoundCorner - mResizeMargin) / 1.414f);
-	y = (rt.top + mRoundCorner - r);
+	y = (mCrt.top + mRoundCorner - r);
 
 	// pin button
 	sz = max(ROUND(bsz * 1.5f), 30);
-	x = (rt.left + mRoundCorner - r);
+	x = (mCrt.left + mRoundCorner - r);
 	mButtonRect[BUTTON_PIN].SetRect(x, y, x + sz, y + sz);
 	// close button
 	sz = max(ROUND(bsz * 0.8f), 16);
-	x = (rt.right - mRoundCorner + r);
+	x = (mCrt.right - mRoundCorner + r);
 	mButtonRect[BUTTON_CLOSE].SetRect(x - sz, y, x, y + sz);
 	SET_BUTTON(BUTTON_CLOSE, IDI_CLOSE, IDI_CLOSE_HOVER);
 }

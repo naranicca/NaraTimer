@@ -72,14 +72,7 @@ BOOL NaraWnd::PreTranslateMessage(MSG * msg)
 			}
 			else if(dragging == FALSE)
 			{
-				CWnd * parent = (mParent ? mParent : GetParent());
-				if(parent)
-				{
-					pt = msg->pt;
-					parent->ScreenToClient(&pt);
-					parent->SendMessage(msg->message, msg->wParam, MAKELPARAM(pt.x, pt.y));
-					return TRUE;
-				}
+				SetArrowCursor(HTCLIENT);
 			}
 		}
 	}
@@ -96,14 +89,142 @@ void NaraWnd::OnMouseMove(UINT nFlags, CPoint pt)
 			SetFocus();
 		}
 	}
-	// to get mouse_leave message
-	TRACKMOUSEEVENT te;
-	memset(&te, 0, sizeof(TRACKMOUSEEVENT));
-	te.cbSize = sizeof(TRACKMOUSEEVENT);
-	te.dwFlags = TME_LEAVE;
-	te.hwndTrack = m_hWnd;
-	te.dwHoverTime = 0;
-	::_TrackMouseEvent(&te);
+	PrepareMouseLeave(m_hWnd);
+}
+
+NaraDialog::NaraDialog(UINT nIDTemplate, CWnd * pParent) : CDialogEx(nIDTemplate, pParent)
+{
+	mParent = pParent;
+	mRoundCorner = 10;
+	mResizeMargin = 0;
+	mCrt = { 0, };
+	memset((void*)mFontFace, 0, sizeof(mFontFace));
+}
+
+BEGIN_MESSAGE_MAP(NaraDialog, CDialogEx)
+	ON_WM_MOUSEMOVE()
+	ON_WM_SIZE()
+	ON_WM_ACTIVATE()
+	ON_WM_WINDOWPOSCHANGED()
+	ON_WM_TIMER()
+END_MESSAGE_MAP()
+
+CWnd * NaraDialog::GetParent(void)
+{
+	return mParent;
+}
+
+int NaraDialog::SetWindowBorder(int corner_size, int border_size)
+{
+	if(corner_size >= 0)
+	{
+		mRoundCorner = corner_size;
+	}
+	if(border_size >= 0)
+	{
+		mResizeMargin = border_size;
+	}
+	return 0;
+}
+
+void NaraDialog::GetLogfont(LOGFONTW * lf, int height, BOOL bold)
+{
+	NONCLIENTMETRICS metrics;
+	metrics.cbSize = sizeof(NONCLIENTMETRICS);
+	::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &metrics, 0);
+	if(height)
+	{
+		metrics.lfMessageFont.lfHeight = height;
+	}
+	metrics.lfMessageFont.lfWeight = (bold ? FW_BOLD : FW_NORMAL);
+	memcpy(lf, &metrics.lfMessageFont, sizeof(LOGFONTW));
+	memcpy(lf->lfFaceName, mFontFace, sizeof(lf->lfFaceName));
+}
+
+void NaraDialog::GetFont(CFont &font, int height, BOOL bold)
+{
+	LOGFONTW lf;
+	GetLogfont(&lf, height, bold);
+	font.CreateFontIndirect(&lf);
+}
+
+int NaraDialog::HitTest(CPoint pt)
+{
+	int ht = HTCLIENT;
+	if(mResizeMargin == 0) return HTCLIENT;
+	if (pt.x < mRoundCorner && pt.y < mRoundCorner)
+	{
+		int d = SQ(pt.x - mRoundCorner) + SQ(pt.y - mRoundCorner);
+		ht = (d >= SQ(mRoundCorner - mResizeMargin) ? HTTOPLEFT : HTCLIENT);
+	}
+	else if (pt.x > mCrt.right - mRoundCorner && pt.y < mRoundCorner)
+	{
+		int d = SQ(pt.x - mCrt.right + mRoundCorner) + SQ(pt.y - mRoundCorner);
+		ht = (d >= SQ(mRoundCorner - mResizeMargin) ? HTTOPRIGHT : HTCLIENT);
+	}
+	else if (pt.x < mRoundCorner && pt.y > mCrt.bottom - mRoundCorner)
+	{
+		int d = SQ(pt.x - mRoundCorner) + SQ(pt.y - mCrt.bottom + mRoundCorner);
+		ht = (d >= SQ(mRoundCorner - mResizeMargin) ? HTBOTTOMLEFT : HTCLIENT);
+	}
+	else if (pt.x > mCrt.right - mRoundCorner && pt.y > mCrt.bottom - mRoundCorner)
+	{
+		int d = SQ(pt.x - mCrt.right + mRoundCorner) + SQ(pt.y - mCrt.bottom + mRoundCorner);
+		ht = (d >= SQ(mRoundCorner - mResizeMargin) ? HTBOTTOMRIGHT : HTCLIENT);
+	}
+	else if (pt.y < mResizeMargin)
+	{
+		ht = (pt.x < mResizeMargin ? HTTOPLEFT : pt.x > mCrt.right - mResizeMargin ? HTTOPRIGHT : HTTOP);
+	}
+	else if (pt.y > mCrt.bottom - mResizeMargin)
+	{
+		ht = (pt.x < mResizeMargin ? HTBOTTOMLEFT : pt.x > mCrt.right - mResizeMargin ? HTBOTTOMRIGHT : HTBOTTOM);
+	}
+	else
+	{
+		ht = (pt.x < mResizeMargin ? HTLEFT : pt.x > mCrt.right - mResizeMargin ? HTRIGHT : HTCLIENT);
+	}
+	return ht;
+}
+
+void NaraDialog::OnMouseMove(UINT nFlags, CPoint pt)
+{
+	int ht = HitTest(pt);
+	SetArrowCursor(ht);
+	PrepareMouseLeave(GetSafeHwnd());
+	CDialogEx::OnMouseMove(nFlags, pt);
+}
+
+void NaraDialog::OnSize(UINT nType, int cx, int cy)
+{
+	CDialogEx::OnSize(nType, cx, cy);
+
+	GetClientRect(&mCrt);
+	int sz = MIN(cx, cy);
+
+	CRgn rgn;
+	if (nType == SIZE_MAXIMIZED)
+	{
+		rgn.CreateRectRgn(0, 0, cx, cy);
+	}
+	else
+	{
+		rgn.CreateRoundRectRgn(0, 0, cx + 1, cy + 1, mRoundCorner * 2, mRoundCorner * 2);
+	}
+	SetWindowRgn((HRGN)rgn, FALSE);
+}
+
+void NaraDialog::OnActivate(UINT nState, CWnd * pWndOther, BOOL bMinimized)
+{
+	CDialogEx::OnActivate(nState, pWndOther, bMinimized);
+	mShadow.Reposition(this, nState == WA_INACTIVE ? (NARA_SHADOW_SIZE>>1) : NARA_SHADOW_SIZE);
+}
+
+void NaraDialog::OnWindowPosChanged(WINDOWPOS * pos)
+{
+	CDialogEx::OnWindowPosChanged(pos);
+	mShadow.SetCornerRadius(mRoundCorner);
+	mShadow.Reposition(this, -1);
 }
 
 
