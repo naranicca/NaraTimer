@@ -731,17 +731,14 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 		switch (pMsg->wParam)
 		{
 		case VK_ESCAPE:
-			if(TIMES_UP >= 0 || TITLE_CHANGING == FALSE)
-			{
-				TIMES_UP = -100.f;
-				return TRUE;
-			}
-			if (mTimeSet && GetFocus()->GetSafeHwnd() != mTitleEdit.GetSafeHwnd())
+			TIMES_UP = -100.f;
+			if (mTimeSet && !TITLE_CHANGING)
 			{
 				CString str = (IS_TIMER_MODE ? L"Stop the timer?" : L"Stop the alarm?");
 				if (mTimeSet && AfxMessageBox(str, MB_OKCANCEL) == IDOK)
 				{
 					Stop();
+					return TRUE;
 				}
 			}
 		case VK_RETURN:
@@ -766,6 +763,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 				int len = mTitle.GetLength();
 				int time = 0;
 				int num = 0;
+				BOOL has_colon = FALSE;
 				for(int i = 0; i < len; i++)
 				{
 					if(str[i] >= L'0' && str[i] <= L'9')
@@ -777,6 +775,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 						time = time * 100 + num;
 						num = 0;
 						if(i == len - 1) time = -1;
+						has_colon = TRUE;
 					}
 					else
 					{
@@ -786,7 +785,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 				}
 				if(time >= 0)
 				{
-					int scale = (time == 0 ? 100 : 1);
+					int scale = (has_colon ? 1 : 100);
 					time = ((time * 100) + num) * scale;
 					CTime c = CTime::GetCurrentTime();
 					if(IS_ALARM_MODE)
