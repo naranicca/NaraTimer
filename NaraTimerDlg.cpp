@@ -2162,7 +2162,7 @@ void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 	CMenu menu, theme;
 	menu.CreatePopupMenu();
 	menu.AppendMenu(MF_STRING, IDM_NEW, L"New");
-	menu.AppendMenu(MF_STRING | (mTimeSet == 0? MF_DISABLED: MF_ENABLED), IDM_STOP, L"Stop");
+	menu.AppendMenu(MF_STRING | (mTimeSet == 0? MF_DISABLED: MF_ENABLED), IDM_STOP, L"Stop\tESC");
 	menu.AppendMenu(MF_SEPARATOR, 0, L"");
 	menu.AppendMenu(MF_STRING | (IS_TIMER_MODE? MF_CHECKED: 0), IDM_TIMERMODE, L"Timer Mode");
 	menu.AppendMenu(MF_STRING | (IS_ALARM_MODE? MF_CHECKED: 0), IDM_ALARMMODE, L"Alarm Mode");
