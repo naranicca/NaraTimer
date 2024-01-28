@@ -15,6 +15,7 @@
 #define IDM_TIMERMODE					201
 #define IDM_ALARMMODE					202
 #define IDM_TOPMOST						203
+#define IDM_STOP						204
 #define IDM_THEMEDEFAULT				300
 #define IDM_THEMEBLACK					301
 #define IDM_THEMEBLUE					302
