@@ -561,6 +561,7 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, NaraDialog)
 	ON_EN_CHANGE(IDC_EDIT, OnTitleChanging)
 	ON_MESSAGE(WM_PIN, OnPinToggle)
 	ON_COMMAND(IDM_NEW, OnNew)
+	ON_COMMAND(IDM_STOP, OnStop)
 	ON_COMMAND(IDM_TIMERMODE, OnTimerMode)
 	ON_COMMAND(IDM_ALARMMODE, OnAlarmMode)
 	ON_COMMAND(IDM_TOPMOST, OnMenuPin)
@@ -2161,6 +2162,7 @@ void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 	CMenu menu, theme;
 	menu.CreatePopupMenu();
 	menu.AppendMenu(MF_STRING, IDM_NEW, L"New");
+	menu.AppendMenu(MF_STRING | (mTimeSet == 0? MF_DISABLED: MF_ENABLED), IDM_STOP, L"Stop");
 	menu.AppendMenu(MF_SEPARATOR, 0, L"");
 	menu.AppendMenu(MF_STRING | (IS_TIMER_MODE? MF_CHECKED: 0), IDM_TIMERMODE, L"Timer Mode");
 	menu.AppendMenu(MF_STRING | (IS_ALARM_MODE? MF_CHECKED: 0), IDM_ALARMMODE, L"Alarm Mode");
@@ -2199,6 +2201,11 @@ void CNaraTimerDlg::OnNew(void)
 	wchar_t path[MAX_PATH];
 	GetModuleFileName(GetModuleHandle(NULL), path, MAX_PATH);
 	ShellExecute(GetSafeHwnd(), L"open", path, param, NULL, 1);
+}
+
+void CNaraTimerDlg::OnStop(void)
+{
+	Stop();
 }
 
 void CNaraTimerDlg::OnTimerMode(void)
