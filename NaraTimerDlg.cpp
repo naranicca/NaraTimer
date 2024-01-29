@@ -56,10 +56,10 @@ static COLORREF blend_color(COLORREF c0, COLORREF c1)
 #define TYPE_BOLDTEXT		(2)
 #define TYPE_ICON			(3)
 #define MAX_NUM_ITEM		(20)
-class CHelpDialog : public NaraDialog
+class NaraMessageBox : public NaraDialog
 {
 public:
-	CHelpDialog(CWnd * parent);
+	NaraMessageBox(CWnd * parent, BOOL OK_Cancel=FALSE);
 	int SetY(int y);
 	void Clear(void);
 	int AddHeading(CString str);
@@ -69,6 +69,7 @@ public:
 	void EnableTimer(int id) { mTimerID = id; mTimerIdx = 0; }
 	void DisableTimer(void) { mTimerID = -1; }
 protected:
+	BOOL mOKCancel;
 	int mType[MAX_NUM_ITEM];
 	CString mText[MAX_NUM_ITEM];
 	CFont mFont;
@@ -95,7 +96,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 };
 
-BEGIN_MESSAGE_MAP(CHelpDialog, NaraDialog)
+BEGIN_MESSAGE_MAP(NaraMessageBox, NaraDialog)
 	ON_WM_ERASEBKGND()
 	ON_WM_PAINT()
 	ON_WM_LBUTTONDOWN()
@@ -104,8 +105,9 @@ BEGIN_MESSAGE_MAP(CHelpDialog, NaraDialog)
 	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
-CHelpDialog::CHelpDialog(CWnd * parent) : NaraDialog(IDD_NARATIMER_DIALOG, parent)
+NaraMessageBox::NaraMessageBox(CWnd * parent, BOOL OK_Cancel) : NaraDialog(IDD_NARATIMER_DIALOG, parent)
 {
+	mOKCancel = OK_Cancel;
 	mFontHeight = 0;
 	Clear();
 	mOnOK = FALSE;
@@ -126,10 +128,11 @@ CHelpDialog::CHelpDialog(CWnd * parent) : NaraDialog(IDD_NARATIMER_DIALOG, paren
 	mFontHeading.CreateFontIndirect(&metrics.lfMessageFont);
 
 	mFontHeight = abs(mFontHeight);
+	mDlgHeight += mFontHeight * 2; // space between texts and the OK button
 	mDlgHeight += mFontHeight * 3; // OK button
 }
 
-BOOL CHelpDialog::OnInitDialog()
+BOOL NaraMessageBox::OnInitDialog()
 {
 	NaraDialog::OnInitDialog();
 	ModifyStyle(WS_CAPTION | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX, 0);
@@ -198,14 +201,13 @@ BOOL CHelpDialog::OnInitDialog()
 	return TRUE;
 }
 
-BOOL CHelpDialog::PreTranslateMessage(MSG * pMsg)
+BOOL NaraMessageBox::PreTranslateMessage(MSG * pMsg)
 {
 	switch(pMsg->message)
 	{
 	case WM_KEYDOWN:
 		switch(pMsg->wParam)
 		{
-		case VK_ESCAPE:
 		case VK_RETURN:
 		case VK_SPACE:
 			pMsg->wParam = VK_RETURN;
@@ -218,7 +220,7 @@ BOOL CHelpDialog::PreTranslateMessage(MSG * pMsg)
 	return NaraDialog::PreTranslateMessage(pMsg);
 }
 
-int CHelpDialog::SetY(int y)
+int NaraMessageBox::SetY(int y)
 {
 	POINT pt = { 0, y };
 	mParent->ClientToScreen(&pt);
@@ -226,15 +228,15 @@ int CHelpDialog::SetY(int y)
 	return 0;
 }
 
-void CHelpDialog::Clear(void)
+void NaraMessageBox::Clear(void)
 {
 	mCnt = 0;
-	mDlgHeight = 20 + mFontHeight * 3;
+	mDlgHeight = 20 + mFontHeight * 2 + mFontHeight * 3;
 	mY = -1;
 	mOnOK = FALSE;
 }
 
-int CHelpDialog::AddText(int type, CString str, int h)
+int NaraMessageBox::AddText(int type, CString str, int h)
 {
 	if(mCnt >= MAX_NUM_ITEM) return -1;
 
@@ -245,34 +247,34 @@ int CHelpDialog::AddText(int type, CString str, int h)
 	return 0;
 }
 
-int CHelpDialog::AddHeading(CString str)
+int NaraMessageBox::AddHeading(CString str)
 {
 	return AddText(TYPE_HEADING, str, mFontHeight * 2);
 }
 
-int CHelpDialog::AddString(CString str)
+int NaraMessageBox::AddString(CString str)
 {
 	return AddText(TYPE_TEXT, str, mFontHeight);
 }
 
-int CHelpDialog::AddBoldString(CString str)
+int NaraMessageBox::AddBoldString(CString str)
 {
 	return AddText(TYPE_BOLDTEXT, str, mFontHeight);
 }
 
-int CHelpDialog::AddIcon(int id)
+int NaraMessageBox::AddIcon(int id)
 {
 	CString str;
 	str.Format(L"%d", id);
 	return AddText(TYPE_ICON, str, 64);
 }
 
-BOOL CHelpDialog::OnEraseBkgnd(CDC* pDC)
+BOOL NaraMessageBox::OnEraseBkgnd(CDC* pDC)
 {
 	return 0;
 }
 
-void CHelpDialog::OnPaint()
+void NaraMessageBox::OnPaint()
 {
 	NaraDialog::OnPaint();
 	CClientDC dc(this);
@@ -319,26 +321,65 @@ void CHelpDialog::OnPaint()
 			y += 64 + mFontHeight;
 		}
 	}
+	y += mFontHeight * 2;
+	RECT rt0, rt1;
 	SetRect(&mOKrt, 0, y, mCrt.right, mCrt.bottom);
+	SetRect(&rt0, 0, y, mCrt.right>>1, mCrt.bottom);
+	SetRect(&rt1, mCrt.right>>1, y, mCrt.right, mCrt.bottom);
 	if(mOnOK)
 	{
-		mdc.FillSolidRect(&mOKrt, RGB(30, 144, 255));
+		if(mOKCancel)
+		{
+			CPoint pt;
+			GetCursorPos(&pt);
+			ScreenToClient(&pt);
+			mdc.FillSolidRect(pt.x < rt0.right ? &rt0 : &rt1, RGB(30, 144, 255));
+		}
+		else
+		{
+			mdc.FillSolidRect(&mOKrt, RGB(30, 144, 255));
+		}
 	}
 	mdc.MoveTo(0, y);
 	mdc.LineTo(mCrt.right, y);
-	mdc.DrawText(L"OK", 2, &mOKrt, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+	mdc.SetBkMode(TRANSPARENT);
+	if(mOKCancel)
+	{
+		mdc.MoveTo(mCrt.right >> 1, y);
+		mdc.LineTo(mCrt.right >> 1, mCrt.bottom);
+		mdc.DrawText(L"OK", 2, &rt0, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+		mdc.DrawText(L"Cancel", 6, &rt1, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+	}
+	else
+	{
+		mdc.DrawText(L"OK", 2, &mOKrt, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+	}
 
 	dc.BitBlt(0, 0, mCrt.right, mCrt.bottom, &mdc, 0, 0, SRCCOPY);
 	mdc.SelectObject(bmpo);
 	mdc.SelectObject(fonto);
 }
 
-void CHelpDialog::OnLButtonDown(UINT nFlags, CPoint pt)
+void NaraMessageBox::OnLButtonDown(UINT nFlags, CPoint pt)
 {
 	NaraDialog::OnLButtonDown(nFlags, pt);
 	if(PT_IN_RECT(pt, mOKrt))
 	{
-		OnOK();
+		if(mOKCancel)
+		{
+			if(pt.x < mCrt.right >> 1)
+			{
+				OnOK();
+			}
+			else
+			{
+				OnCancel();
+			}
+		}
+		else
+		{
+			OnOK();
+		}
 	}
 	else
 	{
@@ -346,25 +387,35 @@ void CHelpDialog::OnLButtonDown(UINT nFlags, CPoint pt)
 	}
 }
 
-void CHelpDialog::OnMouseMove(UINT nFlags, CPoint pt)
+void NaraMessageBox::OnMouseMove(UINT nFlags, CPoint pt)
 {
 	NaraDialog::OnMouseMove(nFlags, pt);
 	BOOL onok = PT_IN_RECT(pt, mOKrt);
+	static BOOL onleft = FALSE;
 	if(mOnOK != onok)
 	{
 		Invalidate(FALSE);
 		mOnOK = onok;
 	}
+	else if(mOKCancel)
+	{
+		BOOL left = (pt.x < (mCrt.right >> 1));
+		if(left != onleft)
+		{
+			Invalidate(FALSE);
+			onleft = left;
+		}
+	}
 }
 
-void CHelpDialog::OnMouseLeave(void)
+void NaraMessageBox::OnMouseLeave(void)
 {
 	CDialogEx::OnMouseLeave();
 	mOnOK = FALSE;
 	Invalidate(FALSE);
 }
 
-void CHelpDialog::OnTimer(UINT_PTR nIDEvent)
+void NaraMessageBox::OnTimer(UINT_PTR nIDEvent)
 {
 	CNaraTimerDlg * timer = (CNaraTimerDlg *)GetParent();
 	if(mTimerID == -1)
@@ -735,8 +786,9 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			TIMES_UP = -100.f;
 			if (mTimeSet && !TITLE_CHANGING)
 			{
-				CString str = (IS_TIMER_MODE ? L"Stop the timer?" : L"Stop the alarm?");
-				if (mTimeSet && AfxMessageBox(str, MB_OKCANCEL) == IDOK)
+				NaraMessageBox dlg(this, TRUE);
+				dlg.AddHeading(IS_TIMER_MODE? L"Stop the timer?": L"Stop the alarm?");
+				if(dlg.DoModal() == IDOK)
 				{
 					Stop();
 					return TRUE;
@@ -1760,7 +1812,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 		mInstructionIdx = -mInstructionIdx;
 		{
 			SetTimer(TID_HELP, 33, NULL);
-			CHelpDialog dlg(this);
+			NaraMessageBox dlg(this);
 
 			if(mInstructionIdx == -1 || mInstructionIdx <= -999)
 			{
@@ -1768,7 +1820,6 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				dlg.AddHeading(L"NaraTimer");
 				dlg.AddString(L"version " + mVersion);
 				dlg.AddString(L"designed by naranicca");
-				dlg.AddString(L"");
 				dlg.DoModal();
 				mInstructionIdx--;
 			}
@@ -1779,7 +1830,6 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				dlg.AddString(L"NaraTimer provides two mdoes:");
 				dlg.AddBoldString(L"Timer and Alarm");
 				dlg.AddString(L"You can change the mode by clicking here");
-				dlg.AddString(L"");
 				dlg.SetY(((mTimerRect.bottom + mTimerRect.top) >> 1) + mRadiusHandsHead + 10);
 				dlg.EnableTimer(0);
 				dlg.DoModal();
@@ -1792,7 +1842,6 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				dlg.AddString(L"While the cursor is in the dial, time and grids are lined up");
 				dlg.AddString(L"To set time more precisely, move the cursor outside of the dial");
 				dlg.AddString(L"Or use Up/Down keys to increase/decrease by 1 minute");
-				dlg.AddString(L"");
 				dlg.SetY(((mTimerRect.bottom + mTimerRect.top) >> 1) + mRadius + 5);
 				dlg.DoModal();
 				mInstructionIdx--;
@@ -1805,7 +1854,6 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				dlg.AddBoldString(L"you can set time with title");
 				dlg.AddString(L"Setting title to \'5:00\' will set 5-minute timer (timer mode)");
 				dlg.AddString(L"or set alarm for 5 (alaram mode)");
-				dlg.AddString(L"");
 				dlg.SetY(((mTimerRect.bottom + mTimerRect.top) >> 1) + mRadius + 5);
 				dlg.EnableTimer(1);
 				dlg.DoModal();
@@ -1820,7 +1868,6 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				dlg.AddString(L"Pin is what you're looking for");
 				dlg.AddString(L"Move your cursor here, a pin will show up");
 				dlg.AddBoldString(L"Keep your timer always on top");
-				dlg.AddString(L"");
 				dlg.SetY(mButtonRect[BUTTON_PIN].bottom + 10);
 				dlg.DoModal();
 				mInstructionIdx--;
@@ -1833,7 +1880,6 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				dlg.AddBoldString(L"Right click!");
 				dlg.AddString(L"You can set various options on context menu");
 				dlg.AddString(L"and can even change the theme");
-				dlg.AddString(L"");
 				dlg.EnableTimer(2);
 				dlg.DoModal();
 				dlg.DisableTimer();
@@ -1844,7 +1890,6 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				dlg.AddHeading(L"Okay");
 				dlg.AddBoldString(L"Let's get on with it!");
 				dlg.AddString(L"Press F1 if you want to see this help again");
-				dlg.AddString(L"");
 				dlg.DoModal();
 			}
 		}
