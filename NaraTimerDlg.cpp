@@ -140,6 +140,12 @@ BOOL NaraMessageBox::OnInitDialog()
 	mParent->GetWindowRect(&wrt);
 	wrt.left += 10;
 	wrt.right -= 10;
+	if(wrt.right - wrt.left < 300)
+	{
+		int m = (300 - (wrt.right - wrt.left)) >> 1;
+		wrt.left -= m;
+		wrt.right += m;
+	}
 
 	CClientDC dc(this);
 	CFont * fonto = dc.SelectObject(&mFont);
