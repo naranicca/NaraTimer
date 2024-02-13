@@ -858,9 +858,9 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 						int m = (time % 100);
 						int h = (time / 100);
 						int h_cur = c.GetHour();
-						if(h <= 12)
+						if(h <= 12 && num < 60)
 						{
-							if(h < h_cur)
+							if(h <= h_cur)
 							{
 								h += ((h + 24 - h_cur <= 12) ? 24 : 12);
 							}
@@ -1159,8 +1159,8 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 	GetFont(font, font_size);
 	CFont* fonto = (CFont*)dc->SelectObject(&font);
 	RECT trt;
-	dc->DrawText(L" 88 ", 5, &trt, DT_CALCRECT | DT_SINGLELINE);
-	int tw = (trt.right - trt.left);
+	dc->DrawText(L"88", 3, &trt, DT_CALCRECT | DT_SINGLELINE);
+	int tw = (trt.right - trt.left + 10);
 	int th = (trt.bottom - trt.top);
 	int tsize = ROUND(max(tw, th) * 1.1f);
 
