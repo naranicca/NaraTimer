@@ -541,6 +541,7 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	mResizing = FALSE;
 	mMuteTick = 0;
 	mInstructionIdx = 0;
+	mFontScale = 100;
 }
 
 void CNaraTimerDlg::Stop(void)
@@ -723,6 +724,7 @@ BOOL CNaraTimerDlg::OnInitDialog()
 			AfxGetApp()->WriteProfileStringW(L"Setting", L"Version", mVersion);
 		}
 	}
+	mFontScale = AfxGetApp()->GetProfileInt(L"Setting", L"FontScale", 100);
 	mTheme = AfxGetApp()->GetProfileInt(L"Theme", L"CurrentTheme", THEME_DEFAULT);
 	mDigitalWatch = AfxGetApp()->GetProfileInt(L"Theme", L"DigitalWatch", 1);
 	mHasDate = AfxGetApp()->GetProfileInt(L"Theme", L"HasDate", 1);
@@ -891,8 +893,31 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			TITLE_CHANGING = FALSE;
 			UPDATE_TITLERECT = TRUE;
 			return TRUE;
-		case VK_DOWN:
+		case '0':
+			if(CTRL_DOWN)
+			{
+				mFontScale = 100;
+				AfxGetApp()->WriteProfileInt(L"Setting", L"FontScale", mFontScale);
+				Invalidate(FALSE);
+			}
+			return TRUE;
+		case VK_OEM_PLUS:
+			if(CTRL_DOWN)
+			{
+				mFontScale += 10;
+				AfxGetApp()->WriteProfileInt(L"Setting", L"FontScale", mFontScale);
+				Invalidate(FALSE);
+			}
+			return TRUE;
 		case VK_OEM_MINUS:
+			if(CTRL_DOWN && mFontScale > 10)
+			{
+				mFontScale -= 10;
+				AfxGetApp()->WriteProfileInt(L"Setting", L"FontScale", mFontScale);
+				Invalidate(FALSE);
+			}
+			return TRUE;
+		case VK_DOWN:
 			if (!TITLE_CHANGING && mTimeSet > 60000)
 			{
 				mTimeSet -= 60000;
@@ -913,7 +938,6 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			}
 			break;
 		case VK_UP:
-		case VK_OEM_PLUS:
 			if (!TITLE_CHANGING && mTimeSet > 0)
 			{
 				mTimeSet += 60000;
@@ -1155,7 +1179,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 
 	// font
 	CFont font;
-	int font_size = ROUND(min(rt->right - rt->left, rt->bottom - rt->top) * 0.065);
+	int font_size = ROUND(min(rt->right - rt->left, rt->bottom - rt->top) * mFontScale * 0.00065);
 	GetFont(font, font_size);
 	CFont* fonto = (CFont*)dc->SelectObject(&font);
 	RECT trt;
@@ -2284,7 +2308,9 @@ void CNaraTimerDlg::OnMenuFont(void)
 		LOGFONT lf;
 		dlg.GetCurrentFont(&lf);
 		memcpy(mFontFace, lf.lfFaceName, sizeof(mFontFace));
+		mFontScale = 100;
 		AfxGetApp()->WriteProfileString(L"Setting", L"Font", CString(mFontFace));
+		AfxGetApp()->WriteProfileInt(L"Setting", L"FontScale", mFontScale);
 	}
 }
 

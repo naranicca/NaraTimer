@@ -73,6 +73,7 @@ protected:
 	BOOL mResizing;
 	int mInstructionIdx;
 	CString mVersion;
+	int mFontScale;
 
 	void reposition(void);
 	POINT deg2pt(float deg, int r);
