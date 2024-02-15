@@ -2187,10 +2187,6 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 			}
 			else if(mButtonHover == BUTTON_CENTER)
 			{
-				CClientDC dc(this);
-				int m = mRadiusHandsHead >> 1;
-				RECT rt = { mCrt.left + m, mCrt.top + m, mCrt.right - m, mCrt.bottom - m };
-				DrawTimer(&dc, &rt, 1.f);
 				if (mTimeSet == 0 && !SHIFT_DOWN)
 				{
 					KillTimer(TID_TICK);
@@ -2200,6 +2196,10 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 				{
 					OnNew();
 				}
+				CClientDC dc(this);
+				int m = mRadiusHandsHead >> 1;
+				RECT rt = { mCrt.left + m, mCrt.top + m, mCrt.right - m, mCrt.bottom - m };
+				DrawTimer(&dc, &rt, 1.f);
 			}
 		}
 		mButtonHover = -1;
