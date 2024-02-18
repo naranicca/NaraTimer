@@ -899,24 +899,27 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 				mFontScale = 100;
 				AfxGetApp()->WriteProfileInt(L"Setting", L"FontScale", mFontScale);
 				Invalidate(FALSE);
+				return TRUE;
 			}
-			return TRUE;
+			break;
 		case VK_OEM_PLUS:
 			if(CTRL_DOWN)
 			{
 				mFontScale += 10;
 				AfxGetApp()->WriteProfileInt(L"Setting", L"FontScale", mFontScale);
 				Invalidate(FALSE);
+				return TRUE;
 			}
-			return TRUE;
+			break;
 		case VK_OEM_MINUS:
 			if(CTRL_DOWN && mFontScale >= 10)
 			{
 				mFontScale -= 10;
 				AfxGetApp()->WriteProfileInt(L"Setting", L"FontScale", mFontScale);
 				Invalidate(FALSE);
+				return TRUE;
 			}
-			return TRUE;
+			break;
 		case VK_DOWN:
 			if (!TITLE_CHANGING && mTimeSet > 60000)
 			{
