@@ -910,7 +910,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			}
 			return TRUE;
 		case VK_OEM_MINUS:
-			if(CTRL_DOWN && mFontScale > 10)
+			if(CTRL_DOWN && mFontScale >= 10)
 			{
 				mFontScale -= 10;
 				AfxGetApp()->WriteProfileInt(L"Setting", L"FontScale", mFontScale);
@@ -1179,7 +1179,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 
 	// font
 	CFont font;
-	int font_size = ROUND(min(rt->right - rt->left, rt->bottom - rt->top) * mFontScale * 0.00065);
+	int font_size = max(ROUND(min(rt->right - rt->left, rt->bottom - rt->top) * mFontScale * 0.00065), 1);
 	GetFont(font, font_size);
 	CFont* fonto = (CFont*)dc->SelectObject(&font);
 	RECT trt;
@@ -1271,40 +1271,43 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 		mDegOffset = -360000.f * (m * 60 + s) / mTime360;
 	}
 	// draw numbers
-	dc->SetTextColor(grid_color);
-	clock = CTime::GetCurrentTime().GetHour();
-	for (int i = 0; i < 360; i += 30)
+	if(mFontScale > 0)
 	{
-		pt0 = deg2pt((float)i, r + mGridSize + (tsize >> 1));
-		RECT rt = { x + r + pt0.x - (tw >> 1), y + r + pt0.y - (th >> 1), x + r + pt0.x + (tw >> 1), y + r + pt0.y + (th >> 1) };
-		CString str;
-		if (IS_TIMER_MODE)
+		dc->SetTextColor(grid_color);
+		clock = CTime::GetCurrentTime().GetHour();
+		for(int i = 0; i < 360; i += 30)
 		{
-			str.Format(L"%d", (int)(i / 30) * 5);
-		}
-		else
-		{
-			int t = (int)(i / 30) + clock;
-			if(t >= 24) t -= 24;
-			if(i == 0)
+			pt0 = deg2pt((float)i, r + mGridSize + (tsize >> 1));
+			RECT rt = { x + r + pt0.x - (tw >> 1), y + r + pt0.y - (th >> 1), x + r + pt0.x + (tw >> 1), y + r + pt0.y + (th >> 1) };
+			CString str;
+			if(IS_TIMER_MODE)
 			{
-				rt.left -= tw;
-				rt.right += tw;
-				if(t < 12)
-				{
-					str.Format(L"%d am", (t == 0 ? 12 : (t > 12 ? t - 12 : t)));
-				}
-				else
-				{
-					str.Format(L"%d pm", (t == 0 ? 12 : (t > 12 ? t - 12 : t)));
-				}
+				str.Format(L"%d", (int)(i / 30) * 5);
 			}
 			else
 			{
-				str.Format(L"%d", (t == 0 ? 12 : (t > 12 ? t - 12 : t)));
+				int t = (int)(i / 30) + clock;
+				if(t >= 24) t -= 24;
+				if(i == 0)
+				{
+					rt.left -= tw;
+					rt.right += tw;
+					if(t < 12)
+					{
+						str.Format(L"%d am", (t == 0 ? 12 : (t > 12 ? t - 12 : t)));
+					}
+					else
+					{
+						str.Format(L"%d pm", (t == 0 ? 12 : (t > 12 ? t - 12 : t)));
+					}
+				}
+				else
+				{
+					str.Format(L"%d", (t == 0 ? 12 : (t > 12 ? t - 12 : t)));
+				}
 			}
+			dc->DrawText(str, &rt, DT_CENTER | DT_VCENTER);
 		}
-		dc->DrawText(str, &rt, DT_CENTER | DT_VCENTER);
 	}
 
 	// draw grids
@@ -1373,7 +1376,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * rt, float scale, BOOL draw_border
 			mTso = ts;
 		}
 
-		if (mHM.cy > 0)
+		if (mHM.cy > 0 && mFontScale > 0)
 		{
 			CFont font;
 			GetFont(font, font_size, TRUE);
