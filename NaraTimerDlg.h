@@ -80,9 +80,9 @@ protected:
 	float pt2deg(CPoint pt);
 	ULONGLONG deg2time(float deg, BOOL stick = FALSE);
 	void SetTitle();
-	void DrawTimer(CDC* dc, RECT* rt, float scale = 1.f, BOOL draw_border=TRUE);
+	void DrawTimer(CDC* dc, RECT* rt, float scale = 1.f);
 	void DrawPie(Graphics * g, int r, float deg, RECT* rect = NULL, COLORREF c=-1);
-	void DrawBorder(CDC * dc, RECT * rt, float scale);
+	void DrawBorder(CDC * dc);
 	ULONGLONG GetTimestamp(void);
 	int GetTitleHeight(void);
 	BOOL IsTitleArea(CPoint pt);
