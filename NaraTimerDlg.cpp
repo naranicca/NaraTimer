@@ -1203,7 +1203,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 		CFont font;
 		int fh = ROUND(mTitleHeight * scale);
 		LOGFONTW lf;
-		GetLogfont(&lf, fh, TRUE);
+		GetLogfont(&lf, min(font_size*2, fh), TRUE);
 		font.CreateFontIndirectW(&lf);
 		mTitleEdit.SetFont(&font);
 		Gdiplus::Font gfont(dc->m_hDC, &lf);
