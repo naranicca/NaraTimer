@@ -15,6 +15,20 @@
 #define THEME_PINK			(6)
 #define NUM_THEMES			(7)
 
+class Watch
+{
+public:
+	Watch();
+	~Watch() {};
+	BOOL IsTimeSet() { return mTimeSet > 0; }
+	void Stop() { mTimeSet = 0; }
+	LONGLONG GetRemainedTime() {
+		return IsTimeSet() ? mTimeSet - GetTickCount64() : 0;
+	}
+
+	ULONGLONG mTimeSet;
+};
+
 class CNaraTimerDlg : public NaraDialog
 {
 public:
@@ -41,7 +55,7 @@ protected:
 	HICON m_hIcon;
 	CBitmap mBmp;
 	CBitmap mBuf;
-	ULONGLONG mTimeSet;
+	Watch mWatch;
 	int mTheme;
 	int mDigitalWatch;
 	int mTickSound;

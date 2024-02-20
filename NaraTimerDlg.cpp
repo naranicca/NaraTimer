@@ -506,6 +506,13 @@ void NaraMessageBox::OnTimer(UINT_PTR nIDEvent)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// Watch
+Watch::Watch()
+{
+	mTimeSet = 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // main dialog
 CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	: NaraDialog(IDD_NARATIMER_DIALOG, pParent)
@@ -518,7 +525,6 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	mTheme = THEME_DEFAULT;
-	mTimeSet = 0;
 	mSetting = FALSE;
 	mOldDeg = 0;
 #if 0
@@ -546,11 +552,11 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 
 void CNaraTimerDlg::Stop(void)
 {
+	mWatch.Stop();
 	if (!mIsMiniMode)
 	{
 		KillTimer(TID_TICK);
 	}
-	mTimeSet = 0;
 	if (IS_ALARM_MODE)
 	{
 		mIsTimer = FALSE;
@@ -792,7 +798,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 		{
 		case VK_ESCAPE:
 			TIMES_UP = -100.f;
-			if (mTimeSet && !TITLE_CHANGING)
+			if(mWatch.IsTimeSet() && !TITLE_CHANGING)
 			{
 				NaraMessageBox dlg(this, TRUE);
 				dlg.AddHeading(IS_TIMER_MODE? L"Stop the timer?": L"Stop the alarm?");
@@ -805,7 +811,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 		case VK_RETURN:
 			mTitleEdit.ShowWindow(SW_HIDE);
 			mTitleEdit.GetWindowText(mTitle);
-			if (mTitle.IsEmpty())
+			if(mTitle.IsEmpty())
 			{
 				mTitleHeight = 0;
 				SetWindowText(L"NaraTimer");
@@ -871,7 +877,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 							int ds = (s - c.GetSecond());
 							if(dh + dm + ds >= 0)
 							{
-								mTimeSet = GetTickCount64() + (dh + dm + ds) * 1000;
+								mWatch.mTimeSet = GetTickCount64() + (dh + dm + ds) * 1000;
 								mHM.cx = h;
 								mHM.cy = m;
 								SetTimer(TID_TICK, CHK_INTERVAL, NULL);
@@ -883,7 +889,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 						int h = (time / 10000);
 						int m = (time / 100) % 100;
 						int s = (time % 100);
-						mTimeSet = GetTickCount64() + (h * 3600 + m * 60 + s) * 1000;
+						mWatch.mTimeSet = GetTickCount64() + (h * 3600 + m * 60 + s) * 1000;
 						SetTimer(TID_TICK, CHK_INTERVAL, NULL);
 					}
 				}
@@ -921,9 +927,9 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			}
 			break;
 		case VK_DOWN:
-			if (!TITLE_CHANGING && mTimeSet > 60000)
+			if (!TITLE_CHANGING && mWatch.mTimeSet > 60000)
 			{
-				mTimeSet -= 60000;
+				mWatch.mTimeSet -= 60000;
 				if (IS_ALARM_MODE)
 				{
 					if (mHM.cy > 0)
@@ -941,9 +947,9 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			}
 			break;
 		case VK_UP:
-			if (!TITLE_CHANGING && mTimeSet > 0)
+			if (!TITLE_CHANGING && mWatch.IsTimeSet())
 			{
-				mTimeSet += 60000;
+				mWatch.mTimeSet += 60000;
 				if (IS_ALARM_MODE)
 				{
 					mTime360 += 60000;
@@ -1339,7 +1345,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 	mButtonRect[BUTTON_CENTER].SetRect(x + r + off - sz, y + r + off - sz, x + r + off + sz, y + r + off + sz);
 
 	// draw red pie
-	LONGLONG t_remain = (mTimeSet > 0 ? mTimeSet - GetTickCount64() : 0);
+	LONGLONG t_remain = mWatch.GetRemainedTime();
 	float deg = 0;
 	if (IS_TIMER_MODE || !LBUTTON_DOWN)
 	{
@@ -1921,9 +1927,9 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 		{
 			KillTimer(TID_TIMESUP); // TIMESUP timer is not needed if TICK timer is on
 		}
-		if (!mSetting && mTimeSet != 0)
+		if(!mSetting && mWatch.IsTimeSet())
 		{
-			if (GetTickCount64() + CHK_INTERVAL < mTimeSet)
+			if (GetTickCount64() + CHK_INTERVAL < mWatch.mTimeSet)
 			{
 				Invalidate(FALSE);
 			}
@@ -1944,7 +1950,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 				SetTimer(TID_TIMESUP, 100, NULL);
 			}
 		}
-		else if (mTimeSet == 0 && mIsMiniMode)
+		else if(!mWatch.IsTimeSet() && mIsMiniMode)
 		{
 			Invalidate(FALSE);
 		}
@@ -1986,6 +1992,7 @@ BOOL CNaraTimerDlg::IsTitleArea(CPoint pt)
 
 void CNaraTimerDlg::SetMode(BOOL is_timer)
 {
+	mWatch.Stop();
 	if(is_timer)
 	{
 		if(IS_TIMER_MODE) return;
@@ -1998,7 +2005,6 @@ void CNaraTimerDlg::SetMode(BOOL is_timer)
 		mTime360 = MAX_TIME360;
 		mIsTimer = FALSE;
 	}
-	mTimeSet = 0;
 	SetWindowText(L"NaraTimer");
 }
 
@@ -2081,7 +2087,7 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 		KillTimer(TID_TICK);
 		float deg = pt2deg(pt);
 		mOldDeg = deg;
-		mTimeSet = deg2time(deg, TRUE);
+		mWatch.mTimeSet = deg2time(deg, TRUE);
 		if (IS_ALARM_MODE)
 		{
 			mTime360 = MAX_TIME360;
@@ -2122,7 +2128,7 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 			deg = -mDegOffset;
 		}
 		mOldDeg = deg;
-		mTimeSet = deg2time(deg, d <= (mRadius + (mGridSize >> 1)) * (mRadius + (mGridSize >> 1)));
+		mWatch.mTimeSet = deg2time(deg, d <= (mRadius + (mGridSize >> 1)) * (mRadius + (mGridSize >> 1)));
 		Invalidate(FALSE);
 	}
 	else
@@ -2199,7 +2205,7 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 			}
 			else if(mButtonHover == BUTTON_CENTER)
 			{
-				if (mTimeSet == 0 && !SHIFT_DOWN)
+				if(!mWatch.IsTimeSet() && !SHIFT_DOWN)
 				{
 					KillTimer(TID_TICK);
 					SetMode(IS_ALARM_MODE);
@@ -2226,7 +2232,7 @@ void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 	CMenu menu, theme;
 	menu.CreatePopupMenu();
 	menu.AppendMenu(MF_STRING, IDM_NEW, L"New");
-	menu.AppendMenu(MF_STRING | (mTimeSet == 0? MF_DISABLED: MF_ENABLED), IDM_STOP, L"Stop\tESC");
+	menu.AppendMenu(MF_STRING | (mWatch.IsTimeSet()? MF_ENABLED: MF_DISABLED), IDM_STOP, L"Stop\tESC");
 	menu.AppendMenu(MF_SEPARATOR, 0, L"");
 	menu.AppendMenu(MF_STRING | (IS_TIMER_MODE? MF_CHECKED: 0), IDM_TIMERMODE, L"Timer Mode");
 	menu.AppendMenu(MF_STRING | (IS_ALARM_MODE? MF_CHECKED: 0), IDM_ALARMMODE, L"Alarm Mode");
@@ -2404,7 +2410,7 @@ void CNaraTimerDlg::OnSize(UINT nType, int cx, int cy)
 		mTitleHeight = GetTitleHeight();
 	}
 
-	if (mTimeSet == 0 && IS_TIMER_MODE)
+	if(!mWatch.IsTimeSet() && IS_TIMER_MODE)
 	{
 		if (mIsMiniMode)
 		{
