@@ -10,8 +10,6 @@
 #define CHK_INTERVAL		(300)
 #define TIMER_TIME360		(3600000) // 1h in ms
 #define MAX_TIME360			(12*3600000) // 12h
-#define IS_TIMER_MODE		(mTime360 == TIMER_TIME360)
-#define IS_ALARM_MODE		(!IS_TIMER_MODE)
 #define TITLE_OFFSET		ROUND(mTitleHeight * 1.3f)
 COLORREF BORDER_COLOR = RED;
 
@@ -436,11 +434,11 @@ void NaraMessageBox::OnTimer(UINT_PTR nIDEvent)
 		int i = (mTimerIdx % 6);
 		if(i == 0)
 		{
-			timer->SetMode(TRUE);
+			timer->mWatch.SetMode(TRUE);
 		}
 		else if(i == 3)
 		{
-			timer->SetMode(FALSE);
+			timer->mWatch.SetMode(FALSE);
 		}
 	}
 	else if(mTimerID == 1)
@@ -510,6 +508,72 @@ void NaraMessageBox::OnTimer(UINT_PTR nIDEvent)
 Watch::Watch()
 {
 	mTimeSet = 0;
+	mIsTimer = FALSE;
+	mTime360 = MAX_TIME360;
+}
+
+void Watch::Stop(void)
+{
+	mTimeSet = 0;
+	mTimeStr = L"";
+	if(IsAlarmMode())
+	{
+		mIsTimer = FALSE;
+		mTime360 = MAX_TIME360;
+	}
+	else
+	{
+		mIsTimer = TRUE;
+		mTime360 = TIMER_TIME360;
+	}
+	mHM = { 0, };
+}
+
+void Watch::SetMode(BOOL is_timer)
+{
+	Stop();
+	if(is_timer == IsTimerMode())
+	{
+		return;
+	}
+	if(is_timer)
+	{
+		mTime360 = TIMER_TIME360;
+		mIsTimer = TRUE;
+	}
+	else
+	{
+		mTime360 = MAX_TIME360;
+		mIsTimer = FALSE;
+	}
+}
+
+inline BOOL Watch::IsTimeSet(void)
+{
+	return (mTimeSet > 0);
+}
+
+inline BOOL Watch::IsTimerMode(void)
+{
+	return (mTime360 == TIMER_TIME360);
+}
+
+inline BOOL Watch::IsAlarmMode(void)
+{
+	return !IsTimerMode();
+}
+
+inline LONGLONG Watch::GetRemainingTime(void)
+{
+	return (IsTimeSet() ? mTimeSet - GetTickCount64() : 0);
+}
+
+void Watch::SetText(wchar_t * fmt, ...)
+{
+	va_list list;
+	va_start(list, fmt);
+	mTimeStr.FormatV(fmt, list);
+	va_end(list);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -527,13 +591,6 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	mTheme = THEME_DEFAULT;
 	mSetting = FALSE;
 	mOldDeg = 0;
-#if 0
-	mIsTimer = TRUE;
-	mTime360 = TIMER_TIME360;
-#else
-	mIsTimer = FALSE;
-	mTime360 = MAX_TIME360;
-#endif
 	mRadius = 0;
 	mRadiusHandsHead = 0;
 	memset((void*)&mTimestamp, 0, sizeof(mTimestamp));
@@ -557,13 +614,6 @@ void CNaraTimerDlg::Stop(void)
 	{
 		KillTimer(TID_TICK);
 	}
-	if (IS_ALARM_MODE)
-	{
-		mIsTimer = FALSE;
-		mTime360 = MAX_TIME360;
-	}
-	mTimeStr = L"";
-	mHM = { 0, };
 	SetWindowText(L"NaraTimer");
 	Invalidate(FALSE);
 }
@@ -765,7 +815,7 @@ BOOL CNaraTimerDlg::OnInitDialog()
 		}
 		else if(CString(L"--mode") == args[i])
 		{
-			SetMode(_wtoi(args[i + 1]));
+			mWatch.SetMode(_wtoi(args[i + 1]));
 			i++;
 		}
 	}
@@ -801,7 +851,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			if(mWatch.IsTimeSet() && !TITLE_CHANGING)
 			{
 				NaraMessageBox dlg(this, TRUE);
-				dlg.AddHeading(IS_TIMER_MODE? L"Stop the timer?": L"Stop the alarm?");
+				dlg.AddHeading(mWatch.IsTimerMode()? L"Stop the timer?": L"Stop the alarm?");
 				if(dlg.DoModal() == IDOK)
 				{
 					Stop();
@@ -855,7 +905,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 					int scale = (has_colon ? 1 : 100);
 					time = ((time * 100) + num) * scale;
 					CTime c = CTime::GetCurrentTime();
-					if(IS_ALARM_MODE)
+					if(mWatch.IsAlarmMode())
 					{
 						int s = 0;
 						if(time > 9999)
@@ -878,8 +928,8 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 							if(dh + dm + ds >= 0)
 							{
 								mWatch.mTimeSet = GetTickCount64() + (dh + dm + ds) * 1000;
-								mHM.cx = h;
-								mHM.cy = m;
+								mWatch.mHM.cx = h;
+								mWatch.mHM.cy = m;
 								SetTimer(TID_TICK, CHK_INTERVAL, NULL);
 							}
 						}
@@ -930,18 +980,18 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			if (!TITLE_CHANGING && mWatch.mTimeSet > 60000)
 			{
 				mWatch.mTimeSet -= 60000;
-				if (IS_ALARM_MODE)
+				if(mWatch.IsAlarmMode())
 				{
-					if (mHM.cy > 0)
+					if(mWatch.mHM.cy > 0)
 					{
-						mHM.cy--;
+						mWatch.mHM.cy--;
 					}
 					else
 					{
-						mHM.cx = (mHM.cx > 0 ? mHM.cx - 1 : 11);
-						mHM.cy = 59;
+						mWatch.mHM.cx = (mWatch.mHM.cx > 0 ? mWatch.mHM.cx - 1 : 11);
+						mWatch.mHM.cy = 59;
 					}
-					mTimeStr.Format(L"%d:%02d", (mHM.cx > 12 ? mHM.cx - 12 : mHM.cx), mHM.cy);
+					mWatch.SetText(L"%d:%02d", (mWatch.mHM.cx > 12 ? mWatch.mHM.cx - 12 : mWatch.mHM.cx), mWatch.mHM.cy);
 				}
 				return TRUE;
 			}
@@ -950,16 +1000,16 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			if (!TITLE_CHANGING && mWatch.IsTimeSet())
 			{
 				mWatch.mTimeSet += 60000;
-				if (IS_ALARM_MODE)
+				if(mWatch.IsAlarmMode())
 				{
-					mTime360 += 60000;
-					mHM.cy++;
-					if (mHM.cy >= 60)
+					mWatch.mTime360 += 60000;
+					mWatch.mHM.cy++;
+					if(mWatch.mHM.cy >= 60)
 					{
-						mHM.cx++;
-						mHM.cy -= 60;
+						mWatch.mHM.cx++;
+						mWatch.mHM.cy -= 60;
 					}
-					mTimeStr.Format(L"%d:%02d", (mHM.cx > 12 ? mHM.cx - 12 : mHM.cx), mHM.cy);
+					mWatch.SetText(L"%d:%02d", (mWatch.mHM.cx > 12 ? mWatch.mHM.cx - 12 : mWatch.mHM.cx), mWatch.mHM.cy);
 				}
 				return TRUE;
 			}
@@ -1027,19 +1077,19 @@ float CNaraTimerDlg::pt2deg(CPoint pt)
 
 ULONGLONG CNaraTimerDlg::deg2time(float deg, BOOL stick)
 {
-	if (IS_TIMER_MODE)
+	if(mWatch.IsTimerMode())
 	{
-		ULONGLONG t = (ULONGLONG)(deg * mTime360 / 360);
+		ULONGLONG t = (ULONGLONG)(deg * mWatch.mTime360 / 360);
 		if (stick)
 		{
 			t = ((t + 30000) / 60000) * 60000;
 		}
-		mTimeStr.Format(L"%d:%02d", (t / 60000), ((t % 60000) + 500) / 1000);
+		mWatch.SetText(L"%d:%02d", (t / 60000), ((t % 60000) + 500) / 1000);
 		return GetTickCount64() + t;
 	}
 	else
 	{
-		ULONGLONG t = (ULONGLONG)(deg * mTime360 / 360);
+		ULONGLONG t = (ULONGLONG)(deg * mWatch.mTime360 / 360);
 		t = ((t + 30000) / 60000) * 60000;
 		if (stick)
 		{
@@ -1048,9 +1098,9 @@ ULONGLONG CNaraTimerDlg::deg2time(float deg, BOOL stick)
 		CTime c = CTime::GetCurrentTime();
 		int h = c.GetHour() + (int)(t / 3600000.f);
 		int m = ((int)((t / 1000)) % 3600) / 60;
-		mHM.cx = (h < 24 ? h : h - 24);
-		mHM.cy = m;
-		mTimeStr.Format(L"%d:%02d %s", (mHM.cx > 12 ? mHM.cx - 12 : mHM.cx), mHM.cy, mHM.cx < 12? L"am": L"pm");
+		mWatch.mHM.cx = (h < 24 ? h : h - 24);
+		mWatch.mHM.cy = m;
+		mWatch.SetText(L"%d:%02d %s", (mWatch.mHM.cx > 12 ? mWatch.mHM.cx - 12 : mWatch.mHM.cx), mWatch.mHM.cy, mWatch.mHM.cx < 12? L"am": L"pm");
 		ULONGLONG o = (c.GetMinute() * 60 + c.GetSecond()) * 1000;
 		return GetTickCount64() + (t > o ? t - o : 0);
 	}
@@ -1150,7 +1200,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 		BORDER_COLOR = RGB(251, 162, 139);
 		break;
 	}
-	if (IS_TIMER_MODE)
+	if(mWatch.IsTimerMode())
 	{
 		hand_size = 0.27f;
 		handshead_size = 0.14f;
@@ -1269,7 +1319,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 		SetRect(&mTitleRect, mRoundCorner, mResizeMargin+5, (rt->right - mRoundCorner)/scale, max(mResizeMargin + 5 + 24, y - mGridSize - tsize));
 	}
 
-	if (IS_TIMER_MODE)
+	if(mWatch.IsTimerMode())
 	{
 		mDegOffset = 0;
 	}
@@ -1277,7 +1327,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 	{
 		int m = CTime::GetCurrentTime().GetMinute();
 		int s = CTime::GetCurrentTime().GetSecond();
-		mDegOffset = -360000.f * (m * 60 + s) / mTime360;
+		mDegOffset = -360000.f * (m * 60 + s) / mWatch.mTime360;
 	}
 	// draw numbers
 	if(mFontScale > 0)
@@ -1289,7 +1339,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 			pt0 = deg2pt((float)i, r + mGridSize + (tsize >> 1));
 			RECT rt = { x + r + pt0.x - (tw >> 1), y + r + pt0.y - (th >> 1), x + r + pt0.x + (tw >> 1), y + r + pt0.y + (th >> 1) };
 			CString str;
-			if(IS_TIMER_MODE)
+			if(mWatch.IsTimerMode())
 			{
 				str.Format(L"%d", (int)(i / 30) * 5);
 			}
@@ -1321,7 +1371,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 
 	// draw grids
 	DEFINE_PEN(penm, grid_color, 255, r / 100);
-	clock = (IS_TIMER_MODE ? 6 : 5);
+	clock = (mWatch.IsTimerMode() ? 6 : 5);
 	for (int i = 0; i < 360; i += clock)
 	{
 		pt0 = deg2pt((float)i, r - (mGridSize >> 1));
@@ -1345,11 +1395,11 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 	mButtonRect[BUTTON_CENTER].SetRect(x + r + off - sz, y + r + off - sz, x + r + off + sz, y + r + off + sz);
 
 	// draw red pie
-	LONGLONG t_remain = mWatch.GetRemainedTime();
+	LONGLONG t_remain = mWatch.GetRemainingTime();
 	float deg = 0;
-	if (IS_TIMER_MODE || !LBUTTON_DOWN)
+	if(mWatch.IsTimerMode() || !LBUTTON_DOWN)
 	{
-		deg = 360.f * t_remain / mTime360;
+		deg = 360.f * t_remain / mWatch.mTime360;
 		deg -= mDegOffset;
 	}
 	else if (t_remain > 0)
@@ -1385,7 +1435,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 			mTso = ts;
 		}
 
-		if (mHM.cy > 0 && mFontScale > 0)
+		if(mWatch.mHM.cy > 0 && mFontScale > 0)
 		{
 			CFont font;
 			GetFont(font, font_size, TRUE);
@@ -1397,7 +1447,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 			RECT rt3 = { rt0.left, rt0.top-1, rt0.right, rt0.bottom-1 };
 			RECT rt4 = { rt0.left, rt0.top+1, rt0.right, rt0.bottom+1 };
 			CString min;
-			min.Format(L"%02d", mHM.cy);
+			min.Format(L"%02d", mWatch.mHM.cy);
 			dc->SetTextColor(bk_color);
 			dc->DrawText(min, &rt1, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 			dc->DrawText(min, &rt2, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
@@ -1419,7 +1469,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 		}
 		else if (mSetting)
 		{
-			str = mTimeStr;
+			str = mWatch.mTimeStr;
 		}
 		else if (t_remain == 0)
 		{
@@ -1571,7 +1621,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 			GetFont(font, ROUND(r * 0.3), TRUE);
 			CFont * fonto = dc->SelectObject(&font);
 			RECT trt = { 0, };
-			CString str = (IS_TIMER_MODE ? L"Timer" : L"Alarm");
+			CString str = (mWatch.IsTimerMode() ? L"Timer" : L"Alarm");
 			dc->DrawText(str, &trt, DT_SINGLELINE | DT_CALCRECT);
 			int w = trt.right - trt.left;
 			int h = trt.bottom - trt.top;
@@ -1665,7 +1715,7 @@ void CNaraTimerDlg::DrawPie(Graphics * g, int r, float deg, RECT* rect, COLORREF
 			}
 		}
 	}
-	Pen pg(IS_TIMER_MODE? Color(255, 128, 128, 128): Color(255, GetRValue(c), GetGValue(c), GetBValue(c)), 1);
+	Pen pg(mWatch.IsTimerMode()? Color(255, 128, 128, 128): Color(255, GetRValue(c), GetGValue(c), GetBValue(c)), 1);
 	g->DrawLine(&pg, x + r, y + 1, x + r, y + r);
 }
 
@@ -1957,7 +2007,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 	}
 	else if (nIDEvent == TID_REFRESH)
 	{
-		if (!IS_TIMER_MODE || mDigitalWatch)
+		if(!mWatch.IsTimerMode() || mDigitalWatch)
 		{
 			static int s = 0;
 			int cm = CTime::GetCurrentTime().GetMinute();
@@ -1988,24 +2038,6 @@ BOOL CNaraTimerDlg::IsTitleArea(CPoint pt)
 {
 	if(mIsMiniMode) return FALSE;
 	return (pt.x >= mTitleRect.left && pt.x < mTitleRect.right && pt.y >= mTitleRect.top && pt.y < mTitleRect.bottom);
-}
-
-void CNaraTimerDlg::SetMode(BOOL is_timer)
-{
-	mWatch.Stop();
-	if(is_timer)
-	{
-		if(IS_TIMER_MODE) return;
-		mTime360 = TIMER_TIME360;
-		mIsTimer = TRUE;
-	}
-	else
-	{
-		if(IS_ALARM_MODE) return;
-		mTime360 = MAX_TIME360;
-		mIsTimer = FALSE;
-	}
-	SetWindowText(L"NaraTimer");
 }
 
 void CNaraTimerDlg::SetTitle(CString str, BOOL still_editing)
@@ -2088,10 +2120,10 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 		float deg = pt2deg(pt);
 		mOldDeg = deg;
 		mWatch.mTimeSet = deg2time(deg, TRUE);
-		if (IS_ALARM_MODE)
+		if(mWatch.IsAlarmMode())
 		{
-			mTime360 = MAX_TIME360;
-			mIsTimer = FALSE;
+			mWatch.mTime360 = MAX_TIME360;
+			mWatch.mIsTimer = FALSE;
 		}
 		mSetting = TRUE;
 		Invalidate(FALSE);
@@ -2189,7 +2221,7 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 		{
 			Stop();
 		}
-		mIsTimer = TRUE;
+		mWatch.mIsTimer = TRUE;
 	}
 	else if (mButtonHover >= 0)
 	{
@@ -2208,7 +2240,7 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 				if(!mWatch.IsTimeSet() && !SHIFT_DOWN)
 				{
 					KillTimer(TID_TICK);
-					SetMode(IS_ALARM_MODE);
+					mWatch.SetMode(mWatch.IsAlarmMode());
 				}
 				else
 				{
@@ -2234,8 +2266,8 @@ void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 	menu.AppendMenu(MF_STRING, IDM_NEW, L"New");
 	menu.AppendMenu(MF_STRING | (mWatch.IsTimeSet()? MF_ENABLED: MF_DISABLED), IDM_STOP, L"Stop\tESC");
 	menu.AppendMenu(MF_SEPARATOR, 0, L"");
-	menu.AppendMenu(MF_STRING | (IS_TIMER_MODE? MF_CHECKED: 0), IDM_TIMERMODE, L"Timer Mode");
-	menu.AppendMenu(MF_STRING | (IS_ALARM_MODE? MF_CHECKED: 0), IDM_ALARMMODE, L"Alarm Mode");
+	menu.AppendMenu(MF_STRING | (mWatch.IsTimerMode() ? MF_CHECKED : 0), IDM_TIMERMODE, L"Timer Mode");
+	menu.AppendMenu(MF_STRING | (mWatch.IsAlarmMode() ? MF_CHECKED : 0), IDM_ALARMMODE, L"Alarm Mode");
 	menu.AppendMenu(MF_SEPARATOR, 0, L"");
 	menu.AppendMenu(MF_STRING|(mTopmost?MF_CHECKED:0), IDM_TOPMOST, L"Always On Top");
 	menu.AppendMenu(MF_SEPARATOR, 0, L"");
@@ -2266,7 +2298,7 @@ void CNaraTimerDlg::OnNew(void)
 	if(pl.showCmd != SW_MAXIMIZE)
 	{
 		int off = (mResizeMargin >> 1);
-		param.Format(L"--position %d %d %d %d --mode %d", pl.rcNormalPosition.left, pl.rcNormalPosition.top + off, pl.rcNormalPosition.right, pl.rcNormalPosition.bottom + off, IS_TIMER_MODE);
+		param.Format(L"--position %d %d %d %d --mode %d", pl.rcNormalPosition.left, pl.rcNormalPosition.top + off, pl.rcNormalPosition.right, pl.rcNormalPosition.bottom + off, mWatch.IsTimerMode());
 	}
 	wchar_t path[MAX_PATH];
 	GetModuleFileName(GetModuleHandle(NULL), path, MAX_PATH);
@@ -2280,12 +2312,12 @@ void CNaraTimerDlg::OnStop(void)
 
 void CNaraTimerDlg::OnTimerMode(void)
 {
-	SetMode(TRUE);
+	mWatch.SetMode(TRUE);
 }
 
 void CNaraTimerDlg::OnAlarmMode(void)
 {
-	SetMode(FALSE);
+	mWatch.SetMode(FALSE);
 }
 
 void CNaraTimerDlg::OnMenuPin(void)
@@ -2410,7 +2442,7 @@ void CNaraTimerDlg::OnSize(UINT nType, int cx, int cy)
 		mTitleHeight = GetTitleHeight();
 	}
 
-	if(!mWatch.IsTimeSet() && IS_TIMER_MODE)
+	if(!mWatch.IsTimeSet() && mWatch.IsTimerMode())
 	{
 		if (mIsMiniMode)
 		{

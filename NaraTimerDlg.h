@@ -20,13 +20,19 @@ class Watch
 public:
 	Watch();
 	~Watch() {};
-	BOOL IsTimeSet() { return mTimeSet > 0; }
-	void Stop() { mTimeSet = 0; }
-	LONGLONG GetRemainedTime() {
-		return IsTimeSet() ? mTimeSet - GetTickCount64() : 0;
-	}
+	void Stop();
+	void SetMode(BOOL is_timer);
+	LONGLONG GetRemainingTime();
+	BOOL IsTimeSet();
+	BOOL IsTimerMode(void);
+	BOOL IsAlarmMode(void);
+	void SetText(wchar_t * fmt, ...);
 
+	BOOL mIsTimer;
+	float mTime360;
 	ULONGLONG mTimeSet;
+	CString mTimeStr;
+	SIZE mHM;
 };
 
 class CNaraTimerDlg : public NaraDialog
@@ -39,6 +45,8 @@ public:
 	void SetTopmost(BOOL topmost=TRUE);
 	void SetTheme(int theme);
 	void PlayTickSound(void);
+
+	Watch mWatch;
 
 	BOOL mRunning;
 	CWinThread * mThread;
@@ -55,7 +63,6 @@ protected:
 	HICON m_hIcon;
 	CBitmap mBmp;
 	CBitmap mBuf;
-	Watch mWatch;
 	int mTheme;
 	int mDigitalWatch;
 	int mTickSound;
@@ -65,12 +72,8 @@ protected:
 	BOOL mSetting;
 	ULONGLONG mTso;
 	float mOldDeg;
-	BOOL mIsTimer;
-	float mTime360;
-	CString mTimeStr;
 	int mGridSize;
 	LARGE_INTEGER mTimestamp;
-	SIZE mHM;
 	BOOL mTopmost;
 	CString mTitle;
 	CEdit mTitleEdit;
