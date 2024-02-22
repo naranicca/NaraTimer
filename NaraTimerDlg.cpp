@@ -568,6 +568,34 @@ inline LONGLONG Watch::GetRemainingTime(void)
 	return (IsTimeSet() ? mTimeSet - GetTickCount64() : 0);
 }
 
+BOOL Watch::SetTime(int h, int m, int s)
+{
+	if(IsAlarmMode())
+	{
+		CTime c = CTime::GetCurrentTime();
+		int dh = (h - c.GetHour()) * 3600;
+		int dm = (m - c.GetMinute()) * 60;
+		int ds = (s - c.GetSecond());
+		if(dh + dm + ds >= 0)
+		{
+			mTimeSet = GetTickCount64() + (dh + dm + ds) * 1000;
+			mHM.cx = h;
+			mHM.cy = m;
+			return TRUE;
+		}
+	}
+	else
+	{
+		ULONGLONG t = (h * 3600 + m * 60 + s) * 1000;
+		if(t <= TIMER_TIME360)
+		{
+			mTimeSet = GetTickCount64() + (h * 3600 + m * 60 + s) * 1000;
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 void Watch::SetText(wchar_t * fmt, ...)
 {
 	va_list list;
@@ -915,32 +943,28 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 						}
 						int m = (time % 100);
 						int h = (time / 100);
-						int h_cur = c.GetHour();
 						if(h <= 12 && num < 60)
 						{
+							int h_cur = c.GetHour();
 							if(h <= h_cur)
 							{
 								h += ((h + 24 - h_cur <= 12) ? 24 : 12);
 							}
-							int dh = (h - h_cur) * 3600;
-							int dm = (m - c.GetMinute()) * 60;
-							int ds = (s - c.GetSecond());
-							if(dh + dm + ds >= 0)
+							if(mWatch.SetTime(h, m, s))
 							{
-								mWatch.mTimeSet = GetTickCount64() + (dh + dm + ds) * 1000;
-								mWatch.mHM.cx = h;
-								mWatch.mHM.cy = m;
 								SetTimer(TID_TICK, CHK_INTERVAL, NULL);
 							}
 						}
 					}
-					else if(time <= 10000)
+					else
 					{
 						int h = (time / 10000);
 						int m = (time / 100) % 100;
 						int s = (time % 100);
-						mWatch.mTimeSet = GetTickCount64() + (h * 3600 + m * 60 + s) * 1000;
-						SetTimer(TID_TICK, CHK_INTERVAL, NULL);
+						if(mWatch.SetTime(h, m, s))
+						{
+							SetTimer(TID_TICK, CHK_INTERVAL, NULL);
+						}
 					}
 				}
 			}
@@ -979,7 +1003,6 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 		case VK_DOWN:
 			if (!TITLE_CHANGING && mWatch.mTimeSet > 60000)
 			{
-				mWatch.mTimeSet -= 60000;
 				if(mWatch.IsAlarmMode())
 				{
 					if(mWatch.mHM.cy > 0)
@@ -991,7 +1014,11 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 						mWatch.mHM.cx = (mWatch.mHM.cx > 0 ? mWatch.mHM.cx - 1 : 11);
 						mWatch.mHM.cy = 59;
 					}
-					mWatch.SetText(L"%d:%02d", (mWatch.mHM.cx > 12 ? mWatch.mHM.cx - 12 : mWatch.mHM.cx), mWatch.mHM.cy);
+					mWatch.SetTime(mWatch.mHM.cx, mWatch.mHM.cy, 0);
+				}
+				else
+				{
+					mWatch.mTimeSet -= 60000;
 				}
 				return TRUE;
 			}
@@ -999,17 +1026,16 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 		case VK_UP:
 			if (!TITLE_CHANGING && mWatch.IsTimeSet())
 			{
-				mWatch.mTimeSet += 60000;
 				if(mWatch.IsAlarmMode())
 				{
-					mWatch.mTime360 += 60000;
 					mWatch.mHM.cy++;
-					if(mWatch.mHM.cy >= 60)
-					{
-						mWatch.mHM.cx++;
-						mWatch.mHM.cy -= 60;
-					}
-					mWatch.SetText(L"%d:%02d", (mWatch.mHM.cx > 12 ? mWatch.mHM.cx - 12 : mWatch.mHM.cx), mWatch.mHM.cy);
+					mWatch.mHM.cx += (mWatch.mHM.cx / 60);
+					mWatch.mHM.cy = (mWatch.mHM.cy % 60);
+					mWatch.SetTime(mWatch.mHM.cx, mWatch.mHM.cy, 0);
+				}
+				else
+				{
+					mWatch.mTimeSet += 60000;
 				}
 				return TRUE;
 			}

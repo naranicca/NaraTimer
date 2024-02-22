@@ -26,6 +26,7 @@ public:
 	BOOL IsTimeSet();
 	BOOL IsTimerMode(void);
 	BOOL IsAlarmMode(void);
+	BOOL SetTime(int h, int m, int s);
 	void SetText(wchar_t * fmt, ...);
 
 	BOOL mIsTimer;
