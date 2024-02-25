@@ -96,7 +96,7 @@ protected:
 	void reposition(void);
 	POINT deg2pt(float deg, int r);
 	float pt2deg(CPoint pt);
-	ULONGLONG deg2time(float deg, BOOL stick = FALSE);
+	void SettingTime(float deg, BOOL stick = FALSE);
 	void SetTitle();
 	void DrawTimer(CDC* dc, RECT* rt, float scale = 1.f);
 	void DrawPie(Graphics * g, int r, float deg, RECT* rect = NULL, COLORREF c=-1);

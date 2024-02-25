@@ -1101,8 +1101,9 @@ float CNaraTimerDlg::pt2deg(CPoint pt)
 	return rad * 180 / 3.141592f - mDegOffset;
 }
 
-ULONGLONG CNaraTimerDlg::deg2time(float deg, BOOL stick)
+void CNaraTimerDlg::SettingTime(float deg, BOOL stick)
 {
+	mOldDeg = deg;
 	if(mWatch.IsTimerMode())
 	{
 		ULONGLONG t = (ULONGLONG)(deg * mWatch.mTime360 / 360);
@@ -1111,7 +1112,7 @@ ULONGLONG CNaraTimerDlg::deg2time(float deg, BOOL stick)
 			t = ((t + 30000) / 60000) * 60000;
 		}
 		mWatch.SetText(L"%d:%02d", (t / 60000), ((t % 60000) + 500) / 1000);
-		return GetTickCount64() + t;
+		mWatch.SetTime(0, (t / 60000), ((t % 60000) + 500) / 1000);
 	}
 	else
 	{
@@ -1122,13 +1123,12 @@ ULONGLONG CNaraTimerDlg::deg2time(float deg, BOOL stick)
 			t = ((t + 300000) / 600000) * 600000;
 		}
 		CTime c = CTime::GetCurrentTime();
-		int h = c.GetHour() + (int)(t / 3600000.f);
-		int m = ((int)((t / 1000)) % 3600) / 60;
-		mWatch.mHM.cx = (h < 24 ? h : h - 24);
-		mWatch.mHM.cy = m;
-		mWatch.SetText(L"%d:%02d %s", (mWatch.mHM.cx > 12 ? mWatch.mHM.cx - 12 : mWatch.mHM.cx), mWatch.mHM.cy, mWatch.mHM.cx < 12? L"am": L"pm");
-		ULONGLONG o = (c.GetMinute() * 60 + c.GetSecond()) * 1000;
-		return GetTickCount64() + (t > o ? t - o : 0);
+		t /= 1000;
+		int h = c.GetHour() + (int)(t / 3600);
+		int m = (int)((t % 3600) / 60);
+		mWatch.SetTime(h, m, 0);
+		h = (h < 24 ? h : h - 24);
+		mWatch.SetText(L"%d:%02d %s", (h > 12 ? h - 12 : h), m, h < 12? L"am": L"pm");
 	}
 }
 
@@ -2144,8 +2144,7 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 	{
 		KillTimer(TID_TICK);
 		float deg = pt2deg(pt);
-		mOldDeg = deg;
-		mWatch.mTimeSet = deg2time(deg, TRUE);
+		SettingTime(deg, TRUE);
 		if(mWatch.IsAlarmMode())
 		{
 			mWatch.mTime360 = MAX_TIME360;
@@ -2185,8 +2184,7 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 		{
 			deg = -mDegOffset;
 		}
-		mOldDeg = deg;
-		mWatch.mTimeSet = deg2time(deg, d <= (mRadius + (mGridSize >> 1)) * (mRadius + (mGridSize >> 1)));
+		SettingTime(deg, d <= (mRadius + (mGridSize >> 1)) * (mRadius + (mGridSize >> 1)));
 		Invalidate(FALSE);
 	}
 	else
