@@ -1207,7 +1207,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 		BORDER_COLOR = RGB(22, 23, 24);
 		break;
 	case THEME_BLUE:
-		BORDER_COLOR = RGB(16, 41, 145);
+		BORDER_COLOR = RGB(89, 161, 245);
 		break;
 	case THEME_GREEN:
 		BORDER_COLOR = RGB(30, 108, 78);
