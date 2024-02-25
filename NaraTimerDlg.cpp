@@ -215,10 +215,6 @@ BOOL NaraMessageBox::PreTranslateMessage(MSG * pMsg)
 		case VK_RETURN:
 		case VK_SPACE:
 			pMsg->wParam = VK_RETURN;
-			mOnOK = TRUE;
-			OnPaint();
-			Sleep(100);
-			mOnOK = FALSE;
 		}
 	}
 	return NaraDialog::PreTranslateMessage(pMsg);
