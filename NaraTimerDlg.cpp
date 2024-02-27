@@ -942,7 +942,11 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 						if(h <= 12 && num < 60)
 						{
 							int h_cur = c.GetHour();
-							if(h <= h_cur)
+							if((h == h_cur || abs(h - h_cur) == 12) && m > c.GetMinute())
+							{
+								h = h_cur;
+							}
+							else if(h <= h_cur)
 							{
 								h += ((h + 24 - h_cur <= 12) ? 24 : 12);
 							}
