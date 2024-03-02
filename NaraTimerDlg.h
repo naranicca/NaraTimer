@@ -18,11 +18,11 @@
 class Watch
 {
 public:
-	Watch();
-	~Watch() {};
-	void Stop();
+	Watch(void);
+	~Watch(void) {};
+	void Stop(void);
 	void SetMode(BOOL is_timer);
-	LONGLONG GetRemainingTime();
+	LONGLONG GetRemainingTime(void);
 	BOOL IsTimeSet();
 	BOOL IsTimerMode(void);
 	BOOL IsAlarmMode(void);
@@ -34,6 +34,26 @@ public:
 	ULONGLONG mTimeSet;
 	CString mTimeStr;
 	SIZE mHM;
+
+	Watch * mPrev;
+	Watch * mNext;
+};
+
+class WatchList
+{
+public:
+	WatchList(void);
+	~WatchList(void);
+	Watch * GetHead(void);
+	Watch * GetUnset(void);
+	Watch * GetWatchSet(void);
+	int GetSize(void);
+	Watch * Add(void);
+	void RemoveHead(void);
+	void RemoveAll(void);
+protected:
+	Watch * mHead;
+	int mSize;
 };
 
 class CNaraTimerDlg : public NaraDialog
@@ -41,13 +61,13 @@ class CNaraTimerDlg : public NaraDialog
 public:
 	CNaraTimerDlg(CWnd* pParent = nullptr);
 	void Stop(void);
-	void SetMode(BOOL is_timer = TRUE);
+	void SetViewMode(int mode);
 	void SetTitle(CString str, BOOL still_editing=FALSE);
 	void SetTopmost(BOOL topmost=TRUE);
 	void SetTheme(int theme);
 	void PlayTickSound(void);
 
-	Watch mWatch;
+	WatchList mWatches;
 
 	BOOL mRunning;
 	CWinThread * mThread;
@@ -64,13 +84,14 @@ protected:
 	HICON m_hIcon;
 	CBitmap mBmp;
 	CBitmap mBuf;
+	int mViewMode;
 	int mTheme;
 	int mDigitalWatch;
 	int mTickSound;
 	int mHasDate;
 	int mRadius;
 	int mRadiusHandsHead;
-	BOOL mSetting;
+	Watch * mSetting;
 	ULONGLONG mTso;
 	float mOldDeg;
 	int mGridSize;
@@ -87,8 +108,6 @@ protected:
 	CRect mButtonRect[NUM_BUTTONS];
 	int mButtonIcon[NUM_BUTTONS];
 	int mButtonIconHover[NUM_BUTTONS];
-	BOOL mIsMiniMode;
-	BOOL mResizing;
 	int mInstructionIdx;
 	CString mVersion;
 	int mFontScale;
@@ -96,10 +115,11 @@ protected:
 	void reposition(void);
 	POINT deg2pt(float deg, int r);
 	float pt2deg(CPoint pt);
-	void SettingTime(float deg, BOOL stick = FALSE);
+	Watch * SettingTime(float deg, BOOL stick = FALSE);
 	void SetTitle();
-	void DrawTimer(CDC* dc, RECT* rt, float scale = 1.f);
-	void DrawPie(Graphics * g, int r, float deg, RECT* rect = NULL, COLORREF c=-1);
+	void DrawTimer(CDC * dc, Watch * watch, RECT * rt, BOOL list_mode=FALSE);
+	void DrawList(CDC * dc, RECT * rt);
+	void DrawPie(Graphics * g, Watch * watch, int x, int y, int r, float deg, COLORREF c=-1);
 	void DrawBorder(CDC * dc);
 	ULONGLONG GetTimestamp(void);
 	int GetTitleHeight(void);
@@ -118,6 +138,7 @@ protected:
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
 	afx_msg void OnContextMenu(CWnd * pWnd, CPoint point);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);

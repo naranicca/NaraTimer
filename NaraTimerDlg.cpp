@@ -11,11 +11,16 @@
 #define TIMER_TIME360		(3600000) // 1h in ms
 #define MAX_TIME360			(12*3600000) // 12h
 #define TITLE_OFFSET		ROUND(mTitleHeight * 1.3f)
+#define LIST_GAP			(10)
+COLORREF BK_COLOR = WHITE;
 COLORREF BORDER_COLOR = RED;
 
 float TIMES_UP = -100.f;
 BOOL TITLE_CHANGING = FALSE;
 BOOL UPDATE_TITLERECT = TRUE;
+
+#define VIEW_WATCH			(0)
+#define VIEW_LIST			(1)
 
 #define TID_TICK			(0)
 #define TID_REFRESH			(1)
@@ -430,11 +435,11 @@ void NaraMessageBox::OnTimer(UINT_PTR nIDEvent)
 		int i = (mTimerIdx % 6);
 		if(i == 0)
 		{
-			timer->mWatch.SetMode(TRUE);
+			timer->mWatches.GetUnset()->SetMode(TRUE);
 		}
 		else if(i == 3)
 		{
-			timer->mWatch.SetMode(FALSE);
+			timer->mWatches.GetUnset()->SetMode(FALSE);
 		}
 	}
 	else if(mTimerID == 1)
@@ -501,11 +506,13 @@ void NaraMessageBox::OnTimer(UINT_PTR nIDEvent)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Watch
-Watch::Watch()
+Watch::Watch(void)
 {
 	mTimeSet = 0;
 	mIsTimer = FALSE;
 	mTime360 = MAX_TIME360;
+	mPrev = NULL;
+	mNext = NULL;
 }
 
 void Watch::Stop(void)
@@ -601,6 +608,90 @@ void Watch::SetText(wchar_t * fmt, ...)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// WatchList
+WatchList::WatchList(void)
+{
+	mHead = NULL;
+	mSize = 0;
+}
+
+WatchList::~WatchList(void)
+{
+	while(mHead)
+	{
+		Watch * next = mHead->mNext;
+		delete mHead;
+		mHead = next;
+		mSize--;
+	}
+}
+
+Watch * WatchList::GetHead(void)
+{
+	if(mHead == NULL)
+	{
+		Add();
+	}
+	return mHead;
+}
+
+Watch * WatchList::GetUnset(void)
+{
+	if(mHead == NULL)
+	{
+		Add();
+	}
+	return mHead;
+}
+
+Watch * WatchList::GetWatchSet(void)
+{
+	return (mHead->IsTimeSet() ? mHead : mHead->mNext);
+}
+
+int WatchList::GetSize(void)
+{
+	return mSize;
+}
+
+Watch * WatchList::Add(void)
+{
+	if(mHead && !mHead->IsTimeSet())
+	{
+		/* we already have an unset watch */
+		return mHead;
+	}
+	Watch * watch = new Watch();
+	if(watch)
+	{
+		if(mHead)
+		{
+			watch->mNext = mHead;
+			mHead->mPrev = watch;
+		}
+		mHead = watch;
+		mSize++;
+	}
+	return watch;
+}
+
+void WatchList::RemoveHead(void)
+{
+	Watch * next = mHead->mNext;
+	delete mHead;
+	mHead = next;
+	mHead->mPrev = NULL;
+}
+
+void WatchList::RemoveAll(void)
+{
+	while(mHead)
+	{
+		RemoveHead();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // main dialog
 CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	: NaraDialog(IDD_NARATIMER_DIALOG, pParent)
@@ -611,9 +702,12 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	c.lpszClassName = L"NaraTimer_designed-by-naranicca";
 	AfxRegisterClass(&c);
 
+	mWatches.Add();
+
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	mViewMode = VIEW_WATCH;
 	mTheme = THEME_DEFAULT;
-	mSetting = FALSE;
+	mSetting = NULL;
 	mOldDeg = 0;
 	mRadius = 0;
 	mRadiusHandsHead = 0;
@@ -624,8 +718,6 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	mTopmost = FALSE;
 	mTitleHeight = 0;
 	mDegOffset = 0;
-	mIsMiniMode = FALSE;
-	mResizing = FALSE;
 	mMuteTick = 0;
 	mInstructionIdx = 0;
 	mFontScale = 100;
@@ -633,11 +725,16 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 
 void CNaraTimerDlg::Stop(void)
 {
-	mWatch.Stop();
-	if (!mIsMiniMode)
+	if(mViewMode == VIEW_WATCH)
 	{
-		KillTimer(TID_TICK);
+		mWatches.GetHead()->Stop();
 	}
+	else
+	{
+		mWatches.RemoveAll();
+		mWatches.Add();
+	}
+	KillTimer(TID_TICK);
 	SetWindowText(L"NaraTimer");
 	Invalidate(FALSE);
 }
@@ -691,6 +788,7 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, NaraDialog)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_MOUSEMOVE()
 	ON_WM_LBUTTONUP()
+	ON_WM_MOUSEWHEEL()
 	ON_WM_CONTEXTMENU()
 	ON_WM_SIZE()
 	ON_WM_GETMINMAXINFO()
@@ -839,7 +937,7 @@ BOOL CNaraTimerDlg::OnInitDialog()
 		}
 		else if(CString(L"--mode") == args[i])
 		{
-			mWatch.SetMode(_wtoi(args[i + 1]));
+			mWatches.GetUnset()->SetMode(_wtoi(args[i + 1]));
 			i++;
 		}
 	}
@@ -872,15 +970,30 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 		{
 		case VK_ESCAPE:
 			TIMES_UP = -100.f;
-			if(mWatch.IsTimeSet() && !TITLE_CHANGING)
+			if(mViewMode == VIEW_WATCH)
+			{
+				Watch * watch = mWatches.GetHead();
+				if(watch->IsTimeSet() && !TITLE_CHANGING)
+				{
+					NaraMessageBox dlg(this, TRUE);
+					dlg.AddHeading(watch->IsTimerMode() ? L"Stop the timer?" : L"Stop the alarm?");
+					if(dlg.DoModal() == IDOK)
+					{
+						Stop();
+						return TRUE;
+					}
+				}
+			}
+			else
 			{
 				NaraMessageBox dlg(this, TRUE);
-				dlg.AddHeading(mWatch.IsTimerMode()? L"Stop the timer?": L"Stop the alarm?");
+				dlg.AddHeading(L"Stop all?");
 				if(dlg.DoModal() == IDOK)
 				{
 					Stop();
 					return TRUE;
 				}
+				break;
 			}
 		case VK_RETURN:
 			mTitleEdit.ShowWindow(SW_HIDE);
@@ -893,10 +1006,6 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			else
 			{
 				SetWindowText(mTitle);
-				if(mIsMiniMode)
-				{
-					mResizing = TRUE;
-				}
 			}
 			if(!mSetting && !mTitle.IsEmpty())
 			{
@@ -929,7 +1038,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 					int scale = (has_colon ? 1 : 100);
 					time = ((time * 100) + num) * scale;
 					CTime c = CTime::GetCurrentTime();
-					if(mWatch.IsAlarmMode())
+					if(mWatches.GetUnset()->IsAlarmMode())
 					{
 						int s = 0;
 						if(time > 9999)
@@ -950,7 +1059,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 							{
 								h += ((h + 24 - h_cur <= 12) ? 24 : 12);
 							}
-							if(mWatch.SetTime(h, m, s))
+							if(mWatches.GetUnset()->SetTime(h, m, s))
 							{
 								SetTimer(TID_TICK, CHK_INTERVAL, NULL);
 							}
@@ -961,7 +1070,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 						int h = (time / 10000);
 						int m = (time / 100) % 100;
 						int s = (time % 100);
-						if(mWatch.SetTime(h, m, s))
+						if(mWatches.GetUnset()->SetTime(h, m, s))
 						{
 							SetTimer(TID_TICK, CHK_INTERVAL, NULL);
 						}
@@ -1001,43 +1110,51 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			}
 			break;
 		case VK_DOWN:
-			if (!TITLE_CHANGING && mWatch.mTimeSet > 60000)
+			if(mViewMode == VIEW_WATCH)
 			{
-				if(mWatch.IsAlarmMode())
+				Watch * watch = mWatches.GetHead();
+				if(!TITLE_CHANGING && watch->mTimeSet > 60000)
 				{
-					if(mWatch.mHM.cy > 0)
+					if(watch->IsAlarmMode())
 					{
-						mWatch.mHM.cy--;
+						if(watch->mHM.cy > 0)
+						{
+							watch->mHM.cy--;
+						}
+						else
+						{
+							watch->mHM.cx = (watch->mHM.cx > 0 ? watch->mHM.cx - 1 : 11);
+							watch->mHM.cy = 59;
+						}
+						watch->SetTime(watch->mHM.cx, watch->mHM.cy, 0);
 					}
 					else
 					{
-						mWatch.mHM.cx = (mWatch.mHM.cx > 0 ? mWatch.mHM.cx - 1 : 11);
-						mWatch.mHM.cy = 59;
+						watch->mTimeSet -= 60000;
 					}
-					mWatch.SetTime(mWatch.mHM.cx, mWatch.mHM.cy, 0);
+					return TRUE;
 				}
-				else
-				{
-					mWatch.mTimeSet -= 60000;
-				}
-				return TRUE;
 			}
 			break;
 		case VK_UP:
-			if (!TITLE_CHANGING && mWatch.IsTimeSet())
+			if(mViewMode == VIEW_WATCH)
 			{
-				if(mWatch.IsAlarmMode())
+				Watch * watch = mWatches.GetHead();
+				if(!TITLE_CHANGING && watch->IsTimeSet())
 				{
-					mWatch.mHM.cy++;
-					mWatch.mHM.cx += (mWatch.mHM.cx / 60);
-					mWatch.mHM.cy = (mWatch.mHM.cy % 60);
-					mWatch.SetTime(mWatch.mHM.cx, mWatch.mHM.cy, 0);
+					if(watch->IsAlarmMode())
+					{
+						watch->mHM.cy++;
+						watch->mHM.cx += (watch->mHM.cx / 60);
+						watch->mHM.cy = (watch->mHM.cy % 60);
+						watch->SetTime(watch->mHM.cx, watch->mHM.cy, 0);
+					}
+					else
+					{
+						watch->mTimeSet += 60000;
+					}
+					return TRUE;
 				}
-				else
-				{
-					mWatch.mTimeSet += 60000;
-				}
-				return TRUE;
 			}
 			break;
 		case VK_F2:
@@ -1101,22 +1218,23 @@ float CNaraTimerDlg::pt2deg(CPoint pt)
 	return rad * 180 / 3.141592f - mDegOffset;
 }
 
-void CNaraTimerDlg::SettingTime(float deg, BOOL stick)
+Watch * CNaraTimerDlg::SettingTime(float deg, BOOL stick)
 {
 	mOldDeg = deg;
-	if(mWatch.IsTimerMode())
+	Watch * watch = (mSetting == NULL ? mWatches.GetUnset() : mSetting);
+	if(watch->IsTimerMode())
 	{
-		ULONGLONG t = (ULONGLONG)(deg * mWatch.mTime360 / 360);
+		ULONGLONG t = (ULONGLONG)(deg * watch->mTime360 / 360);
 		if (stick)
 		{
 			t = ((t + 30000) / 60000) * 60000;
 		}
-		mWatch.SetText(L"%d:%02d", (t / 60000), ((t % 60000) + 500) / 1000);
-		mWatch.SetTime(0, (t / 60000), ((t % 60000) + 500) / 1000);
+		watch->SetText(L"%d:%02d", (t / 60000), ((t % 60000) + 500) / 1000);
+		watch->SetTime(0, (t / 60000), ((t % 60000) + 500) / 1000);
 	}
 	else
 	{
-		ULONGLONG t = (ULONGLONG)(deg * mWatch.mTime360 / 360);
+		ULONGLONG t = (ULONGLONG)(deg * watch->mTime360 / 360);
 		t = ((t + 30000) / 60000) * 60000;
 		if (stick)
 		{
@@ -1126,10 +1244,11 @@ void CNaraTimerDlg::SettingTime(float deg, BOOL stick)
 		t /= 1000;
 		int h = c.GetHour() + (int)(t / 3600);
 		int m = (int)((t % 3600) / 60);
-		mWatch.SetTime(h, m, 0);
+		watch->SetTime(h, m, 0);
 		h = (h < 24 ? h : h - 24);
-		mWatch.SetText(L"%d:%02d %s", (h > 12 ? h - 12 : h), m, h < 12? L"am": L"pm");
+		watch->SetText(L"%d:%02d %s", (h > 12 ? h - 12 : h), m, h < 12? L"am": L"pm");
 	}
+	return watch;
 }
 
 ULONGLONG CNaraTimerDlg::GetTimestamp(void)
@@ -1180,19 +1299,24 @@ static void FillRoundRect(Gdiplus::Graphics * g, Brush * br, Gdiplus::Rect & rt,
 	g->FillPath(br, &path);
 }
 
-void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
+void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mode)
 {
+	CFont font, * fonto;
+	int font_size, tw, th, tsize;
+	int x, y, w, h, r;
+	RECT trt;
+
 	Graphics g(*dc);
 	g.SetSmoothingMode(SmoothingModeHighQuality);
 	g.SetTextRenderingHint(TextRenderingHintAntiAlias);
 	POINT pt0, pt1;
 	int clock;
 	int start = 0;
-	COLORREF bk_color, grid_color, pie_color, hand_color, handshead_color, timestr_color;
+	COLORREF grid_color, pie_color, hand_color, handshead_color, timestr_color;
 	float hand_size;
 	float handshead_size;
 
-	bk_color = WHITE;
+	BK_COLOR = WHITE;
 	grid_color = RGB(0, 0, 0);
 	pie_color = RED;
 	hand_color = RGB(220, 220, 220);
@@ -1202,7 +1326,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 	switch(mTheme)
 	{
 	case THEME_DARK:
-		bk_color = RGB(8, 9, 10);
+		BK_COLOR = RGB(8, 9, 10);
 		grid_color = WHITE;
 		pie_color = RED;
 		hand_color = WHITE;
@@ -1226,7 +1350,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 		BORDER_COLOR = RGB(251, 162, 139);
 		break;
 	}
-	if(mWatch.IsTimerMode())
+	if(watch->IsTimerMode())
 	{
 		hand_size = 0.27f;
 		handshead_size = 0.14f;
@@ -1238,49 +1362,46 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 		handshead_size = 0.1f;
 	}
 
-	if(mIsMiniMode)
-	{
-		timestr_color = grid_color;
-		for(int i = 0; i < 2; i++)
-		{
-			grid_color = blend_color(grid_color, bk_color);
-			pie_color = blend_color(pie_color, bk_color);
-			hand_color = blend_color(hand_color, bk_color);
-			handshead_color = blend_color(handshead_color, bk_color);
-		}
-	}
-
 	RECT tmp_rect, * rt = &tmp_rect;
 	CopyRect(rt, dst);
-	dc->FillSolidRect(rt, bk_color);
+	dc->FillSolidRect(rt, BK_COLOR);
 	dc->SetBkMode(TRANSPARENT);
 	GetClientRect(&mTimerRect);
 	if (mTitleHeight > 0)
 	{
 		int off = TITLE_OFFSET;
-		rt->top += ROUND(off * scale);
+		rt->top += off;
 		mTimerRect.top += off;
 	}
+	w = (rt->right - rt->left);
+	h = (rt->bottom - rt->top);
 
 	// font
-	CFont font;
-	int font_size = max(ROUND(min(rt->right - rt->left, rt->bottom - rt->top) * mFontScale * 0.00065), 1);
+	font_size = max(ROUND(min(w, h) * mFontScale * 0.00065), 1);
 	GetFont(font, font_size);
-	CFont* fonto = (CFont*)dc->SelectObject(&font);
-	RECT trt;
+	fonto = (CFont*)dc->SelectObject(&font);
 	dc->DrawText(L"88", 3, &trt, DT_CALCRECT | DT_SINGLELINE);
-	int tw = (trt.right - trt.left + 10);
-	int th = (trt.bottom - trt.top);
-	int tsize = ROUND(max(tw, th) * 1.1f);
+	tw = (trt.right - trt.left + 10);
+	th = (trt.bottom - trt.top);
+	tsize = ROUND(max(tw, th) * 1.1f);
+	if(list_mode)
+	{
+		mGridSize = 0;
+		r = (MIN(w, h) >> 1) - LIST_GAP;
+		x = rt->left + LIST_GAP;
+		y = (rt->top + rt->bottom - (r << 1)) >> 1;
+		tsize = 0;
+	}
+	else
+	{
+		mGridSize = ROUND(min(w, h) * 0.023f);
+		r = (MIN(w, h) >> 1) - (mGridSize + (mGridSize >> 1) + tsize);
+		x = (rt->left + rt->right - (r << 1)) >> 1;
+		y = (rt->top + rt->bottom - (r << 1)) >> 1;
+	}
+	mRadius = r;
 
-	int w = (rt->right - rt->left - mResizeMargin * scale * 2);
-	int h = (rt->bottom - rt->top - mResizeMargin * scale * 2);
-	mGridSize = ROUND(min(w, h) * 0.023f);
-	int r = (MIN(w, h) >> 1) - (mGridSize + (mGridSize >> 1) + tsize);
-	int x = (rt->left + rt->right - (r << 1)) >> 1;
-	int y = (rt->top + rt->bottom - (r << 1)) >> 1;
-	mRadius = ROUND(r / scale);
-
+#if 0
 	// draw title
 	static RECT trt_full;
 	if (mTitleHeight > 0)
@@ -1341,11 +1462,11 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 	else
 	{
 		int cx = (int)(((rt->right + rt->left) >> 1) / scale);
-		//SetRect(&mTitleRect, cx - (tw >> 1), RESIZE_MARGIN, cx + (tw >> 1), max(RESIZE_MARGIN + 16, y - mGridSize - tsize));
 		SetRect(&mTitleRect, mRoundCorner, mResizeMargin+5, (rt->right - mRoundCorner)/scale, max(mResizeMargin + 5 + 24, y - mGridSize - tsize));
 	}
+#endif
 
-	if(mWatch.IsTimerMode())
+	if(watch->IsTimerMode())
 	{
 		mDegOffset = 0;
 	}
@@ -1353,10 +1474,10 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 	{
 		int m = CTime::GetCurrentTime().GetMinute();
 		int s = CTime::GetCurrentTime().GetSecond();
-		mDegOffset = -360000.f * (m * 60 + s) / mWatch.mTime360;
+		mDegOffset = -360000.f * (m * 60 + s) / watch->mTime360;
 	}
 	// draw numbers
-	if(mFontScale > 0)
+	if(mFontScale > 0 && !list_mode)
 	{
 		dc->SetTextColor(grid_color);
 		clock = CTime::GetCurrentTime().GetHour();
@@ -1365,7 +1486,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 			pt0 = deg2pt((float)i, r + mGridSize + (tsize >> 1));
 			RECT rt = { x + r + pt0.x - (tw >> 1), y + r + pt0.y - (th >> 1), x + r + pt0.x + (tw >> 1), y + r + pt0.y + (th >> 1) };
 			CString str;
-			if(mWatch.IsTimerMode())
+			if(watch->IsTimerMode())
 			{
 				str.Format(L"%d", (int)(i / 30) * 5);
 			}
@@ -1396,36 +1517,45 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 	}
 
 	// draw grids
-	DEFINE_PEN(penm, grid_color, 255, r / 100);
-	clock = (mWatch.IsTimerMode() ? 6 : 5);
-	for (int i = 0; i < 360; i += clock)
+	int head_size = ROUND(r * handshead_size);
+	if(list_mode)
 	{
-		pt0 = deg2pt((float)i, r - (mGridSize >> 1));
-		pt1 = deg2pt((float)i, r + (mGridSize >> 1));
-		g.DrawLine(&penm, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
+		int th = ROUND(r / 10);
+		DEFINE_PEN(penm, grid_color, 64, th);
+		g.DrawEllipse(&penm, x + th/2, y + th/2, r * 2 - th, r * 2 - th);
 	}
-	DEFINE_PEN(penh, grid_color, 255, r / 33);
-	for (int i = 0; i < 360; i += 30)
+	else
 	{
-		pt0 = deg2pt((float)i, r - mGridSize);
-		pt1 = deg2pt((float)i, r + mGridSize);
-		g.DrawLine(&penh, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
-	}
+		DEFINE_PEN(penm, grid_color, 255, r / 100);
+		clock = (watch->IsTimerMode() ? 6 : 5);
+		for(int i = 0; i < 360; i += clock)
+		{
+			pt0 = deg2pt((float)i, r - (mGridSize >> 1));
+			pt1 = deg2pt((float)i, r + (mGridSize >> 1));
+			g.DrawLine(&penm, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
+		}
+		DEFINE_PEN(penh, grid_color, 255, r / 33);
+		for(int i = 0; i < 360; i += 30)
+		{
+			pt0 = deg2pt((float)i, r - mGridSize);
+			pt1 = deg2pt((float)i, r + mGridSize);
+			g.DrawLine(&penh, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
+		}
 
-	// hands head shadow
-	int sz = ROUND(r * handshead_size);
-	int off = ROUND(sz * 0.15);
-	mRadiusHandsHead = sz;
-	SolidBrush brgrey2(Color(64, 0, 0, 0));
-	g.FillEllipse(&brgrey2, x + r + off - sz, y + r + off - sz, 2 * sz, 2 * sz);
-	mButtonRect[BUTTON_CENTER].SetRect(x + r + off - sz, y + r + off - sz, x + r + off + sz, y + r + off + sz);
+		// hands head shadow
+		int off = ROUND(head_size * 0.15);
+		mRadiusHandsHead = head_size;
+		SolidBrush brgrey2(Color(64, 0, 0, 0));
+		g.FillEllipse(&brgrey2, x + r + off - head_size, y + r + off - head_size, 2 * head_size, 2 * head_size);
+		mButtonRect[BUTTON_CENTER].SetRect(x + r + off - head_size, y + r + off - head_size, x + r + off + head_size, y + r + off + head_size);
+	}
 
 	// draw red pie
-	LONGLONG t_remain = mWatch.GetRemainingTime();
+	LONGLONG t_remain = watch->GetRemainingTime();
 	float deg = 0;
-	if(mWatch.IsTimerMode() || !LBUTTON_DOWN)
+	if(watch->IsTimerMode() || !LBUTTON_DOWN)
 	{
-		deg = 360.f * t_remain / mWatch.mTime360;
+		deg = 360.f * t_remain / watch->mTime360;
 		deg -= mDegOffset;
 	}
 	else if (t_remain > 0)
@@ -1434,7 +1564,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 		int o = c.GetMinute() * 60 + c.GetSecond();
 		deg = 360.f * (t_remain + o * 1000) / MAX_TIME360;
 	}
-	DrawPie(&g, r, deg, rt, pie_color);
+	DrawPie(&g, watch, x, y, r, deg, pie_color);
 	CString str = L"";
 	if (deg > -mDegOffset)
 	{
@@ -1461,7 +1591,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 			mTso = ts;
 		}
 
-		if(mWatch.mHM.cy > 0 && mFontScale > 0)
+		if(watch->mHM.cy > 0 && mFontScale > 0 && !list_mode)
 		{
 			CFont font;
 			GetFont(font, font_size, TRUE);
@@ -1473,8 +1603,8 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 			RECT rt3 = { rt0.left, rt0.top-1, rt0.right, rt0.bottom-1 };
 			RECT rt4 = { rt0.left, rt0.top+1, rt0.right, rt0.bottom+1 };
 			CString min;
-			min.Format(L"%02d", mWatch.mHM.cy);
-			dc->SetTextColor(bk_color);
+			min.Format(L"%02d", watch->mHM.cy);
+			dc->SetTextColor(BK_COLOR);
 			dc->DrawText(min, &rt1, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 			dc->DrawText(min, &rt2, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 			dc->DrawText(min, &rt3, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
@@ -1486,18 +1616,15 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 	}
 
 	// draw digital watch
-	if(mDigitalWatch || mIsMiniMode)
+	if(mDigitalWatch || list_mode)
 	{
-		Gdiplus::Font font(mFontFace, ROUND(r / 4), FontStyleBold, UnitPixel);
-		if(mIsMiniMode && TIMES_UP >= 0)
+		Gdiplus::Font font(mFontFace, (list_mode? (r << 1) : ROUND(r / 4)), FontStyleBold, UnitPixel);
+		Gdiplus::StringFormat sf;
+		if(mSetting)
 		{
-			str = L"TIME'S UP";
+			str = watch->mTimeStr;
 		}
-		else if (mSetting)
-		{
-			str = mWatch.mTimeStr;
-		}
-		else if (t_remain == 0)
+		else if(t_remain == 0)
 		{
 			CTime t = CTime::GetCurrentTime();
 			int h = t.GetHour();
@@ -1505,17 +1632,25 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 			str.Format(L"%d:%02d:%02d", (h == 0 ? 12 : h) , t.GetMinute(), t.GetSecond());
 			SetWindowText(str);
 		}
-		SetRect(&mTimeRect, x, y + r + sz, x + r + r, y + r + r - r/3);
+		if(list_mode)
+		{
+			SetRect(&mTimeRect, x + r + r + LIST_GAP, rt->top, rt->right, rt->bottom);
+			sf.SetAlignment(StringAlignmentNear);
+			sf.SetLineAlignment(StringAlignmentCenter);
+		}
+		else
+		{
+			SetRect(&mTimeRect, x, y + r + head_size, x + r + r, y + r + r - r / 3);
+			sf.SetAlignment(StringAlignmentCenter);
+			sf.SetLineAlignment(StringAlignmentCenter);
+		}
 		SolidBrush br(Color(255, GetRValue(timestr_color), GetGValue(timestr_color), GetBValue(timestr_color)));
 		RectF rtf(mTimeRect.left, mTimeRect.top, mTimeRect.right - mTimeRect.left, mTimeRect.bottom - mTimeRect.top);
-		Gdiplus::StringFormat sf;
-		sf.SetAlignment(StringAlignmentCenter);
-		sf.SetLineAlignment(StringAlignmentCenter);
 		g.DrawString(str.GetBuffer(), -1, &font, rtf, &sf, &br);
 	}
 
 	// draw date complications
-	if(mHasDate)
+	if(mHasDate && !list_mode)
 	{
 		CFont font;
 		GetFont(font, r / 5, TRUE);
@@ -1531,9 +1666,9 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 		trt.top = (y + r + r - ROUND(r / 2.5f));
 		trt.right = trt.left + w ;
 		trt.bottom = trt.top + h;
-		CBrush br(bk_color);
+		CBrush br(BK_COLOR);
 		CBrush* bro = dc->SelectObject(&br);
-		COLORREF cl = blend_color(blend_color(blend_color(grid_color, bk_color), bk_color), bk_color);
+		COLORREF cl = blend_color(blend_color(blend_color(grid_color, BK_COLOR), BK_COLOR), BK_COLOR);
 		CPen pen(PS_SOLID, 1, cl);
 		CPen* peno = dc->SelectObject(&pen);
 		dc->Rectangle(&trt);
@@ -1546,43 +1681,46 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 	}
 
 	// Hands
-	if (deg < -mDegOffset) deg = -mDegOffset;
-	if (hand_color == handshead_color)
+	if(!list_mode)
 	{
-		float pt = (r * 0.08f);
-		DEFINE_PEN(pencl, handshead_color, 255, pt);
-		pencl.SetStartCap(LineCapRound);
-		pencl.SetEndCap(LineCapRound);
-		pt0 = deg2pt(deg, ROUND(r * hand_size - pt/2 + scale));
-		g.DrawLine(&pencl, x + r, y + r, x + r + pt0.x, y + r + pt0.y);
-	}
-	else
-	{
-		float pt = (r * 0.1f);
-		DEFINE_PEN(pencl, handshead_color, 255, pt);
-		pencl.SetEndCap(LineCapTriangle);
-		pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2 - scale));
-		g.DrawLine(&pencl, x + r, y + r, x + r + pt1.x, y + r + pt1.y);
+		if(deg < -mDegOffset) deg = -mDegOffset;
+		if(hand_color == handshead_color)
+		{
+			float pt = (r * 0.08f);
+			DEFINE_PEN(pencl, handshead_color, 255, pt);
+			pencl.SetStartCap(LineCapRound);
+			pencl.SetEndCap(LineCapRound);
+			pt0 = deg2pt(deg, ROUND(r * hand_size - pt / 2 + 1));
+			g.DrawLine(&pencl, x + r, y + r, x + r + pt0.x, y + r + pt0.y);
+		}
+		else
+		{
+			float pt = (r * 0.1f);
+			DEFINE_PEN(pencl, handshead_color, 255, pt);
+			pencl.SetEndCap(LineCapTriangle);
+			pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2 - 1));
+			g.DrawLine(&pencl, x + r, y + r, x + r + pt1.x, y + r + pt1.y);
 
-		DEFINE_PEN(pen, hand_color, 255, pt * 0.5f);
-		pen.SetStartCap(LineCapSquare);
-		pen.SetEndCap(LineCapTriangle);
-		pt0 = deg2pt(deg, sz + sz/2);
-		pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2 - scale));
-		g.DrawLine(&pen, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
-	}
-	// Hands head
-	SolidBrush brgrey(Color(255, GetRValue(handshead_color), GetGValue(handshead_color), GetBValue(handshead_color)));
-	g.FillEllipse(&brgrey, x + r - sz, y + r - sz, 2 * sz, 2 * sz);
-	if(hand_color != handshead_color)
-	{
-		SolidBrush br(Color(255, GetRValue(hand_color), GetGValue(hand_color), GetBValue(hand_color)));
-		int s = ROUND(sz * 0.3f);
-		g.FillEllipse(&br, x + r - s, y + r - s, 2 * s, 2 * s);
+			DEFINE_PEN(pen, hand_color, 255, pt * 0.5f);
+			pen.SetStartCap(LineCapSquare);
+			pen.SetEndCap(LineCapTriangle);
+			pt0 = deg2pt(deg, head_size + head_size / 2);
+			pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2 - 1));
+			g.DrawLine(&pen, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
+		}
+		// Hands head
+		SolidBrush brgrey(Color(255, GetRValue(handshead_color), GetGValue(handshead_color), GetBValue(handshead_color)));
+		g.FillEllipse(&brgrey, x + r - head_size, y + r - head_size, 2 * head_size, 2 * head_size);
+		if(hand_color != handshead_color)
+		{
+			SolidBrush br(Color(255, GetRValue(hand_color), GetGValue(hand_color), GetBValue(hand_color)));
+			int s = ROUND(head_size * 0.3f);
+			g.FillEllipse(&br, x + r - s, y + r - s, 2 * s, 2 * s);
+		}
 	}
 
 	// TIME'S UP message
-	if(TIMES_UP >= 0 && !mIsMiniMode)
+	if(TIMES_UP >= 0)
 	{
 		CFont font;
 		GetFont(font, rt->bottom - rt->top, TRUE);
@@ -1626,13 +1764,6 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 		}
 	}
 
-#if 0
-	if (draw_border)
-	{
-		DrawBorder(dc, &border_rect, scale);
-	}
-#endif
-
 	static float dash_offset = 0;
 	if(mInstructionIdx < 0)
 	{
@@ -1647,7 +1778,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 			GetFont(font, ROUND(r * 0.3), TRUE);
 			CFont * fonto = dc->SelectObject(&font);
 			RECT trt = { 0, };
-			CString str = (mWatch.IsTimerMode() ? L"Timer" : L"Alarm");
+			CString str = (watch->IsTimerMode() ? L"Timer" : L"Alarm");
 			dc->DrawText(str, &trt, DT_SINGLELINE | DT_CALCRECT);
 			int w = trt.right - trt.left;
 			int h = trt.bottom - trt.top;
@@ -1684,6 +1815,55 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, RECT * dst, float scale)
 	}
 }
 
+void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
+{
+	Watch * watch = mWatches.GetHead();
+	int num_watches = mWatches.GetSize();
+	if(!watch->IsTimeSet())
+	{
+		watch = watch->mNext;
+		num_watches--;
+	}
+	if(num_watches > 0)
+	{
+		int w_crt = rt->right - rt->left;
+		int h_crt = rt->bottom - rt->top;
+		float h_watch = (float)h_crt / 3;
+
+		/* estimating font size */
+		int font_size = h_watch - LIST_GAP;
+		CFont font;
+		GetFont(font, font_size, TRUE);
+		CFont * fonto = dc->SelectObject(&font);
+		RECT trt = { 0, };
+		dc->DrawText(L"-88:88:88", &trt, DT_LEFT | DT_SINGLELINE | DT_CALCRECT);
+		int w = font_size + LIST_GAP*3 + (trt.right - trt.left);
+		if(w >= w_crt)
+		{
+			font_size = font_size * w_crt / w;
+			h_watch = font_size + LIST_GAP;
+		}
+		dc->SelectObject(fonto);
+
+		int top = rt->top + mRoundCorner/2;
+		dc->FillSolidRect(rt->left, rt->top, w_crt, top - rt->top, BK_COLOR);
+		RECT wrt;
+		wrt.left = rt->left;
+		wrt.right = rt->right;
+		for(int i = 0; i < num_watches; i++)
+		{
+			wrt.top = top + ROUND(h_watch * i);
+			wrt.bottom = top + ROUND(h_watch * (i + 1));
+			DrawTimer(dc, watch, &wrt, TRUE);
+			watch = watch->mNext;
+		}
+		if(wrt.bottom < rt->bottom)
+		{
+			dc->FillSolidRect(rt->left, wrt.bottom, rt->right, rt->bottom, BK_COLOR);
+		}
+	}
+}
+
 void CNaraTimerDlg::DrawBorder(CDC * dc)
 {
 	WINDOWPLACEMENT pl;
@@ -1716,16 +1896,10 @@ void CNaraTimerDlg::DrawBorder(CDC * dc)
 	}
 }
 
-void CNaraTimerDlg::DrawPie(Graphics * g, int r, float deg, RECT* rect, COLORREF c)
+void CNaraTimerDlg::DrawPie(Graphics * g, Watch * watch, int x, int y, int r, float deg, COLORREF c)
 {
 	if(c == -1) c = RED;
 	SolidBrush brred(Color(255, GetRValue(c), GetGValue(c), GetBValue(c)));
-	if (rect == NULL)
-	{
-		rect = &mCrt;
-	}
-	int x = ((rect->right + rect->left) >> 1) - r;
-	int y = ((rect->bottom + rect->top) >> 1) - r;
 	if (deg > 0)
 	{
 		POINT t = deg2pt(deg, r);
@@ -1741,7 +1915,7 @@ void CNaraTimerDlg::DrawPie(Graphics * g, int r, float deg, RECT* rect, COLORREF
 			}
 		}
 	}
-	Pen pg(mWatch.IsTimerMode()? Color(255, 128, 128, 128): Color(255, GetRValue(c), GetGValue(c), GetBValue(c)), 1);
+	Pen pg(watch->IsTimerMode()? Color(255, 128, 128, 128): Color(255, GetRValue(c), GetGValue(c), GetBValue(c)), 1);
 	g->DrawLine(&pg, x + r, y + 1, x + r, y + r);
 }
 
@@ -1789,97 +1963,30 @@ void CNaraTimerDlg::OnPaint()
 		dc.SetStretchBltMode(HALFTONE);
 		CDC mdc;
 		mdc.CreateCompatibleDC(&dc);
-		CBitmap *bmpo;
+		CBitmap * bmpo;
+		RECT trt;
 
 		int w_crt = mCrt.right - mCrt.left;
 		int h_crt = mCrt.bottom - mCrt.top;
-		static RECT trt, trt_target;
 
-		mIsMiniMode = (MIN(w_crt, h_crt) < 200 || w_crt > (h_crt << 1));
-		BOOL resize_end = (mResizing && !LBUTTON_DOWN);
-		if (resize_end) mResizing = FALSE;
+		bmp_init(&mBmp, &dc, w_crt, h_crt);
+		bmpo = mdc.SelectObject(&mBmp);
 
-		if (!mIsMiniMode || mResizing)
+		Watch * watch = mWatches.GetHead();
+		trt.left = mCrt.left + mResizeMargin;
+		trt.top = mCrt.top + mResizeMargin;
+		trt.right = mCrt.right - mResizeMargin;
+		trt.bottom = mCrt.bottom - mResizeMargin;
+		if(mViewMode == VIEW_WATCH)
 		{
-			bmp_init(&mBmp, &dc, w_crt, h_crt);
-			bmpo = mdc.SelectObject(&mBmp);
-
-			DrawTimer(&mdc, &mCrt, 1.f);
-			DrawBorder(&mdc);
-			dc.BitBlt(0, 0, w_crt, h_crt, &mdc, 0, 0, SRCCOPY);
+			DrawTimer(&mdc, watch, &trt);
 		}
 		else
 		{
-			if(TITLE_CHANGING) return;
-			float scale = (h_crt < 256? 8.f : 4.f);
-			RECT crt2;
-			SetRect(&crt2, 0, 0, ROUND(w_crt * scale), ROUND(h_crt * scale));
-			bmp_init(&mBmp, &dc, crt2.right, crt2.bottom);
-			bmpo = mdc.SelectObject(&mBmp);
-
-			DrawTimer(&mdc, &crt2, scale);
-
-			if (resize_end)
-			{
-				CopyRect(&trt, &mTimeRect);
-				CFont font;
-				GetFont(font, ROUND(mRadius * scale / 3 * 1.5f), TRUE);
-				CString str;
-				GetWindowText(str);
-				CFont* fonto = dc.SelectObject(&font);
-				dc.DrawText(str, &trt, DT_SINGLELINE | DT_CALCRECT);
-				dc.SelectObject(fonto);
-				int dx = (mTimeRect.right - trt.right + 1) >> 1;
-				int dy = (mTimeRect.bottom - trt.bottom + 1) >> 1;
-				trt.left += dx;
-				trt.top += dy;
-				trt.right += dx;
-				trt.bottom += dy;
-
-				int wrt = trt.right - trt.left;
-				int hrt = trt.bottom - trt.top;
-				if (wrt * h_crt < hrt * w_crt)
-				{
-					int c = (trt.left + trt.right + 1) >> 1;
-					int w = ROUND((float)w_crt * hrt / h_crt);
-					trt.left = max(c - (w >> 1), 0);
-					trt.right = min(c + (w >> 1), crt2.right);
-				}
-				else
-				{
-					int c = (trt.bottom + trt.top + 1) >> 1;
-					int h = ROUND((float)h_crt * wrt / w_crt);
-					trt.top = max(c - (h >> 1), 0);
-					trt.bottom = min(c + (h >> 1), crt2.bottom);
-				}
-				CopyRect(&trt_target, &trt);
-				CopyRect(&trt, &crt2);
-				Invalidate(FALSE);
-			}
-			trt.left = (trt.left + trt_target.left + 1) >> 1;
-			trt.top = (trt.top + trt_target.top + 1) >> 1;
-			trt.right = (trt.right + trt_target.right + 1) >> 1;
-			trt.bottom = (trt.bottom + trt_target.bottom + 1) >> 1;
-			if (abs(trt.left - trt_target.left) <= 1)
-			{
-				CopyRect(&trt, &trt_target);
-			}
-			else
-			{
-				Invalidate(FALSE);
-			}
-
-			CDC bdc;
-			bdc.CreateCompatibleDC(&dc);
-			bmp_init(&mBuf, &dc, mCrt.right, mCrt.bottom);
-			CBitmap * bo = bdc.SelectObject(&mBuf);
-			bdc.SetStretchBltMode(HALFTONE);
-			bdc.StretchBlt(mCrt.left, mCrt.top, w_crt, h_crt, &mdc, trt.left, trt.top, trt.right-trt.left, trt.bottom-trt.top, SRCCOPY);
-
-			DrawBorder(&bdc);
-			dc.BitBlt(0, 0, mCrt.right, mCrt.bottom, &bdc, 0, 0, SRCCOPY);
-			bdc.SelectObject(bo);
+			DrawList(&mdc, &trt);
 		}
+		DrawBorder(&mdc);
+		dc.BitBlt(0, 0, w_crt, h_crt, &mdc, 0, 0, SRCCOPY);
 
 		mdc.SelectObject(bmpo);
 	}
@@ -2003,46 +2110,52 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 		{
 			KillTimer(TID_TIMESUP); // TIMESUP timer is not needed if TICK timer is on
 		}
-		if(!mSetting && mWatch.IsTimeSet())
+		if(!mSetting)
 		{
-			if (GetTickCount64() + CHK_INTERVAL < mWatch.mTimeSet)
+			Watch * watch = mWatches.GetWatchSet();
+			while(watch)
 			{
-				Invalidate(FALSE);
-			}
-			else
-			{
-				FLASHWINFO fi;
-				fi.cbSize = sizeof(FLASHWINFO);
-				fi.hwnd = this->m_hWnd;
-				fi.dwFlags = FLASHW_ALL | FLASHW_TIMERNOFG;
-				fi.uCount = 0;
-				fi.dwTimeout = 0;
-				::FlashWindowEx(&fi);
-				mMuteTick = 5;
-				PlaySound((LPCWSTR)MAKEINTRESOURCE(IDR_WAVE1), GetModuleHandle(NULL), SND_ASYNC | SND_RESOURCE);
-				Stop();
+				if(GetTickCount64() + CHK_INTERVAL < watch->mTimeSet)
+				{
+					Invalidate(FALSE);
+				}
+				else
+				{
+					FLASHWINFO fi;
+					fi.cbSize = sizeof(FLASHWINFO);
+					fi.hwnd = this->m_hWnd;
+					fi.dwFlags = FLASHW_ALL | FLASHW_TIMERNOFG;
+					fi.uCount = 0;
+					fi.dwTimeout = 0;
+					::FlashWindowEx(&fi);
+					mMuteTick = 5;
+					PlaySound((LPCWSTR)MAKEINTRESOURCE(IDR_WAVE1), GetModuleHandle(NULL), SND_ASYNC | SND_RESOURCE);
+					Stop();
 
-				TIMES_UP = GetTickCount64();
-				SetTimer(TID_TIMESUP, 100, NULL);
+					TIMES_UP = GetTickCount64();
+					SetTimer(TID_TIMESUP, 100, NULL);
+				}
+				watch = watch->mNext;
 			}
-		}
-		else if(!mWatch.IsTimeSet() && mIsMiniMode)
-		{
-			Invalidate(FALSE);
 		}
 	}
 	else if (nIDEvent == TID_REFRESH)
 	{
-		if(!mWatch.IsTimerMode() || mDigitalWatch)
+		Watch * watch = mWatches.GetWatchSet();
+		while(watch)
 		{
-			static int s = 0;
-			int cm = CTime::GetCurrentTime().GetMinute();
-			int cs = CTime::GetCurrentTime().GetSecond();
-			if (cs != s)
+			if(!watch->IsTimerMode() || mDigitalWatch)
 			{
-				s = cs;
-				Invalidate(FALSE);
+				static int s = 0;
+				int cm = CTime::GetCurrentTime().GetMinute();
+				int cs = CTime::GetCurrentTime().GetSecond();
+				if(cs != s)
+				{
+					s = cs;
+					Invalidate(FALSE);
+				}
 			}
+			watch = watch->mNext;
 		}
 	}
 	else if(nIDEvent == TID_TIMESUP)
@@ -2062,7 +2175,6 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 
 BOOL CNaraTimerDlg::IsTitleArea(CPoint pt)
 {
-	if(mIsMiniMode) return FALSE;
 	return (pt.x >= mTitleRect.left && pt.x < mTitleRect.right && pt.y >= mTitleRect.top && pt.y < mTitleRect.bottom);
 }
 
@@ -2082,13 +2194,10 @@ void CNaraTimerDlg::SetTitle(CString str, BOOL still_editing)
 
 void CNaraTimerDlg::SetTitle()
 {
-	if(!mIsMiniMode)
-	{
-		OnTitleChanging();
-		mTitleEdit.SetSel(0, -1);
-		TITLE_CHANGING = TRUE;
-		UPDATE_TITLERECT = TRUE;
-	}
+	OnTitleChanging();
+	mTitleEdit.SetSel(0, -1);
+	TITLE_CHANGING = TRUE;
+	UPDATE_TITLERECT = TRUE;
 }
 
 void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
@@ -2102,32 +2211,18 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 		TIMES_UP = -100.f;
 		return;
 	}
-	if (IsTitleArea(pt))
-	{
-		SetTitle();
-		return;
-	}
 
 	int ht = HitTest(pt);
-	if (ht != HTCLIENT)
+	if(ht != HTCLIENT)
 	{
-		mResizing = TRUE;
 		SetArrowCursor(ht);
 		SendMessage(WM_NCLBUTTONDOWN, ht, MAKELPARAM(pt.x, pt.y));
 		return;
 	}
-
-	if (mTitleEdit.GetWindowTextLength() == 0)
-	{
-		mTitle = L"";
-		mTitleHeight = 0;
-		Invalidate(FALSE);
-	}
-
 	mButtonHover = -1;
-	for (int i = 0; i < NUM_BUTTONS; i++)
+	for(int i = 0; i < NUM_BUTTONS; i++)
 	{
-		if (PT_IN_RECT(pt, mButtonRect[i]))
+		if(PT_IN_RECT(pt, mButtonRect[i]))
 		{
 			mButtonHover = i;
 			Invalidate(FALSE);
@@ -2137,26 +2232,41 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 		}
 	}
 
-	int cx = (mTimerRect.right + mTimerRect.left) >> 1;
-	int cy = (mTimerRect.bottom + mTimerRect.top) >> 1;
-	int d = SQ(pt.x - cx) + SQ(pt.y - cy);
-	if(!mIsMiniMode && d < SQ(mRadius + mGridSize))
+	if(mViewMode == VIEW_WATCH)
 	{
-		KillTimer(TID_TICK);
-		float deg = pt2deg(pt);
-		SettingTime(deg, TRUE);
-		if(mWatch.IsAlarmMode())
+		if(IsTitleArea(pt))
 		{
-			mWatch.mTime360 = MAX_TIME360;
-			mWatch.mIsTimer = FALSE;
+			SetTitle();
+			return;
 		}
-		mSetting = TRUE;
-		Invalidate(FALSE);
-		SetCapture();
-	}
-	else
-	{
-		SendMessage(WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(pt.x, pt.y));
+		if(mTitleEdit.GetWindowTextLength() == 0)
+		{
+			mTitle = L"";
+			mTitleHeight = 0;
+			Invalidate(FALSE);
+		}
+
+		int cx = (mTimerRect.right + mTimerRect.left) >> 1;
+		int cy = (mTimerRect.bottom + mTimerRect.top) >> 1;
+		int d = SQ(pt.x - cx) + SQ(pt.y - cy);
+		if(d < SQ(mRadius + mGridSize))
+		{
+			KillTimer(TID_TICK);
+			float deg = pt2deg(pt);
+			mSetting = mWatches.Add();
+			SettingTime(deg, TRUE);
+			if(mSetting->IsAlarmMode())
+			{
+				mSetting->mTime360 = MAX_TIME360;
+				mSetting->mIsTimer = FALSE;
+			}
+			Invalidate(FALSE);
+			SetCapture();
+		}
+		else
+		{
+			SendMessage(WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(pt.x, pt.y));
+		}
 	}
 	NaraDialog::OnLButtonDown(nFlags, pt);
 }
@@ -2165,65 +2275,68 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 {
 	NaraDialog::OnMouseMove(nFlags, pt);
 
-	static BOOL hovering_title = FALSE;
-	BOOL hovering_title_now = FALSE;
-	int cx = (mTimerRect.right + mTimerRect.left) >> 1;
-	int cy = (mTimerRect.bottom + mTimerRect.top) >> 1;
-	int d = SQ(pt.x - cx) + SQ(pt.y - cy);
-	if(mSetting && (nFlags & MK_LBUTTON))
+	if(!(nFlags & MK_LBUTTON))
 	{
-		float deg = pt2deg(pt);
-		if (deg + mDegOffset > 360) deg = 360 - mDegOffset;
-		int quarter0 = (int)(mOldDeg / 90);
-		int quarter1 = (int)(deg / 90);
-		if (quarter0 >= 3 && quarter1 <= 1)
+		if(mButtonHover >= 0 && !PT_IN_RECT(pt, mButtonRect[mButtonHover]))
 		{
-			deg = 360 - mDegOffset;
+			mButtonHover = -1;
+			Invalidate(FALSE);
 		}
-		else if (quarter0 == 0 && quarter1 >= 3)
+		for(int i = 0; i < NUM_BUTTONS; i++)
 		{
-			deg = -mDegOffset;
-		}
-		SettingTime(deg, d <= (mRadius + (mGridSize >> 1)) * (mRadius + (mGridSize >> 1)));
-		Invalidate(FALSE);
-	}
-	else
-	{
-		if (!(nFlags & MK_LBUTTON))
-		{
-			if (mButtonHover >= 0 && !PT_IN_RECT(pt, mButtonRect[mButtonHover]))
+			if(PT_IN_RECT(pt, mButtonRect[i]))
 			{
-				mButtonHover = -1;
+				mButtonHover = i;
 				Invalidate(FALSE);
+				break;
 			}
-			for (int i = 0; i < NUM_BUTTONS; i++)
+		}
+	}
+
+	if(mViewMode == VIEW_WATCH)
+	{
+		static BOOL hovering_title = FALSE;
+		BOOL hovering_title_now = FALSE;
+		int cx = (mTimerRect.right + mTimerRect.left) >> 1;
+		int cy = (mTimerRect.bottom + mTimerRect.top) >> 1;
+		int d = SQ(pt.x - cx) + SQ(pt.y - cy);
+		if(mSetting && (nFlags & MK_LBUTTON))
+		{
+			float deg = pt2deg(pt);
+			if(deg + mDegOffset > 360) deg = 360 - mDegOffset;
+			int quarter0 = (int)(mOldDeg / 90);
+			int quarter1 = (int)(deg / 90);
+			if(quarter0 >= 3 && quarter1 <= 1)
 			{
-				if (PT_IN_RECT(pt, mButtonRect[i]))
+				deg = 360 - mDegOffset;
+			}
+			else if(quarter0 == 0 && quarter1 >= 3)
+			{
+				deg = -mDegOffset;
+			}
+			SettingTime(deg, d <= (mRadius + (mGridSize >> 1)) * (mRadius + (mGridSize >> 1)));
+			Invalidate(FALSE);
+		}
+		else
+		{
+			if(IsTitleArea(pt))
+			{
+				::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_IBEAM));
+				if(!LBUTTON_DOWN)
 				{
-					mButtonHover = i;
-					Invalidate(FALSE);
-					break;
+					hovering_title_now = TRUE;
 				}
 			}
-		}
-
-		if(IsTitleArea(pt))
-		{
-			::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_IBEAM));
-			if(!LBUTTON_DOWN)
+			else if(d < (mRadiusHandsHead * mRadiusHandsHead))
 			{
-				hovering_title_now = TRUE;
+				::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_HAND));
 			}
 		}
-		else if(!mIsMiniMode && d < (mRadiusHandsHead * mRadiusHandsHead))
+		if(hovering_title != hovering_title_now)
 		{
-			::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_HAND));
+			Invalidate(FALSE);
+			hovering_title = hovering_title_now;
 		}
-	}
-	if(hovering_title != hovering_title_now)
-	{
-		Invalidate(FALSE);
-		hovering_title = hovering_title_now;
 	}
 }
 
@@ -2231,40 +2344,25 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 {
 	NaraDialog::OnLButtonUp(nFlags, pt);
 
-	if (mSetting)
+	if(mButtonHover >= 0)
 	{
-		ReleaseCapture();
-		mSetting = FALSE;
-		Invalidate(FALSE);
-		KillTimer(TID_TICK);
-		if (mOldDeg > -mDegOffset)
+		if(PT_IN_RECT(pt, mButtonRect[mButtonHover]))
 		{
-			SetTimer(TID_TICK, CHK_INTERVAL, NULL);
-		}
-		else
-		{
-			Stop();
-		}
-		mWatch.mIsTimer = TRUE;
-	}
-	else if (mButtonHover >= 0)
-	{
-		if (PT_IN_RECT(pt, mButtonRect[mButtonHover]))
-		{
-			if (mButtonHover == BUTTON_CLOSE)
+			if(mButtonHover == BUTTON_CLOSE)
 			{
 				PostMessage(WM_CLOSE, 0, 0);
 			}
-			else if (mButtonHover == BUTTON_PIN)
+			else if(mButtonHover == BUTTON_PIN)
 			{
 				PostMessage(WM_PIN, 0, 0);
 			}
 			else if(mButtonHover == BUTTON_CENTER)
 			{
-				if(!mWatch.IsTimeSet() && !SHIFT_DOWN)
+				Watch * watch = mWatches.GetUnset();
+				if(!watch->IsTimeSet() && !SHIFT_DOWN)
 				{
 					KillTimer(TID_TICK);
-					mWatch.SetMode(mWatch.IsAlarmMode());
+					watch->SetMode(watch->IsAlarmMode());
 				}
 				else
 				{
@@ -2273,7 +2371,7 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 				CClientDC dc(this);
 				int m = mRadiusHandsHead >> 1;
 				RECT rt = { mCrt.left + m, mCrt.top + m, mCrt.right - m, mCrt.bottom - m };
-				DrawTimer(&dc, &rt, 1.f);
+				DrawTimer(&dc, mWatches.GetUnset(), &rt);
 				DrawBorder(&dc);
 			}
 		}
@@ -2281,17 +2379,77 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 		Invalidate(FALSE);
 		ReleaseCapture();
 	}
+	else if(mViewMode == VIEW_WATCH)
+	{
+		if(mSetting)
+		{
+			ReleaseCapture();
+			mSetting = NULL;
+			Invalidate(FALSE);
+			KillTimer(TID_TICK);
+			if(mOldDeg > -mDegOffset)
+			{
+				SetTimer(TID_TICK, CHK_INTERVAL, NULL);
+				if(mWatches.GetSize() > 1)
+				{
+					mWatches.Add();
+					SetViewMode(VIEW_LIST);
+				}
+			}
+			else
+			{
+				Stop();
+			}
+			mWatches.GetUnset()->mIsTimer = TRUE;
+		}
+	}
+}
+
+void CNaraTimerDlg::SetViewMode(int mode)
+{
+	if(mode == VIEW_WATCH)
+	{
+		if(mViewMode != VIEW_WATCH)
+		{
+			mViewMode = VIEW_WATCH;
+			Invalidate(FALSE);
+		}
+	}
+	else
+	{
+		if(mViewMode != VIEW_LIST)
+		{
+			mViewMode = VIEW_LIST;
+			Invalidate(FALSE);
+		}
+	}
+}
+
+BOOL CNaraTimerDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
+{
+	if(zDelta < 0)
+	{
+		SetViewMode(VIEW_LIST);
+	}
+	else
+	{
+		SetViewMode(VIEW_WATCH);
+	}
+	return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
 }
 
 void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 {
 	CMenu menu, theme;
+	BOOL is_set = (mWatches.GetSize() > 1 || mWatches.GetHead()->IsTimeSet());
+	BOOL is_timer = (mViewMode == VIEW_WATCH && mWatches.GetHead()->IsTimerMode());
+	BOOL is_alarm = (mViewMode == VIEW_WATCH && mWatches.GetHead()->IsAlarmMode());
 	menu.CreatePopupMenu();
 	menu.AppendMenu(MF_STRING, IDM_NEW, L"New");
-	menu.AppendMenu(MF_STRING | (mWatch.IsTimeSet()? MF_ENABLED: MF_DISABLED), IDM_STOP, L"Stop\tESC");
+	menu.AppendMenu(MF_STRING | (is_set ? MF_ENABLED: MF_DISABLED), IDM_STOP, L"Stop\tESC");
 	menu.AppendMenu(MF_SEPARATOR, 0, L"");
-	menu.AppendMenu(MF_STRING | (mWatch.IsTimerMode() ? MF_CHECKED : 0), IDM_TIMERMODE, L"Timer Mode");
-	menu.AppendMenu(MF_STRING | (mWatch.IsAlarmMode() ? MF_CHECKED : 0), IDM_ALARMMODE, L"Alarm Mode");
+	menu.AppendMenu(MF_STRING | (is_timer ? MF_CHECKED : 0), IDM_TIMERMODE, L"Timer Mode");
+	menu.AppendMenu(MF_STRING | (is_alarm ? MF_CHECKED : 0), IDM_ALARMMODE, L"Alarm Mode");
 	menu.AppendMenu(MF_SEPARATOR, 0, L"");
 	menu.AppendMenu(MF_STRING|(mTopmost?MF_CHECKED:0), IDM_TOPMOST, L"Always On Top");
 	menu.AppendMenu(MF_SEPARATOR, 0, L"");
@@ -2322,7 +2480,8 @@ void CNaraTimerDlg::OnNew(void)
 	if(pl.showCmd != SW_MAXIMIZE)
 	{
 		int off = (mResizeMargin >> 1);
-		param.Format(L"--position %d %d %d %d --mode %d", pl.rcNormalPosition.left, pl.rcNormalPosition.top + off, pl.rcNormalPosition.right, pl.rcNormalPosition.bottom + off, mWatch.IsTimerMode());
+		int is_timer = mWatches.GetHead()->IsTimerMode();
+		param.Format(L"--position %d %d %d %d --mode %d", pl.rcNormalPosition.left, pl.rcNormalPosition.top + off, pl.rcNormalPosition.right, pl.rcNormalPosition.bottom + off, is_timer);
 	}
 	wchar_t path[MAX_PATH];
 	GetModuleFileName(GetModuleHandle(NULL), path, MAX_PATH);
@@ -2336,12 +2495,12 @@ void CNaraTimerDlg::OnStop(void)
 
 void CNaraTimerDlg::OnTimerMode(void)
 {
-	mWatch.SetMode(TRUE);
+	mWatches.GetUnset()->SetMode(TRUE);
 }
 
 void CNaraTimerDlg::OnAlarmMode(void)
 {
-	mWatch.SetMode(FALSE);
+	mWatches.GetUnset()->SetMode(FALSE);
 }
 
 void CNaraTimerDlg::OnMenuPin(void)
@@ -2466,17 +2625,12 @@ void CNaraTimerDlg::OnSize(UINT nType, int cx, int cy)
 		mTitleHeight = GetTitleHeight();
 	}
 
-	if(!mWatch.IsTimeSet() && mWatch.IsTimerMode())
+#if 0
+	if(!mWatch->IsTimeSet() && mWatch->IsTimerMode())
 	{
-		if (mIsMiniMode)
-		{
-			SetTimer(TID_TICK, CHK_INTERVAL, NULL);
-		}
-		else
-		{
-			KillTimer(TID_TICK);
-		}
+		KillTimer(TID_TICK);
 	}
+#endif
 	UPDATE_TITLERECT = TRUE;
 }
 
@@ -2517,22 +2671,9 @@ void CNaraTimerDlg::OnTitleChanging(void)
 		GetFont(font, mTitleHeight, TRUE);
 		mTitleEdit.SetFont(&font, FALSE);
 	}
-	if(mIsMiniMode)
-	{
-		mCrt.left = mRoundCorner;
-		mCrt.top = mRoundCorner;
-		mCrt.right = mCrt.right - mRoundCorner;
-		mCrt.bottom = mCrt.bottom - mRoundCorner;
-		CFont font;
-		GetFont(font, mCrt.bottom - mCrt.top, TRUE);
-		mTitleEdit.SetFont(&font, FALSE);
-		mTitleEdit.MoveWindow(&mCrt);
-	}
-	else
-	{
-		mTitleRect.top = mTitleRect.bottom - mTitleHeight;
-		mTitleEdit.MoveWindow(&mTitleRect);
-	}
+	mTitleRect.top = mTitleRect.bottom - mTitleHeight;
+	mTitleEdit.MoveWindow(&mTitleRect);
+
 	mTitleEdit.SetFocus();
 	mTitleEdit.ShowWindow(SW_SHOW);
 	TITLE_CHANGING = TRUE;
