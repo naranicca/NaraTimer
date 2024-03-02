@@ -47,9 +47,11 @@ public:
 	Watch * GetHead(void);
 	Watch * GetUnset(void);
 	Watch * GetWatchSet(void);
-	int GetSize(void);
+	int GetSize(BOOL count_unset=FALSE);
 	Watch * Add(void);
+	void Remove(Watch * watch);
 	void RemoveHead(void);
+	void RemoveStopped(void);
 	void RemoveAll(void);
 protected:
 	Watch * mHead;
