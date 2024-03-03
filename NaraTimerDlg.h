@@ -119,6 +119,7 @@ protected:
 	float pt2deg(CPoint pt);
 	Watch * SettingTime(float deg, BOOL stick = FALSE);
 	void SetTitle();
+	void Draw(RECT * rt);
 	void DrawTimer(CDC * dc, Watch * watch, RECT * rt, BOOL list_mode=FALSE);
 	void DrawList(CDC * dc, RECT * rt);
 	void DrawPie(Graphics * g, Watch * watch, int x, int y, int r, float deg, COLORREF c=-1);

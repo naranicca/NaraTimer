@@ -2015,6 +2015,39 @@ static void bmp_init(CBitmap * bmp, CDC * dc, int w, int h)
 	dc->SetStretchBltMode(HALFTONE);
 }
 
+void CNaraTimerDlg::Draw(RECT * rt)
+{
+	CClientDC dc(this);
+	CDC mdc;
+	mdc.CreateCompatibleDC(&dc);
+	CBitmap * bmpo;
+	RECT trt;
+
+	int w_crt = rt->right - rt->left;
+	int h_crt = rt->bottom - rt->top;
+
+	bmp_init(&mBmp, &dc, w_crt, h_crt);
+	bmpo = mdc.SelectObject(&mBmp);
+
+	Watch * watch = mWatches.GetHead();
+	trt.left = rt->left + mResizeMargin;
+	trt.top = rt->top + mResizeMargin;
+	trt.right = rt->right - mResizeMargin;
+	trt.bottom = rt->bottom - mResizeMargin;
+	if(mViewMode == VIEW_WATCH)
+	{
+		DrawTimer(&mdc, watch, &trt);
+	}
+	else
+	{
+		DrawList(&mdc, &trt);
+	}
+	DrawBorder(&mdc);
+	dc.BitBlt(0, 0, w_crt, h_crt, &mdc, 0, 0, SRCCOPY);
+
+	mdc.SelectObject(bmpo);
+}
+
 void CNaraTimerDlg::OnPaint()
 {
 	if (IsIconic())
@@ -2037,7 +2070,6 @@ void CNaraTimerDlg::OnPaint()
 		NaraDialog::OnPaint();
 
 		CClientDC dc(this);
-		dc.SetStretchBltMode(HALFTONE);
 		CDC mdc;
 		mdc.CreateCompatibleDC(&dc);
 		CBitmap * bmpo;
@@ -2487,12 +2519,16 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 
 void CNaraTimerDlg::SetViewMode(int mode)
 {
+	float r[4] = { 0.3f, 0.6f, 0.8f };
+	BOOL animation = FALSE;
+	RECT rt;
+	CopyRect(&rt, &mCrt);
 	if(mode == VIEW_WATCH)
 	{
 		if(mViewMode != VIEW_WATCH)
 		{
 			mViewMode = VIEW_WATCH;
-			Invalidate(FALSE);
+			animation = TRUE;
 		}
 	}
 	else
@@ -2500,8 +2536,31 @@ void CNaraTimerDlg::SetViewMode(int mode)
 		if(mViewMode != VIEW_LIST)
 		{
 			mViewMode = VIEW_LIST;
-			Invalidate(FALSE);
+			animation = TRUE;
 		}
+	}
+	if(animation)
+	{
+		for(int i = 0; i < 4; i++)
+		{
+			DWORD t = GetTickCount64();
+			if(mViewMode == VIEW_WATCH)
+			{
+				rt.top = r[i] * mCrt.top + (1 - r[i]) * (mCrt.top + mCrt.top - mCrt.bottom);
+			}
+			else
+			{
+				rt.top = r[i] * mCrt.top + (1 - r[i]) * mCrt.bottom;
+			}
+			rt.bottom = rt.top + (mCrt.bottom - mCrt.top);
+			Draw(&rt);
+			int dt = GetTickCount64() - t;
+			if(dt < 30)
+			{
+				Sleep(30 - dt);
+			}
+		}
+		Invalidate(FALSE);
 	}
 }
 
