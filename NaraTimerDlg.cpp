@@ -1935,6 +1935,10 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 			dc->FillSolidRect(rt->left, wrt.bottom, rt->right, rt->bottom, BK_COLOR);
 		}
 	}
+	else
+	{
+		dc->FillSolidRect(rt, BK_COLOR);
+	}
 }
 
 void CNaraTimerDlg::DrawBorder(CDC * dc)
