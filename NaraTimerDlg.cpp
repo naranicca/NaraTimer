@@ -13,6 +13,7 @@
 #define TITLE_OFFSET		ROUND(mTitleHeight * 1.3f)
 #define LIST_GAP			(10)
 COLORREF BK_COLOR = WHITE;
+COLORREF GRID_COLOR = WHITE;
 COLORREF BORDER_COLOR = RED;
 
 float TIMES_UP = -100.f;
@@ -1381,12 +1382,12 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 	POINT pt0, pt1;
 	int clock;
 	int start = 0;
-	COLORREF grid_color, pie_color, hand_color, handshead_color, timestr_color;
+	COLORREF pie_color, hand_color, handshead_color, timestr_color;
 	float hand_size;
 	float handshead_size;
 
 	BK_COLOR = WHITE;
-	grid_color = RGB(0, 0, 0);
+	GRID_COLOR = RGB(0, 0, 0);
 	pie_color = RED;
 	hand_color = RGB(220, 220, 220);
 	handshead_color = RGB(77, 88, 94);
@@ -1396,7 +1397,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 	{
 	case THEME_DARK:
 		BK_COLOR = RGB(8, 9, 10);
-		grid_color = WHITE;
+		GRID_COLOR = WHITE;
 		pie_color = RED;
 		hand_color = WHITE;
 		handshead_color = RGB(50, 50, 50);
@@ -1477,7 +1478,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 	// draw numbers
 	if(mFontScale > 0 && !list_mode)
 	{
-		dc->SetTextColor(grid_color);
+		dc->SetTextColor(GRID_COLOR);
 		clock = CTime::GetCurrentTime().GetHour();
 		for(int i = 0; i < 360; i += 30)
 		{
@@ -1519,12 +1520,12 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 	if(list_mode)
 	{
 		int th = ROUND(r / 10);
-		DEFINE_PEN(penm, grid_color, 64, th);
+		DEFINE_PEN(penm, GRID_COLOR, 64, th);
 		g.DrawEllipse(&penm, x + th/2, y + th/2, r * 2 - th, r * 2 - th);
 	}
 	else
 	{
-		DEFINE_PEN(penm, grid_color, 255, r / 100);
+		DEFINE_PEN(penm, GRID_COLOR, 255, r / 100);
 		clock = (watch->IsTimerMode() ? 6 : 5);
 		for(int i = 0; i < 360; i += clock)
 		{
@@ -1532,7 +1533,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			pt1 = deg2pt((float)i, r + (mGridSize >> 1));
 			g.DrawLine(&penm, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
 		}
-		DEFINE_PEN(penh, grid_color, 255, r / 33);
+		DEFINE_PEN(penh, GRID_COLOR, 255, r / 33);
 		for(int i = 0; i < 360; i += 30)
 		{
 			pt0 = deg2pt((float)i, r - mGridSize);
@@ -1675,7 +1676,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		trt.bottom = trt.top + h;
 		CBrush br(BK_COLOR);
 		CBrush* bro = dc->SelectObject(&br);
-		COLORREF cl = blend_color(blend_color(blend_color(grid_color, BK_COLOR), BK_COLOR), BK_COLOR);
+		COLORREF cl = blend_color(blend_color(blend_color(GRID_COLOR, BK_COLOR), BK_COLOR), BK_COLOR);
 		CPen pen(PS_SOLID, 1, cl);
 		CPen* peno = dc->SelectObject(&pen);
 		dc->Rectangle(&trt);
@@ -1781,23 +1782,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		{
 			pen.SetDashStyle(DashStyleDot);
 			g.DrawEllipse(&pen, x + r - mRadiusHandsHead - 5, y + r - mRadiusHandsHead - 5, mRadiusHandsHead*2+10, mRadiusHandsHead*2+10);
-			CFont font;
-			GetFont(font, ROUND(r * 0.3), TRUE);
-			CFont * fonto = dc->SelectObject(&font);
-			RECT trt = { 0, };
-			CString str = (watch->IsTimerMode() ? L"Timer" : L"Alarm");
-			dc->DrawText(str, &trt, DT_SINGLELINE | DT_CALCRECT);
-			int w = trt.right - trt.left;
-			int h = trt.bottom - trt.top;
-			trt.left = x + r - (w >> 1);
-			trt.right = trt.left + w;
-			trt.bottom = y + (r >> 1) + (h >> 1);
-			trt.top = trt.bottom - h;
-			SolidBrush br(Color(220, 128, 128, 128));
-			FillRoundRect(&g, &br, Rect(trt.left - 10, trt.top - 10, w + 20, h + 20), 10);
-			dc->SetTextColor(RGB(255, 255, 255));
-			dc->DrawText(str, &trt, DT_SINGLELINE);
-			dc->SelectObject(fonto);
+			DrawHUD(dc, watch->IsTimerMode() ? L"Timer" : L"Alarm");
 		}
 		else if(mInstructionIdx == -3)
 		{
@@ -1870,6 +1855,7 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 		GetFont(font, font_size, TRUE);
 		fonto = dc->SelectObject(&font);
 		dc->FillSolidRect(rt, BK_COLOR);
+		dc->SetTextColor(GRID_COLOR);
 		dc->DrawText(L"Empty", rt, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
 		dc->SelectObject(fonto);
 	}
@@ -1905,6 +1891,37 @@ void CNaraTimerDlg::DrawBorder(CDC * dc)
 			DestroyIcon(icon);
 		}
 	}
+}
+
+void CNaraTimerDlg::DrawHUD(CDC * dc, CString str)
+{
+	Graphics g(*dc);
+	g.SetSmoothingMode(SmoothingModeHighQuality);
+	g.SetTextRenderingHint(TextRenderingHintAntiAlias);
+
+	CFont font;
+	GetFont(font, ROUND(mRadius * 0.4), TRUE);
+	CFont * fonto = dc->SelectObject(&font);
+	RECT trt = { 0, };
+	dc->DrawText(str, &trt, DT_SINGLELINE | DT_CALCRECT);
+	int w = trt.right - trt.left;
+	int h = trt.bottom - trt.top;
+	int max_w = (mCrt.right - mCrt.left) - (mResizeMargin << 1) - 30;
+	UINT fmt = DT_SINGLELINE;
+	if(w > max_w)
+	{
+		w = max_w;
+		fmt = DT_SINGLELINE | DT_END_ELLIPSIS;
+	}
+	trt.left = ((mCrt.left + mCrt.right) >> 1) - (w >> 1);
+	trt.right = trt.left + w;
+	trt.bottom = ((mCrt.top + mCrt.bottom) >> 1) - (mRadius >> 1) + (h >> 1);
+	trt.top = trt.bottom - h;
+	SolidBrush br(Color(220, 128, 128, 128));
+	FillRoundRect(&g, &br, Rect(trt.left - 10, trt.top - 10, w + 20, h + 20), 10);
+	dc->SetTextColor(RGB(255, 255, 255));
+	dc->DrawText(str, &trt, fmt);
+	dc->SelectObject(fonto);
 }
 
 void CNaraTimerDlg::DrawPie(Graphics * g, Watch * watch, int x, int y, int r, float deg, COLORREF c)
@@ -2023,6 +2040,10 @@ void CNaraTimerDlg::OnPaint()
 		if(mViewMode == VIEW_WATCH)
 		{
 			DrawTimer(&mdc, watch, &trt);
+			if(!mTitle.IsEmpty())
+			{
+				DrawHUD(&mdc, mTitle);
+			}
 		}
 		else
 		{
