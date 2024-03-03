@@ -1826,27 +1826,27 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 {
 	Watch * watch = mWatches.GetWatchSet();
 	int num_watches = mWatches.GetSize();
+	int w_crt = rt->right - rt->left;
+	int h_crt = rt->bottom - rt->top;
+	float h_watch = (float)h_crt / 3;
+
+	/* estimating font size */
+	int font_size = h_watch - LIST_GAP;
+	CFont font;
+	GetFont(font, font_size, TRUE);
+	CFont * fonto = dc->SelectObject(&font);
+	RECT trt = { 0, };
+	dc->DrawText(L"-88:88:88", &trt, DT_LEFT | DT_SINGLELINE | DT_CALCRECT);
+	int w = font_size + LIST_GAP*3 + (trt.right - trt.left);
+	if(w >= w_crt)
+	{
+		font_size = font_size * w_crt / w;
+		h_watch = font_size + LIST_GAP;
+	}
+	dc->SelectObject(fonto);
+
 	if(num_watches > 0)
 	{
-		int w_crt = rt->right - rt->left;
-		int h_crt = rt->bottom - rt->top;
-		float h_watch = (float)h_crt / 3;
-
-		/* estimating font size */
-		int font_size = h_watch - LIST_GAP;
-		CFont font;
-		GetFont(font, font_size, TRUE);
-		CFont * fonto = dc->SelectObject(&font);
-		RECT trt = { 0, };
-		dc->DrawText(L"-88:88:88", &trt, DT_LEFT | DT_SINGLELINE | DT_CALCRECT);
-		int w = font_size + LIST_GAP*3 + (trt.right - trt.left);
-		if(w >= w_crt)
-		{
-			font_size = font_size * w_crt / w;
-			h_watch = font_size + LIST_GAP;
-		}
-		dc->SelectObject(fonto);
-
 		int top = rt->top + mRoundCorner/2;
 		dc->FillSolidRect(rt->left, rt->top, w_crt, top - rt->top, BK_COLOR);
 		RECT wrt;
@@ -1866,7 +1866,12 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 	}
 	else
 	{
+		CFont font;
+		GetFont(font, font_size, TRUE);
+		fonto = dc->SelectObject(&font);
 		dc->FillSolidRect(rt, BK_COLOR);
+		dc->DrawText(L"Empty", rt, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
+		dc->SelectObject(fonto);
 	}
 }
 
