@@ -2208,21 +2208,17 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 	}
 	else if (nIDEvent == TID_REFRESH)
 	{
-		Watch * watch = mWatches.GetWatchSet();
-		while(watch)
+		Watch * watch = mWatches.GetHead();
+		if(!watch->IsTimerMode() || mDigitalWatch)
 		{
-			if(!watch->IsTimerMode() || mDigitalWatch)
+			static int s = 0;
+			int cm = CTime::GetCurrentTime().GetMinute();
+			int cs = CTime::GetCurrentTime().GetSecond();
+			if(cs != s)
 			{
-				static int s = 0;
-				int cm = CTime::GetCurrentTime().GetMinute();
-				int cs = CTime::GetCurrentTime().GetSecond();
-				if(cs != s)
-				{
-					s = cs;
-					Invalidate(FALSE);
-				}
+				s = cs;
+				Invalidate(FALSE);
 			}
-			watch = watch->mNext;
 		}
 	}
 	else if(nIDEvent == TID_TIMESUP)
