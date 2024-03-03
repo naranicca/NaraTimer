@@ -2537,6 +2537,22 @@ void CNaraTimerDlg::SetViewMode(int mode)
 		{
 			mViewMode = VIEW_LIST;
 			animation = TRUE;
+			/* sort current watch */
+			Watch * cur = mWatches.GetHead();
+			while(cur)
+			{
+				Watch * next = cur->mNext;
+				if(next && cur->IsTimeSet() && cur->mTimeSet > next->mTimeSet)
+				{
+					Watch * n = next->mNext;
+					cur->mPrev->mNext = next;
+					next->mPrev = cur->mPrev;
+					next->mNext = cur;
+					cur->mPrev = next;
+					cur->mNext = n;
+				}
+				cur = next;
+			}
 		}
 	}
 	if(animation)
