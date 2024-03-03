@@ -1436,12 +1436,6 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 	dc->FillSolidRect(rt, BK_COLOR);
 	dc->SetBkMode(TRANSPARENT);
 	GetClientRect(&mTimerRect);
-	if(mTitleHeight > 0 && mViewMode == VIEW_WATCH)
-	{
-		int off = TITLE_OFFSET;
-		rt->top += off;
-		mTimerRect.top += off;
-	}
 	w = (rt->right - rt->left);
 	h = (rt->bottom - rt->top);
 
@@ -1469,71 +1463,6 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		y = (rt->top + rt->bottom - (r << 1)) >> 1;
 	}
 	mRadius = r;
-
-#if 0
-	// draw title
-	static RECT trt_full;
-	if (mTitleHeight > 0)
-	{
-		CFont font;
-		int fh = ROUND(mTitleHeight * scale);
-		LOGFONTW lf;
-		GetLogfont(&lf, min(font_size*2, fh), TRUE);
-		font.CreateFontIndirectW(&lf);
-		mTitleEdit.SetFont(&font);
-		Gdiplus::Font gfont(dc->m_hDC, &lf);
-
-		if(!TITLE_CHANGING)
-		{
-			DRAWTEXTPARAMS p;
-			p.cbSize = sizeof(DRAWTEXTPARAMS);
-			p.iLeftMargin = 0;
-			p.iRightMargin = 0;
-			p.iTabLength = 4;
-			p.uiLengthDrawn = 0;
-			fonto = dc->SelectObject(&font);
-			if(UPDATE_TITLERECT)
-			{
-				mTitleRect.left = ROUND(mRoundCorner * scale);
-				mTitleRect.top = y - mGridSize - tsize - fh;
-				mTitleRect.right = rt->right - ROUND(mRoundCorner * scale);
-				mTitleRect.bottom = mTitleRect.top + fh;
-
-				int top = ROUND(mResizeMargin * 1.2f * scale);
-				int h = (int)((mTitleRect.bottom - top) / fh) * fh;
-				top = mTitleRect.bottom - h;
-				mTitleRect.top = top;
-
-				memcpy(&trt_full, &mTitleRect, sizeof(RECT));
-				dc->DrawTextEx(mTitle, &trt_full, DT_CENTER | DT_WORDBREAK | DT_CALCRECT, &p);
-				mTitleRect.top = mTitleRect.bottom - min(h, trt_full.bottom - trt_full.top);
-				UPDATE_TITLERECT = FALSE;
-			}
-			int ah = (trt_full.bottom > mTitleRect.bottom ? ROUND(fh * 0.6f) : 0);
-			RECT trt = { mTitleRect.left, mTitleRect.top, mTitleRect.right, mTitleRect.bottom + ah};
-			dc->SetTextColor(grid_color);
-			dc->DrawTextEx(mTitle, &trt, DT_CENTER | DT_WORDBREAK, &p);
-			if(ah > 0)
-			{
-				Rect rt(trt.left, mTitleRect.bottom, trt.right - trt.left, ah);
-				Color c0(128, GetRValue(bk_color), GetGValue(bk_color), GetBValue(bk_color));
-				Color c1(255, GetRValue(bk_color), GetGValue(bk_color), GetBValue(bk_color));
-				LinearGradientBrush br(rt, c0, c1, LinearGradientModeVertical);
-				g.FillRectangle(&br, rt);
-			}
-			dc->SelectObject(fonto);
-		}
-		mTitleRect.left = ROUND(mTitleRect.left / scale);
-		mTitleRect.top = ROUND(mTitleRect.top / scale);
-		mTitleRect.right = ROUND(mTitleRect.right / scale);
-		mTitleRect.bottom = ROUND(mTitleRect.bottom / scale);
-	}
-	else
-	{
-		int cx = (int)(((rt->right + rt->left) >> 1) / scale);
-		SetRect(&mTitleRect, mRoundCorner, mResizeMargin+5, (rt->right - mRoundCorner)/scale, max(mResizeMargin + 5 + 24, y - mGridSize - tsize));
-	}
-#endif
 
 	if(watch->IsTimerMode())
 	{
