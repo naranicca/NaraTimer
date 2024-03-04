@@ -18,7 +18,6 @@ COLORREF BORDER_COLOR = RED;
 
 float TIMES_UP = -100.f;
 BOOL TITLE_CHANGING = FALSE;
-BOOL UPDATE_TITLERECT = TRUE;
 
 #define VIEW_WATCH			(0)
 #define VIEW_LIST			(1)
@@ -1142,7 +1141,6 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			this->SetFocus();
 			Invalidate(FALSE);
 			TITLE_CHANGING = FALSE;
-			UPDATE_TITLERECT = TRUE;
 			return TRUE;
 		case '0':
 			if(CTRL_DOWN)
@@ -2227,7 +2225,6 @@ void CNaraTimerDlg::SetTitle()
 	OnTitleChanging();
 	mTitleEdit.SetSel(0, -1);
 	TITLE_CHANGING = TRUE;
-	UPDATE_TITLERECT = TRUE;
 }
 
 void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
@@ -2423,7 +2420,6 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 
 void CNaraTimerDlg::SetViewMode(int mode)
 {
-	float r[4] = { 0.3f, 0.6f, 0.8f };
 	BOOL animation = FALSE;
 	RECT rt;
 	CopyRect(&rt, &mCrt);
@@ -2433,6 +2429,10 @@ void CNaraTimerDlg::SetViewMode(int mode)
 		{
 			mViewMode = VIEW_WATCH;
 			animation = TRUE;
+			if(mWatches.GetSize() == 1 && mWatches.GetHead()->IsTimeSet() == FALSE)
+			{
+				mWatches.RemoveHead();
+			}
 		}
 	}
 	else
@@ -2461,26 +2461,28 @@ void CNaraTimerDlg::SetViewMode(int mode)
 	}
 	if(animation)
 	{
-		for(int i = 0; i < 4; i++)
+		DWORD tbeg = GetTickCount64();
+		BOOL cond = TRUE;
+		while(cond)
 		{
-			DWORD t = GetTickCount64();
+			int dt = GetTickCount64() - tbeg;
+			if(dt > 300)
+			{
+				dt = 300;
+				cond = FALSE;
+			}
+			float r = -(dt - 300) * (dt - 300) / 90000.f + 1;
 			if(mViewMode == VIEW_WATCH)
 			{
-				rt.top = r[i] * mCrt.top + (1 - r[i]) * (mCrt.top + mCrt.top - mCrt.bottom);
+				rt.top = r * mCrt.top + (1 - r) * (mCrt.top + mCrt.top - mCrt.bottom);
 			}
 			else
 			{
-				rt.top = r[i] * mCrt.top + (1 - r[i]) * mCrt.bottom;
+				rt.top = r * mCrt.top + (1 - r) * mCrt.bottom;
 			}
 			rt.bottom = rt.top + (mCrt.bottom - mCrt.top);
 			Draw(&rt);
-			int dt = GetTickCount64() - t;
-			if(dt < 30)
-			{
-				Sleep(30 - dt);
-			}
 		}
-		Invalidate(FALSE);
 	}
 }
 
@@ -2488,11 +2490,11 @@ BOOL CNaraTimerDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
 	if(zDelta < 0)
 	{
-		SetViewMode(VIEW_LIST);
+		SetViewMode(VIEW_WATCH);
 	}
 	else
 	{
-		SetViewMode(VIEW_WATCH);
+		SetViewMode(VIEW_LIST);
 	}
 	return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
 }
@@ -2679,8 +2681,6 @@ void CNaraTimerDlg::OnSize(UINT nType, int cx, int cy)
 
 	reposition();
 	Invalidate(FALSE);
-
-	UPDATE_TITLERECT = TRUE;
 }
 
 void CNaraTimerDlg::OnGetMinMaxInfo(MINMAXINFO * lpMMI)
@@ -2721,7 +2721,6 @@ void CNaraTimerDlg::OnTitleChanging(void)
 		TITLE_CHANGING = TRUE;
 	}
 	mTitleEdit.SetFocus();
-	UPDATE_TITLERECT = TRUE;
 	TIMES_UP = -100.f;
 }
 
