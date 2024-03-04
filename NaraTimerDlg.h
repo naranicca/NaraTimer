@@ -32,6 +32,7 @@ public:
 	BOOL mIsTimer;
 	float mTime360;
 	ULONGLONG mTimeSet;
+	CString mTitle;
 	CString mTimeStr;
 	SIZE mHM;
 
@@ -99,10 +100,8 @@ protected:
 	int mGridSize;
 	LARGE_INTEGER mTimestamp;
 	BOOL mTopmost;
-	CString mTitle;
 	CEdit mTitleEdit;
 	int mTitleHeight;
-	RECT mTitleRect;
 	RECT mTimerRect;
 	RECT mTimeRect;
 	float mDegOffset;
@@ -126,8 +125,6 @@ protected:
 	void DrawBorder(CDC * dc);
 	void DrawHUD(CDC * dc, CString str);
 	ULONGLONG GetTimestamp(void);
-	int GetTitleHeight(void);
-	BOOL IsTitleArea(CPoint pt);
 
 	virtual BOOL OnInitDialog();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
