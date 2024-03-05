@@ -54,6 +54,7 @@ public:
 	void RemoveHead(void);
 	void RemoveStopped(void);
 	void RemoveAll(void);
+	void Activate(Watch * watch);
 protected:
 	Watch * mHead;
 	int mSize;
