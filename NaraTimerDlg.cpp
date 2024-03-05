@@ -673,6 +673,8 @@ Watch * WatchList::Add(void)
 		{
 			watch->mNext = mHead;
 			mHead->mPrev = watch;
+			watch->mIsTimer = mHead->mIsTimer;
+			watch->mTime360 = mHead->mTime360;
 		}
 		mHead = watch;
 		mSize++;
@@ -1259,6 +1261,12 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 				}
 			}
 			break;
+		case VK_TAB:
+			if(!TITLE_CHANGING)
+			{
+				SetViewMode(mViewMode == VIEW_WATCH ? VIEW_LIST : VIEW_WATCH);
+			}
+			return TRUE;
 		case VK_F2:
 			if(!TITLE_CHANGING)
 			{
@@ -2208,8 +2216,8 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 						::FlashWindowEx(&fi);
 						mMuteTick = 5;
 						PlaySound((LPCWSTR)MAKEINTRESOURCE(IDR_WAVE1), GetModuleHandle(NULL), SND_ASYNC | SND_RESOURCE);
-						watch->Stop();
 						mWatches.Activate(watch);
+						watch->Stop();
 
 						TIMES_UP = GetTickCount64();
 						SetTimer(TID_TIMESUP, 100, NULL);
@@ -2259,6 +2267,7 @@ void CNaraTimerDlg::SetTitle(CString str, BOOL still_editing)
 	mTitleEdit.ShowWindow(SW_HIDE);
 	if(!still_editing)
 	{
+		TITLE_CHANGING = TRUE;
 		PostMessage(WM_KEYDOWN, VK_RETURN, 0);
 	}
 }
@@ -2552,11 +2561,11 @@ BOOL CNaraTimerDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 {
 	CMenu menu, theme;
-	BOOL is_set = (mWatches.GetSize() > 1);
+	BOOL is_set = (mWatches.GetHead()->IsTimeSet());
 	BOOL is_timer = (mViewMode == VIEW_WATCH && mWatches.GetHead()->IsTimerMode());
 	BOOL is_alarm = (mViewMode == VIEW_WATCH && mWatches.GetHead()->IsAlarmMode());
 	menu.CreatePopupMenu();
-	menu.AppendMenu(MF_STRING, IDM_NEW, L"New");
+	menu.AppendMenu(MF_STRING | (is_set ? MF_ENABLED : MF_DISABLED), IDM_NEW, L"New");
 	menu.AppendMenu(MF_STRING | (is_set ? MF_ENABLED: MF_DISABLED), IDM_STOP, L"Stop\tESC");
 	menu.AppendMenu(MF_SEPARATOR, 0, L"");
 	menu.AppendMenu(MF_STRING | (is_timer ? MF_CHECKED : 0), IDM_TIMERMODE, L"Timer Mode");
@@ -2585,6 +2594,7 @@ void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 
 void CNaraTimerDlg::OnNew(void)
 {
+#if 0
 	CString param;
 	WINDOWPLACEMENT pl;
 	GetWindowPlacement(&pl);
@@ -2597,6 +2607,9 @@ void CNaraTimerDlg::OnNew(void)
 	wchar_t path[MAX_PATH];
 	GetModuleFileName(GetModuleHandle(NULL), path, MAX_PATH);
 	ShellExecute(GetSafeHwnd(), L"open", path, param, NULL, 1);
+#else
+	mWatches.Add();
+#endif
 }
 
 void CNaraTimerDlg::OnStop(void)
