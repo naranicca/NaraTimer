@@ -573,6 +573,7 @@ inline LONGLONG Watch::GetRemainingTime(void)
 
 BOOL Watch::SetTime(int h, int m, int s)
 {
+	ULONGLONG tcur = (GetTickCount64() / 1000) * 1000;
 	if(IsAlarmMode())
 	{
 		CTime c = CTime::GetCurrentTime();
@@ -581,7 +582,7 @@ BOOL Watch::SetTime(int h, int m, int s)
 		int ds = (s - c.GetSecond());
 		if(dh + dm + ds >= 0)
 		{
-			mTimeSet = GetTickCount64() + (dh + dm + ds) * 1000;
+			mTimeSet = tcur + (dh + dm + ds) * 1000;
 			mHM.cx = h;
 			mHM.cy = m;
 			return TRUE;
@@ -592,7 +593,7 @@ BOOL Watch::SetTime(int h, int m, int s)
 		ULONGLONG t = (h * 3600 + m * 60 + s) * 1000;
 		if(t <= TIMER_TIME360)
 		{
-			mTimeSet = GetTickCount64() + (h * 3600 + m * 60 + s) * 1000;
+			mTimeSet = tcur + (h * 3600 + m * 60 + s) * 1000;
 			return TRUE;
 		}
 	}
@@ -1728,7 +1729,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 	}
 
 	// TIME'S UP message
-	if(TIMES_UP >= 0 && watch->IsTimeSet() && t_remain <= 0 && !list_mode)
+	if(TIMES_UP >= 0 && t_remain <= 0 && !list_mode)
 	{
 		CFont font;
 		GetFont(font, rt->bottom - rt->top, TRUE);
@@ -2140,10 +2141,6 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 
 	if (nIDEvent == TID_TICK)
 	{
-		if(TIMES_UP >= 0)
-		{
-			KillTimer(TID_TIMESUP); // TIMESUP timer is not needed if TICK timer is on
-		}
 		if(!mSetting)
 		{
 			Watch * watch = mWatches.GetWatchSet();
@@ -2490,11 +2487,11 @@ BOOL CNaraTimerDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
 	if(zDelta < 0)
 	{
-		SetViewMode(VIEW_WATCH);
+		SetViewMode(VIEW_LIST);
 	}
 	else
 	{
-		SetViewMode(VIEW_LIST);
+		SetViewMode(VIEW_WATCH);
 	}
 	return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
 }
