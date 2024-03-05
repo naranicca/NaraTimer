@@ -2468,7 +2468,7 @@ void CNaraTimerDlg::SetViewMode(int mode)
 				dt = 300;
 				cond = FALSE;
 			}
-			float r = -(dt - 300) * (dt - 300) / 90000.f + 1;
+			float r = tanh(dt / 80.f);
 			if(mViewMode == VIEW_WATCH)
 			{
 				rt.top = r * mCrt.top + (1 - r) * (mCrt.top + mCrt.top - mCrt.bottom);
