@@ -1264,7 +1264,21 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 		case VK_TAB:
 			if(!TITLE_CHANGING)
 			{
-				SetViewMode(mViewMode == VIEW_WATCH ? VIEW_LIST : VIEW_WATCH);
+				if(CTRL_DOWN)
+				{
+					SetViewMode(mViewMode == VIEW_WATCH ? VIEW_LIST : VIEW_WATCH);
+				}
+				else
+				{
+					if(mWatches.GetHead()->IsTimerMode())
+					{
+						OnAlarmMode();
+					}
+					else
+					{
+						OnTimerMode();
+					}
+				}
 			}
 			return TRUE;
 		case VK_F2:
