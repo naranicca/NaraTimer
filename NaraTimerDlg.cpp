@@ -614,6 +614,7 @@ WatchList::WatchList(void)
 {
 	mHead = NULL;
 	mSize = 0;
+	mItemHeight = 0;
 }
 
 WatchList::~WatchList(void)
@@ -648,6 +649,25 @@ Watch * WatchList::GetUnset(void)
 Watch * WatchList::GetWatchSet(void)
 {
 	return (mHead->IsTimeSet() ? mHead : mHead->mNext);
+}
+
+Watch * WatchList::Get(int idx)
+{
+	Watch * cur = mHead;
+	if(cur->IsTimeSet() == FALSE)
+	{
+		cur = cur->mNext;
+	}
+	while(cur)
+	{
+		if(idx == 0)
+		{
+			return cur;
+		}
+		idx--;
+		cur = cur->mNext;
+	}
+	return NULL;
 }
 
 int WatchList::GetSize(BOOL count_unset)
@@ -760,24 +780,55 @@ void WatchList::RemoveAll(void)
 
 void WatchList::Activate(Watch * watch)
 {
-	if(watch == mHead) return;
+	if(watch == NULL || watch == mHead) return;
 	if(mHead->IsTimeSet() == FALSE)
 	{
 		RemoveHead();
 	}
-	if(watch != mHead)
+	Watch * cur = mHead;
+	while(cur)
 	{
-		Watch * head = mHead;
-		if(watch->mPrev)
+		if(cur == watch && watch != mHead)
 		{
-			watch->mPrev->mNext = watch->mNext;
+			if(watch->mPrev) watch->mPrev->mNext = watch->mNext;
+			if(watch->mNext) watch->mNext->mPrev = watch->mPrev;
+			watch->mPrev = NULL;
+			watch->mNext = mHead;
+			mHead = watch;
+			break;
 		}
-		if(watch->mNext)
+		cur = cur->mNext;
+	}
+}
+
+void WatchList::Sort(Watch * watch)
+{
+	Watch * cur = GetHead();
+	while(cur)
+	{
+		Watch * next = cur->mNext;
+		if(next && cur->IsTimeSet() && cur->mTimeSet > next->mTimeSet)
 		{
-			watch->mNext->mPrev = watch->mPrev;
+			Watch * beg = cur->mPrev;
+			Watch * end = next->mNext;
+			if(beg)
+			{
+				beg->mNext = next;
+			}
+			else
+			{
+				mHead = next;
+			}
+			next->mPrev = beg;
+			next->mNext = cur;
+			cur->mPrev = next;
+			cur->mNext = end;
+			if(end)
+			{
+				end->mPrev = cur;
+			}
 		}
-		mHead = watch;
-		watch->mNext = head;
+		cur = next;
 	}
 }
 
@@ -798,6 +849,7 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	mViewMode = VIEW_WATCH;
 	mTheme = THEME_DEFAULT;
 	mSetting = NULL;
+	mLastWatch = NULL;
 	mOldDeg = 0;
 	mRadius = 0;
 	mRadiusHandsHead = 0;
@@ -1183,6 +1235,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			}
 			else
 			{
+				mWatches.Add();
 				SetViewMode(VIEW_WATCH);
 			}
 			return TRUE;
@@ -1666,6 +1719,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 	{
 		Gdiplus::Font font(mFontFace, (list_mode? (r << 1) : ROUND(r / 4)), FontStyleBold, UnitPixel);
 		Gdiplus::StringFormat sf;
+		int opaque = 255;
 		if(mSetting)
 		{
 			str = watch->mTimeStr;
@@ -1690,6 +1744,10 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			SetRect(&mTimeRect, x + r + r + LIST_GAP, rt->top, rt->right, rt->bottom);
 			sf.SetAlignment(StringAlignmentNear);
 			sf.SetLineAlignment(StringAlignmentCenter);
+			POINT pt;
+			GetCursorPos(&pt);
+			ScreenToClient(&pt);
+			opaque = (PT_IN_RECT(pt, *rt) ? 255 : 170);
 		}
 		else
 		{
@@ -1699,7 +1757,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		}
 		sf.SetTrimming(StringTrimmingNone);
 		sf.SetFormatFlags(StringFormatFlagsNoWrap);
-		SolidBrush br(Color(255, GetRValue(timestr_color), GetGValue(timestr_color), GetBValue(timestr_color)));
+		SolidBrush br(Color(opaque, GetRValue(timestr_color), GetGValue(timestr_color), GetBValue(timestr_color)));
 		RectF rtf(mTimeRect.left, mTimeRect.top, mTimeRect.right - mTimeRect.left, mTimeRect.bottom - mTimeRect.top);
 		g.DrawString(str.GetBuffer(), -1, &font, rtf, &sf, &br);
 	}
@@ -1871,6 +1929,7 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 		font_size = font_size * w_crt / w;
 		h_watch = font_size + LIST_GAP;
 	}
+	mWatches.mItemHeight = h_watch;
 	dc->SelectObject(fonto);
 
 	if(num_watches > 0)
@@ -2083,6 +2142,7 @@ void CNaraTimerDlg::OnPaint()
 		if(mViewMode == VIEW_WATCH)
 		{
 			DrawTimer(&mdc, watch, &trt);
+			mLastWatch = watch;
 		}
 		else
 		{
@@ -2356,6 +2416,23 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 			SendMessage(WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(pt.x, pt.y));
 		}
 	}
+	else
+	{
+		int top = (mResizeMargin + (mRoundCorner >> 1));
+		if(pt.y < top)
+		{
+			SendMessage(WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(pt.x, pt.y));
+		}
+		else
+		{
+			int idx = (pt.y - top) / mWatches.mItemHeight;
+			if(idx < mWatches.GetSize())
+			{
+				mLastWatch = mWatches.Get(idx);
+				SetViewMode(VIEW_WATCH);
+			}
+		}
+	}
 	NaraDialog::OnLButtonDown(nFlags, pt);
 }
 
@@ -2468,6 +2545,7 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 				SetTimer(TID_TICK, CHK_INTERVAL, NULL);
 				if(mWatches.GetSize() > 1)
 				{
+					mWatches.Sort(mWatches.GetHead());
 					mWatches.Add();
 					SetViewMode(VIEW_LIST);
 				}
@@ -2490,16 +2568,11 @@ void CNaraTimerDlg::SetViewMode(int mode)
 		if(mViewMode != VIEW_WATCH)
 		{
 			mViewMode = VIEW_WATCH;
+			if(mLastWatch)
+			{
+				mWatches.Activate(mLastWatch);
+			}
 			animation = TRUE;
-			Watch * watch = mWatches.GetWatchSet();
-			if(watch)
-			{
-				mWatches.Activate(watch);
-			}
-			else
-			{
-				mWatches.Add();
-			}
 		}
 	}
 	else
@@ -2509,28 +2582,7 @@ void CNaraTimerDlg::SetViewMode(int mode)
 			mViewMode = VIEW_LIST;
 			animation = TRUE;
 		}
-		/* sort current watch */
-		Watch * cur = mWatches.GetHead();
-		while(cur)
-		{
-			Watch * next = cur->mNext;
-			if(next && cur->IsTimeSet() && cur->mTimeSet > next->mTimeSet)
-			{
-				Watch * n = next->mNext;
-				if(cur->mPrev)
-				{
-					cur->mPrev->mNext = next;
-				}
-				next->mPrev = cur->mPrev;
-				next->mNext = cur;
-				if(cur->mPrev)
-				{
-					cur->mPrev = next;
-				}
-				cur->mNext = n;
-			}
-			cur = next;
-		}
+		mWatches.Sort(mWatches.GetHead());
 	}
 	if(animation)
 	{

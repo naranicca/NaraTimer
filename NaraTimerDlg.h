@@ -48,6 +48,7 @@ public:
 	Watch * GetHead(void);
 	Watch * GetUnset(void);
 	Watch * GetWatchSet(void);
+	Watch * Get(int idx);
 	int GetSize(BOOL count_unset=FALSE);
 	Watch * Add(void);
 	void Remove(Watch * watch);
@@ -55,9 +56,12 @@ public:
 	void RemoveStopped(void);
 	void RemoveAll(void);
 	void Activate(Watch * watch);
+	void Sort(Watch * watch);
 protected:
 	Watch * mHead;
 	int mSize;
+public:
+	int mItemHeight;
 };
 
 class CNaraTimerDlg : public NaraDialog
@@ -96,6 +100,7 @@ protected:
 	int mRadius;
 	int mRadiusHandsHead;
 	Watch * mSetting;
+	Watch * mLastWatch;
 	ULONGLONG mTso;
 	float mOldDeg;
 	int mGridSize;
