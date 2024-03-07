@@ -1935,6 +1935,8 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 
 	if(num_watches > 0)
 	{
+		CFont font_small;
+		GetFont(font_small, ROUND(h_watch * 0.3f), FALSE);
 		int top = rt->top + mRoundCorner/2;
 		dc->FillSolidRect(rt->left, rt->top, w_crt, top - rt->top, BK_COLOR);
 		RECT wrt;
@@ -1945,6 +1947,17 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 			wrt.top = top + ROUND(h_watch * i);
 			wrt.bottom = top + ROUND(h_watch * (i + 1));
 			DrawTimer(dc, watch, &wrt, TRUE);
+#if 1
+			if(watch->IsAlarmMode())
+			{
+				CFont * fonto = dc->SelectObject(&font_small);
+				CString str;
+				str.Format(L"%d:%02d", watch->mHM.cx, watch->mHM.cy);
+				dc->SetTextColor(GRID_COLOR);
+				dc->DrawText(str, CRect(wrt.left, wrt.top, wrt.left + h_watch, wrt.bottom), DT_SINGLELINE | DT_VCENTER | DT_CENTER);
+				dc->SelectObject(fonto);
+			}
+#endif
 			watch = watch->mNext;
 		}
 		if(wrt.bottom < rt->bottom)
