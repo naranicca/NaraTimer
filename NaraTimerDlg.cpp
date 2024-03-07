@@ -615,6 +615,7 @@ WatchList::WatchList(void)
 	mHead = NULL;
 	mSize = 0;
 	mItemHeight = 0;
+	mItemHighlighted = 0;
 }
 
 WatchList::~WatchList(void)
@@ -1175,7 +1176,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 						int scale = (has_colon ? 1 : 100);
 						time = ((time * 100) + num) * scale;
 						CTime c = CTime::GetCurrentTime();
-						Watch * watch = mWatches.GetUnset();
+						Watch * watch = mWatches.GetHead();
 						watch->mTitle = title;
 						if(watch->IsAlarmMode())
 						{
@@ -2419,18 +2420,15 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 	else
 	{
 		int top = (mResizeMargin + (mRoundCorner >> 1));
-		if(pt.y < top)
+		int idx = (pt.y - top) / mWatches.mItemHeight;
+		if(pt.y >= top && idx < mWatches.GetSize())
 		{
-			SendMessage(WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(pt.x, pt.y));
+			mWatches.mItemHighlighted = idx;
 		}
 		else
 		{
-			int idx = (pt.y - top) / mWatches.mItemHeight;
-			if(idx < mWatches.GetSize())
-			{
-				mLastWatch = mWatches.Get(idx);
-				SetViewMode(VIEW_WATCH);
-			}
+			mWatches.mItemHighlighted = -1;
+			SendMessage(WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(pt.x, pt.y));
 		}
 	}
 	NaraDialog::OnLButtonDown(nFlags, pt);
@@ -2495,6 +2493,16 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 			hovering_title = hovering_title_now;
 		}
 	}
+	else
+	{
+		int top = (mResizeMargin + (mRoundCorner >> 1));
+		int idx = (pt.y - top) / mWatches.mItemHeight;
+		if(idx != mWatches.mItemHighlighted)
+		{
+			mWatches.mItemHighlighted = idx;
+			Invalidate(FALSE);
+		}
+	}
 }
 
 void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
@@ -2554,6 +2562,14 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 			{
 				Stop();
 			}
+		}
+	}
+	else
+	{
+		if(mWatches.mItemHighlighted >= 0 && mWatches.mItemHighlighted < mWatches.GetSize())
+		{
+			mLastWatch = mWatches.Get(mWatches.mItemHighlighted);
+			SetViewMode(VIEW_WATCH);
 		}
 	}
 }

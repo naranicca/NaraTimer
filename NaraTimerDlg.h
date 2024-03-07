@@ -62,6 +62,7 @@ protected:
 	int mSize;
 public:
 	int mItemHeight;
+	int mItemHighlighted;
 };
 
 class CNaraTimerDlg : public NaraDialog
