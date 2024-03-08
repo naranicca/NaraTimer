@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "NaraWnd.h"
+#include "Watch.h"
 
 #define BUTTON_CLOSE		(0)
 #define BUTTON_PIN			(1)
@@ -14,56 +15,6 @@
 #define THEME_MINT			(5)
 #define THEME_PINK			(6)
 #define NUM_THEMES			(7)
-
-class Watch
-{
-public:
-	Watch(void);
-	~Watch(void) {};
-	void Stop(void);
-	void SetMode(BOOL is_timer);
-	LONGLONG GetRemainingTime(void);
-	BOOL IsTimeSet();
-	BOOL IsTimerMode(void);
-	BOOL IsAlarmMode(void);
-	BOOL SetTime(int h, int m, int s);
-	void SetText(wchar_t * fmt, ...);
-
-	BOOL mIsTimer;
-	float mTime360;
-	ULONGLONG mTimeSet;
-	CString mTitle;
-	CString mTimeStr;
-	SIZE mHM;
-
-	Watch * mPrev;
-	Watch * mNext;
-};
-
-class WatchList
-{
-public:
-	WatchList(void);
-	~WatchList(void);
-	Watch * GetHead(void);
-	Watch * GetUnset(void);
-	Watch * GetWatchSet(void);
-	Watch * Get(int idx);
-	int GetSize(BOOL count_unset=FALSE);
-	Watch * Add(void);
-	void Remove(Watch * watch);
-	void RemoveHead(void);
-	void RemoveStopped(void);
-	void RemoveAll(void);
-	void Activate(Watch * watch);
-	void Sort(Watch * watch);
-protected:
-	Watch * mHead;
-	int mSize;
-public:
-	int mItemHeight;
-	int mItemHighlighted;
-};
 
 class CNaraTimerDlg : public NaraDialog
 {
