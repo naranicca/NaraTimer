@@ -604,6 +604,7 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, NaraDialog)
 	ON_WM_SIZE()
 	ON_WM_GETMINMAXINFO()
 	ON_WM_WINDOWPOSCHANGED()
+	ON_WM_ACTIVATE()
 	ON_WM_QUERYDRAGICON()
 	ON_EN_CHANGE(IDC_EDIT, OnTitleChanging)
 	ON_MESSAGE(WM_PIN, OnPinToggle)
@@ -2057,13 +2058,6 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 	mTitleEdit.ShowWindow(SW_HIDE);
 	TITLE_CHANGING = FALSE;
 
-	if(TIMES_UP >= 0)
-	{
-		TIMES_UP = -100.f;
-		mWatches.RemoveStopped();
-		return;
-	}
-
 	int ht = HitTest(pt);
 	if(ht != HTCLIENT)
 	{
@@ -2537,6 +2531,17 @@ void CNaraTimerDlg::OnWindowPosChanged(WINDOWPOS * pos)
 {
 	NaraDialog::OnWindowPosChanged(pos);
 	Invalidate(FALSE);
+}
+
+void CNaraTimerDlg::OnActivate(UINT nState, CWnd * pWndOther, BOOL bMinimized)
+{
+	if(nState != WA_INACTIVE)
+	{
+		TIMES_UP = -100.f;
+		mWatches.RemoveStopped();
+		Invalidate(FALSE);
+	}
+	NaraDialog::OnActivate(nState, pWndOther, bMinimized);
 }
 
 // 사용자가 최소화된 창을 끄는 동안에 커서가 표시되도록 시스템에서
