@@ -767,7 +767,6 @@ BOOL CNaraTimerDlg::OnInitDialog()
 	mRunning = TRUE;
 	mThread = AfxBeginThread(FnThreadTicking, this);
 
-	Sleep(100);
 	SetForegroundWindow();
 
 	return TRUE;
@@ -2057,6 +2056,12 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 	this->SetFocus();
 	mTitleEdit.ShowWindow(SW_HIDE);
 	TITLE_CHANGING = FALSE;
+
+	if(TIMES_UP >= 0)
+	{
+		TIMES_UP = -100.f;
+		return;
+	}
 
 	int ht = HitTest(pt);
 	if(ht != HTCLIENT)
