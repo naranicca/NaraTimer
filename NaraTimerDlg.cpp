@@ -9,7 +9,7 @@
 #define WHITE				RGB(255, 255, 255)
 #define CHK_INTERVAL		(300)
 #define LIST_GAP			(10)
-#define HUD_FONT_SIZE		ROUND(mRadius * 0.4f)
+#define HUD_FONT_SIZE		(mViewMode == VIEW_WATCH? ROUND(mRadius * 0.4f) : ROUND(mRoundCorner * 0.4f))
 COLORREF BK_COLOR = WHITE;
 COLORREF GRID_COLOR = WHITE;
 COLORREF BORDER_COLOR = RED;
@@ -845,7 +845,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 						int scale = (has_colon ? 1 : 100);
 						time = ((time * 100) + num) * scale;
 						CTime c = CTime::GetCurrentTime();
-						Watch * watch = mWatches.GetHead();
+						Watch * watch = mWatches.GetUnset();
 						watch->mTitle = title;
 						if(watch->IsAlarmMode())
 						{
@@ -890,7 +890,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 							}
 						}
 					}
-					else
+					else if(mViewMode == VIEW_WATCH)
 					{
 						watch->mTitle = title;
 					}
@@ -1513,8 +1513,10 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			int h = HUD_FONT_SIZE;
 			int x = cx - (w >> 1);
 			int y = cy - (h >> 1);
+#if 0
 			SolidBrush br(Color(255, 128, 128, 128));
 			FillRoundRect(&g, &br, Rect(x - 10, y - 10, w + 20, h + 20), 10);
+#endif
 			mTitleEdit.MoveWindow(x, y, w, h, FALSE);
 		}
 		else if(watch->mTitle.IsEmpty() == FALSE)
@@ -1621,7 +1623,8 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 			{
 				CFont * fonto = dc->SelectObject(&font_small);
 				CString str;
-				str.Format(L"%d:%02d", watch->mHM.cx, watch->mHM.cy);
+				int h = (watch->mHM.cx < 24 ? watch->mHM.cx : watch->mHM.cx - 24);
+				str.Format(L"%d:%02d", h, watch->mHM.cy);
 				dc->SetTextColor(GRID_COLOR);
 				dc->DrawText(str, CRect(wrt.left, wrt.top, wrt.left + h_watch, wrt.bottom), DT_SINGLELINE | DT_VCENTER | DT_CENTER);
 				dc->SelectObject(fonto);
@@ -1832,6 +1835,15 @@ void CNaraTimerDlg::OnPaint()
 			DrawList(&mdc, &trt);
 		}
 		DrawBorder(&mdc);
+		if(TITLE_CHANGING)
+		{
+			RECT rt;
+			mTitleEdit.GetWindowRect(&rt);
+			ScreenToClient(&rt);
+			Graphics g(mdc);
+			SolidBrush br(Color(200, 128, 128, 128));
+			FillRoundRect(&g, &br, Rect(rt.left - 10, rt.top - 10, rt.right - rt.left + 20, rt.bottom - rt.top + 20), 10);
+		}
 		dc.BitBlt(0, 0, w_crt, h_crt, &mdc, 0, 0, SRCCOPY);
 
 		mdc.SelectObject(bmpo);
@@ -2542,10 +2554,17 @@ void CNaraTimerDlg::OnTitleChanging(void)
 	if(TITLE_CHANGING == FALSE)
 	{
 		CFont font;
-		GetFont(font, HUD_FONT_SIZE, TRUE);
+		int font_size = HUD_FONT_SIZE;
+		GetFont(font, font_size, TRUE);
 		mTitleEdit.SetFont(&font, TRUE);
 		mTitleEdit.ShowWindow(SW_SHOW);
 		TITLE_CHANGING = TRUE;
+		if(mViewMode == VIEW_LIST)
+		{
+			int h = font_size + 10;
+			int y = ((mCrt.top + mCrt.bottom) >> 1) - ((mCrt.bottom - mCrt.top) >> 2);
+			mTitleEdit.MoveWindow(mRoundCorner, y, mCrt.right - mRoundCorner*2, h, TRUE);
+		}
 		Invalidate(FALSE);
 	}
 	mTitleEdit.SetFocus();
