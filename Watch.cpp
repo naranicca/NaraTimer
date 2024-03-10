@@ -113,6 +113,7 @@ WatchList::WatchList(void)
 	mSize = 0;
 	mItemHeight = 0;
 	mItemHighlighted = 0;
+	mLastIsTimer = FALSE;
 }
 
 WatchList::~WatchList(void)
@@ -194,32 +195,43 @@ Watch * WatchList::Add(void)
 			watch->mIsTimer = mHead->mIsTimer;
 			watch->mTime360 = mHead->mTime360;
 		}
+		else
+		{
+			watch->SetMode(mLastIsTimer);
+		}
 		mHead = watch;
 		mSize++;
 	}
 	return watch;
 }
 
-void WatchList::Remove(Watch * watch)
+Watch * WatchList::Remove(Watch * watch)
 {
-	Watch * cur = mHead;
+	if(watch == NULL) return NULL;
+ 	Watch * cur = mHead;
 	while(cur)
 	{
+		Watch * next = cur->mNext;
 		if(cur == watch)
 		{
 			if(cur->mPrev)
 			{
 				cur->mPrev->mNext = cur->mNext;
 			}
+			if(cur->mNext)
+			{
+				cur->mNext->mPrev = cur->mPrev;
+			}
 			if(watch == mHead)
 			{
+				mLastIsTimer = mHead->mIsTimer;
 				mHead = cur->mNext;
 			}
 			delete cur;
 			mSize--;
-			return;
+			return next;
 		}
-		cur = cur->mNext;
+		cur = next;
 	}
 }
 
@@ -227,37 +239,20 @@ void WatchList::RemoveHead(void)
 {
 	if(mHead)
 	{
-		Watch * next = mHead->mNext;
-		delete mHead;
-		mHead = next;
-		if(mHead)
-		{
-			mHead->mPrev = NULL;
-		}
-		mSize--;
+		mLastIsTimer = mHead->mIsTimer;
+		Remove(mHead);
 	}
 }
 
 void WatchList::RemoveStopped(void)
 {
+	mLastIsTimer = mHead->mIsTimer;
 	Watch * cur = mHead;
 	while(cur)
 	{
 		if(cur->IsTimeSet() == FALSE)
 		{
-			Watch * prev = cur->mPrev;
-			Watch * next = cur->mNext;
-			if(prev)
-			{
-				prev->mNext = cur->mNext;
-			}
-			if(cur == mHead)
-			{
-				mHead = cur->mNext;
-			}
-			delete cur;
-			mSize--;
-			cur = next;
+			cur = Remove(cur);
 		}
 		else
 		{
@@ -268,6 +263,7 @@ void WatchList::RemoveStopped(void)
 
 void WatchList::RemoveAll(void)
 {
+	mLastIsTimer = mHead->mIsTimer;
 	while(mHead)
 	{
 		RemoveHead();
@@ -296,6 +292,10 @@ void WatchList::Activate(Watch * watch)
 			break;
 		}
 		cur = cur->mNext;
+	}
+	if(mHead)
+	{
+		mLastIsTimer = mHead->mIsTimer;
 	}
 }
 
@@ -327,6 +327,20 @@ void WatchList::Sort(Watch * watch)
 			}
 		}
 		cur = next;
+	}
+}
+
+void WatchList::CleanUp(void)
+{
+	Watch * watch = GetHead();
+	while(watch)
+	{
+		Watch * next = watch->mNext;
+		if(watch->mTimeSet || watch->GetRemainingTime() < 0)
+		{
+			Remove(watch);
+		}
+		watch = next;
 	}
 }
 

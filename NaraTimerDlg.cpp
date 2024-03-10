@@ -604,7 +604,6 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, NaraDialog)
 	ON_WM_SIZE()
 	ON_WM_GETMINMAXINFO()
 	ON_WM_WINDOWPOSCHANGED()
-	ON_WM_ACTIVATE()
 	ON_WM_QUERYDRAGICON()
 	ON_EN_CHANGE(IDC_EDIT, OnTitleChanging)
 	ON_MESSAGE(WM_PIN, OnPinToggle)
@@ -1399,21 +1398,18 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		}
 		else if(t_remain == 0)
 		{
-			if(list_mode)
-			{
-				str = L"TIME'S UP";
-			}
-			else
-			{
-				CTime t = CTime::GetCurrentTime();
-				int h = t.GetHour();
-				h = (h > 12 ? h - 12 : h);
-				str.Format(L"%d:%02d:%02d", (h == 0 ? 12 : h), t.GetMinute(), t.GetSecond());
-				SetWindowText(str);
-			}
+			CTime t = CTime::GetCurrentTime();
+			int h = t.GetHour();
+			h = (h > 12 ? h - 12 : h);
+			str.Format(L"%d:%02d:%02d", (h == 0 ? 12 : h), t.GetMinute(), t.GetSecond());
+			SetWindowText(str);
 		}
 		if(list_mode)
 		{
+			if(t_remain <= 0)
+			{
+				str = L"TIME'S UP";
+			}
 			SetRect(&mTimeRect, x + r + r + LIST_GAP, rt->top, rt->right, rt->bottom);
 			sf.SetAlignment(StringAlignmentNear);
 			sf.SetLineAlignment(StringAlignmentCenter);
@@ -1971,7 +1967,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 			Watch * watch = mWatches.GetWatchSet();
 			while(watch)
 			{
-				if(watch->IsTimeSet())
+				if(watch->IsTimeSet() && TIMES_UP < 0)
 				{
 					if(GetTickCount64() + CHK_INTERVAL < watch->mTimeSet)
 					{
@@ -1989,7 +1985,6 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 						mMuteTick = 5;
 						PlaySound((LPCWSTR)MAKEINTRESOURCE(IDR_WAVE1), GetModuleHandle(NULL), SND_ASYNC | SND_RESOURCE);
 						mWatches.Activate(watch);
-						watch->Stop();
 
 						TIMES_UP = GetTickCount64();
 						SetTimer(TID_TIMESUP, 100, NULL);
@@ -2060,6 +2055,9 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 	if(TIMES_UP >= 0)
 	{
 		TIMES_UP = -100.f;
+		mWatches.CleanUp();
+		KillTimer(TID_TIMESUP);
+		Invalidate(FALSE);
 		return;
 	}
 
@@ -2536,17 +2534,6 @@ void CNaraTimerDlg::OnWindowPosChanged(WINDOWPOS * pos)
 {
 	NaraDialog::OnWindowPosChanged(pos);
 	Invalidate(FALSE);
-}
-
-void CNaraTimerDlg::OnActivate(UINT nState, CWnd * pWndOther, BOOL bMinimized)
-{
-	if(nState != WA_INACTIVE)
-	{
-		TIMES_UP = -100.f;
-		mWatches.RemoveStopped();
-		Invalidate(FALSE);
-	}
-	NaraDialog::OnActivate(nState, pWndOther, bMinimized);
 }
 
 // 사용자가 최소화된 창을 끄는 동안에 커서가 표시되도록 시스템에서

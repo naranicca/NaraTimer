@@ -38,15 +38,17 @@ public:
 	Watch * Get(int idx);
 	int GetSize(BOOL count_unset=FALSE);
 	Watch * Add(void);
-	void Remove(Watch * watch);
+	Watch * Remove(Watch * watch);
 	void RemoveHead(void);
 	void RemoveStopped(void);
 	void RemoveAll(void);
 	void Activate(Watch * watch);
 	void Sort(Watch * watch);
+	void CleanUp(void);
 protected:
 	Watch * mHead;
 	int mSize;
+	int mLastIsTimer;
 public:
 	int mItemHeight;
 	int mItemHighlighted;
