@@ -83,6 +83,7 @@ protected:
 	void DrawBorder(CDC * dc);
 	void DrawHUD(CDC * dc, CString str);
 	ULONGLONG GetTimestamp(void);
+	void StopTimesUp(void);
 
 	virtual BOOL OnInitDialog();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);

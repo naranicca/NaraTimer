@@ -780,7 +780,11 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 		switch (pMsg->wParam)
 		{
 		case VK_ESCAPE:
-			TIMES_UP = -100.f;
+			if(TIMES_UP >= 0)
+			{
+				StopTimesUp();
+				return TRUE;
+			}
 			if(!TITLE_CHANGING)
 			{
 				if(mViewMode == VIEW_WATCH)
@@ -1408,7 +1412,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		{
 			if(t_remain <= 0)
 			{
-				str = L"TIME'S UP";
+				str = (watch->mTitle.IsEmpty() ? L"TIME'S UP" : watch->mTitle);
 			}
 			SetRect(&mTimeRect, x + r + r + LIST_GAP, rt->top, rt->right, rt->bottom);
 			sf.SetAlignment(StringAlignmentNear);
@@ -1531,7 +1535,8 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		GetFont(font, rt->bottom - rt->top, TRUE);
 		fonto = dc->SelectObject(&font);
 		RECT trt = { 0, };
-		dc->DrawText(L"TIME'S UP!", &trt, DT_SINGLELINE | DT_CALCRECT);
+		CString str = (watch->mTitle.IsEmpty() ? L"TIME'S UP" : watch->mTitle);
+		dc->DrawText(str, &trt, DT_SINGLELINE | DT_CALCRECT);
 		int w = trt.right - trt.left;
 		float t = GetTickCount64() - TIMES_UP;
 		trt.left = t * (rt->left - w - rt->right) / 5000 + rt->right;
@@ -1539,7 +1544,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		trt.right = trt.left + w;
 		trt.bottom = rt->bottom;
 		dc->SetTextColor(timestr_color);
-		dc->DrawText(L"TIME'S UP!", &trt, DT_SINGLELINE | DT_VCENTER);
+		dc->DrawText(str, &trt, DT_SINGLELINE | DT_VCENTER);
 		dc->SelectObject(fonto);
 		if(trt.right < 0)
 		{
@@ -2054,10 +2059,7 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 
 	if(TIMES_UP >= 0)
 	{
-		TIMES_UP = -100.f;
-		mWatches.CleanUp();
-		KillTimer(TID_TIMESUP);
-		Invalidate(FALSE);
+		StopTimesUp();
 		return;
 	}
 
@@ -2396,11 +2398,13 @@ void CNaraTimerDlg::OnStop(void)
 void CNaraTimerDlg::OnTimerMode(void)
 {
 	mWatches.GetUnset()->SetMode(TRUE);
+	Invalidate(FALSE);
 }
 
 void CNaraTimerDlg::OnAlarmMode(void)
 {
 	mWatches.GetUnset()->SetMode(FALSE);
+	Invalidate(FALSE);
 }
 
 void CNaraTimerDlg::OnMenuPin(void)
@@ -2569,6 +2573,14 @@ void CNaraTimerDlg::OnTitleChanging(void)
 	}
 	mTitleEdit.SetFocus();
 	TIMES_UP = -100.f;
+}
+
+void CNaraTimerDlg::StopTimesUp(void)
+{
+	TIMES_UP = -100.f;
+	mWatches.CleanUp();
+	KillTimer(TID_TIMESUP);
+	Invalidate(FALSE);
 }
 
 
