@@ -782,30 +782,33 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 		{
 		case VK_ESCAPE:
 			TIMES_UP = -100.f;
-			if(mViewMode == VIEW_WATCH)
+			if(!TITLE_CHANGING)
 			{
-				Watch * watch = mWatches.GetHead();
-				if(watch->IsTimeSet() && !TITLE_CHANGING)
+				if(mViewMode == VIEW_WATCH)
+				{
+					Watch * watch = mWatches.GetHead();
+					if(watch->IsTimeSet())
+					{
+						NaraMessageBox dlg(this, TRUE);
+						dlg.AddHeading(watch->IsTimerMode() ? L"Stop the timer?" : L"Stop the alarm?");
+						if(dlg.DoModal() == IDOK)
+						{
+							Stop();
+							return TRUE;
+						}
+					}
+				}
+				else if(mWatches.GetSize() > 0)
 				{
 					NaraMessageBox dlg(this, TRUE);
-					dlg.AddHeading(watch->IsTimerMode() ? L"Stop the timer?" : L"Stop the alarm?");
+					dlg.AddHeading(L"Stop all?");
 					if(dlg.DoModal() == IDOK)
 					{
 						Stop();
 						return TRUE;
 					}
+					break;
 				}
-			}
-			else
-			{
-				NaraMessageBox dlg(this, TRUE);
-				dlg.AddHeading(L"Stop all?");
-				if(dlg.DoModal() == IDOK)
-				{
-					Stop();
-					return TRUE;
-				}
-				break;
 			}
 		case VK_RETURN:
 			if(TITLE_CHANGING)
@@ -857,7 +860,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 							}
 							int m = (time % 100);
 							int h = (time / 100);
-							if(h <= 12 && num < 60)
+							if(h < 24 && num < 60)
 							{
 								int h_cur = c.GetHour();
 								if((h == h_cur || abs(h - h_cur) == 12) && m > c.GetMinute())
