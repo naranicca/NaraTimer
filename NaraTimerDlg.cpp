@@ -1969,17 +1969,19 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 	{
 		if(!mSetting)
 		{
-			Watch * watch = mWatches.GetWatchSet();
+			Watch * watch = mWatches.GetHead();
 			while(watch)
 			{
-				if(watch->IsTimeSet() && TIMES_UP < 0)
+				if(watch->IsTimeSet() && watch->mExpired == FALSE)
 				{
-					if(GetTickCount64() + CHK_INTERVAL < watch->mTimeSet)
+					if(watch->GetRemainingTime() > CHK_INTERVAL)
 					{
 						Invalidate(FALSE);
 					}
 					else
 					{
+						watch->mExpired = TRUE;
+
 						FLASHWINFO fi;
 						fi.cbSize = sizeof(FLASHWINFO);
 						fi.hwnd = this->m_hWnd;
@@ -1989,7 +1991,10 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 						::FlashWindowEx(&fi);
 						mMuteTick = 5;
 						PlaySound((LPCWSTR)MAKEINTRESOURCE(IDR_WAVE1), GetModuleHandle(NULL), SND_ASYNC | SND_RESOURCE);
-						mWatches.Activate(watch);
+						if(watch != mWatches.GetHead() && mWatches.GetSize() > 1)
+						{
+							SetViewMode(VIEW_LIST);
+						}
 
 						TIMES_UP = GetTickCount64();
 						SetTimer(TID_TIMESUP, 100, NULL);

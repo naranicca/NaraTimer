@@ -8,6 +8,7 @@ Watch::Watch(void)
 	mTimeSet = 0;
 	mIsTimer = FALSE;
 	mTime360 = MAX_TIME360;
+	mExpired = FALSE;
 	mPrev = NULL;
 	mNext = NULL;
 }
@@ -27,6 +28,7 @@ void Watch::Stop(void)
 		mTime360 = TIMER_TIME360;
 	}
 	mHM = { 0, };
+	mExpired = FALSE;
 }
 
 void Watch::SetMode(BOOL is_timer)
@@ -336,7 +338,7 @@ void WatchList::CleanUp(void)
 	while(watch)
 	{
 		Watch * next = watch->mNext;
-		if(watch->mTimeSet || watch->GetRemainingTime() < 0)
+		if(watch->mTimeSet && watch->GetRemainingTime() < 0)
 		{
 			Remove(watch);
 		}

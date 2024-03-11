@@ -22,6 +22,7 @@ public:
 	CString mTitle;
 	CString mTimeStr;
 	SIZE mHM;
+	BOOL mExpired;
 
 	Watch * mPrev;
 	Watch * mNext;
