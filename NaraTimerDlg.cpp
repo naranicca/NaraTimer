@@ -539,6 +539,10 @@ void CNaraTimerDlg::Stop(void)
 	if(mViewMode == VIEW_WATCH)
 	{
 		mWatches.GetHead()->Stop();
+		if(mWatches.GetSize() > 0 && mWatches.GetHead()->IsTimeSet() == FALSE)
+		{
+			mWatches.RemoveHead();
+		}
 	}
 	else
 	{
@@ -1594,6 +1598,10 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 
 	/* estimating font size */
 	int font_size = h_watch - LIST_GAP;
+	if(num_watches == 0)
+	{
+		font_size = h_crt - (mRoundCorner >> 1);
+	}
 	CFont font;
 	GetFont(font, font_size, TRUE);
 	CFont * fonto = dc->SelectObject(&font);
@@ -1648,7 +1656,18 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 		fonto = dc->SelectObject(&font);
 		dc->FillSolidRect(rt, BK_COLOR);
 		dc->SetTextColor(GRID_COLOR);
+#if 0
 		dc->DrawText(L"Empty", rt, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
+#else
+		{
+			CString str;
+			CTime t = CTime::GetCurrentTime();
+			int h = t.GetHour();
+			h = (h > 12 ? h - 12 : h);
+			str.Format(L"%d:%02d:%02d", (h == 0 ? 12 : h), t.GetMinute(), t.GetSecond());
+			dc->DrawText(str, &mCrt, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
+		}
+#endif
 		dc->SelectObject(fonto);
 	}
 }

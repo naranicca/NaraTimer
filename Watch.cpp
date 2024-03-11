@@ -15,6 +15,7 @@ Watch::Watch(void)
 
 void Watch::Stop(void)
 {
+	mTitle = L"";
 	mTimeSet = 0;
 	mTimeStr = L"";
 	if(IsAlarmMode())
