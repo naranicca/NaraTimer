@@ -1404,7 +1404,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		{
 			str = watch->mTimeStr;
 		}
-		else if(t_remain == 0)
+		else if(t_remain <= 0)
 		{
 			CTime t = CTime::GetCurrentTime();
 			int h = t.GetHour();
@@ -1485,17 +1485,17 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		}
 		else
 		{
-			float pt = (r * 0.1f);
+			float pt = (r * 0.15f);
 			DEFINE_PEN(pencl, handshead_color, 255, pt);
 			pencl.SetEndCap(LineCapTriangle);
-			pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2 - 1));
+			pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2 + 1));
 			g.DrawLine(&pencl, x + r, y + r, x + r + pt1.x, y + r + pt1.y);
 
-			DEFINE_PEN(pen, hand_color, 255, pt * 0.5f);
+			DEFINE_PEN(pen, hand_color, 255, pt * 0.3f);
 			pen.SetStartCap(LineCapSquare);
 			pen.SetEndCap(LineCapTriangle);
 			pt0 = deg2pt(deg, head_size + head_size / 2);
-			pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2 - 1));
+			pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2));
 			g.DrawLine(&pen, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
 		}
 		// Hands head
@@ -1598,7 +1598,7 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 
 	/* estimating font size */
 	int font_size = h_watch - LIST_GAP;
-	if(num_watches == 0)
+	if(num_watches <= 1)
 	{
 		font_size = h_crt - (mRoundCorner >> 1);
 	}
@@ -1665,7 +1665,7 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 			int h = t.GetHour();
 			h = (h > 12 ? h - 12 : h);
 			str.Format(L"%d:%02d:%02d", (h == 0 ? 12 : h), t.GetMinute(), t.GetSecond());
-			dc->DrawText(str, &mCrt, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
+			dc->DrawText(str, rt, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
 		}
 #endif
 		dc->SelectObject(fonto);
@@ -1737,25 +1737,28 @@ void CNaraTimerDlg::DrawHUD(CDC * dc, CString str)
 
 void CNaraTimerDlg::DrawPie(Graphics * g, Watch * watch, int x, int y, int r, float deg, COLORREF c)
 {
-	if(c == -1) c = RED;
-	SolidBrush brred(Color(255, GetRValue(c), GetGValue(c), GetBValue(c)));
-	if (deg > 0)
+	if(watch->mExpired == FALSE)
 	{
-		POINT t = deg2pt(deg, r);
-		if (t.x == 0 && deg > 200)
+		if(c == -1) c = RED;
+		SolidBrush brred(Color(255, GetRValue(c), GetGValue(c), GetBValue(c)));
+		if(deg > 0)
 		{
-			g->FillEllipse(&brred, Rect(x, y, r << 1, r << 1));
-		}
-		else
-		{
-			if (t.x != 0 || deg > 90)
+			POINT t = deg2pt(deg, r);
+			if(t.x == 0 && deg > 200)
 			{
-				g->FillPie(&brred, Rect(x, y, (r << 1), r << 1), -90, -deg - mDegOffset);
+				g->FillEllipse(&brred, Rect(x, y, r << 1, r << 1));
+			}
+			else
+			{
+				if(t.x != 0 || deg > 90)
+				{
+					g->FillPie(&brred, Rect(x, y, (r << 1), r << 1), -90, -deg - mDegOffset);
+				}
 			}
 		}
+		Pen pg(watch->IsTimerMode() ? Color(255, 128, 128, 128) : Color(255, GetRValue(c), GetGValue(c), GetBValue(c)), 1);
+		g->DrawLine(&pg, x + r, y + 1, x + r, y + r);
 	}
-	Pen pg(watch->IsTimerMode()? Color(255, 128, 128, 128): Color(255, GetRValue(c), GetGValue(c), GetBValue(c)), 1);
-	g->DrawLine(&pg, x + r, y + 1, x + r, y + r);
 }
 
 BOOL CNaraTimerDlg::OnEraseBkgnd(CDC* pDC)
