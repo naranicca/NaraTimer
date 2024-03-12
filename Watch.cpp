@@ -94,6 +94,8 @@ BOOL Watch::SetTime(int h, int m, int s)
 		if(t <= TIMER_TIME360)
 		{
 			mTimeSet = tcur + (h * 3600 + m * 60 + s) * 1000;
+			mHM.cx = m;
+			mHM.cy = s;
 			return TRUE;
 		}
 	}
@@ -106,6 +108,32 @@ void Watch::SetText(wchar_t * fmt, ...)
 	va_start(list, fmt);
 	mTimeStr.FormatV(fmt, list);
 	va_end(list);
+}
+
+void Watch::GetDescription(CString & str)
+{
+	if(IsAlarmMode())
+	{
+		int h = (mHM.cx < 24 ? mHM.cx : mHM.cx - 24);
+		str.Format(L"Alarm: %d:%02d", h, mHM.cy);
+	}
+	else
+	{
+		int m = mHM.cx;
+		int s = mHM.cy;
+		if(m == 0)
+		{
+			str.Format(L"Timer: %d sec", mHM.cy);
+		}
+		else if(s == 0)
+		{
+			str.Format(L"Timer: %d min", mHM.cx);
+		}
+		else
+		{
+			str.Format(L"Timer: %d:%02d", mHM.cx, mHM.cy);
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

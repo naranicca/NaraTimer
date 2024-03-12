@@ -15,6 +15,7 @@ public:
 	BOOL IsAlarmMode(void);
 	BOOL SetTime(int h, int m, int s);
 	void SetText(wchar_t * fmt, ...);
+	void GetDescription(CString & str);
 
 	BOOL mIsTimer;
 	float mTime360;

@@ -1618,27 +1618,42 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 
 	if(num_watches > 0)
 	{
+		COLORREF split_color = blend_color(BK_COLOR, blend_color(BK_COLOR, RGB(128, 128, 128)));
 		CFont font_small;
-		GetFont(font_small, ROUND(h_watch * 0.3f), FALSE);
-		int top = rt->top + mRoundCorner/2;
+		int h_font_small = ROUND(h_watch * 0.3f);
+		GetFont(font_small, h_font_small, FALSE);
+		h_watch += h_font_small;
+		mWatches.mItemHeight += h_font_small;
+		int top = rt->top + (mRoundCorner >> 1) + LIST_GAP;
 		dc->FillSolidRect(rt->left, rt->top, w_crt, top - rt->top, BK_COLOR);
 		RECT wrt;
 		wrt.left = rt->left;
 		wrt.right = rt->right;
 		for(int i = 0; i < num_watches; i++)
 		{
-			wrt.top = top + ROUND(h_watch * i);
+			wrt.top = top + ROUND(h_watch * i) + h_font_small;
 			wrt.bottom = top + ROUND(h_watch * (i + 1));
 			DrawTimer(dc, watch, &wrt, TRUE);
 #if 1
-			if(watch->IsAlarmMode())
 			{
 				CFont * fonto = dc->SelectObject(&font_small);
-				CString str;
-				int h = (watch->mHM.cx < 24 ? watch->mHM.cx : watch->mHM.cx - 24);
-				str.Format(L"%d:%02d", h, watch->mHM.cy);
 				dc->SetTextColor(GRID_COLOR);
-				dc->DrawText(str, CRect(wrt.left, wrt.top, wrt.left + h_watch, wrt.bottom), DT_SINGLELINE | DT_VCENTER | DT_CENTER);
+				trt.left = wrt.left;
+				trt.top = wrt.top - h_font_small;
+				trt.right = wrt.right;
+				trt.bottom = trt.top + h_font_small;
+				dc->FillSolidRect(&trt, split_color);
+				trt.left += LIST_GAP;
+				if(watch->mTitle.IsEmpty())
+				{
+					CString str;
+					watch->GetDescription(str);
+					dc->DrawText(str, &trt, DT_SINGLELINE | DT_BOTTOM | DT_LEFT);
+				}
+				else
+				{
+					dc->DrawText(watch->mTitle, &trt, DT_SINGLELINE | DT_BOTTOM | DT_LEFT);
+				}
 				dc->SelectObject(fonto);
 			}
 #endif
@@ -2218,12 +2233,26 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 	}
 	else
 	{
-		int top = (mResizeMargin + (mRoundCorner >> 1));
+		int top = (mResizeMargin + (mRoundCorner >> 1)) + LIST_GAP;
 		int idx = (pt.y - top) / mWatches.mItemHeight;
 		if(idx != mWatches.mItemHighlighted)
 		{
 			mWatches.mItemHighlighted = idx;
 			Invalidate(FALSE);
+		}
+		/* check if the cursor is over the title */
+		if(mWatches.GetSize() > 0)
+		{
+			int h = ROUND(mWatches.mItemHeight * 0.3f / 1.3f);
+			RECT trt;
+			trt.left = mCrt.left + mResizeMargin;
+			trt.top = top + mWatches.mItemHighlighted * mWatches.mItemHeight;
+			trt.right = mCrt.right - mResizeMargin;
+			trt.bottom = trt.top + h;
+			if(PT_IN_RECT(pt, trt))
+			{
+				SetCursor(AfxGetApp()->LoadStandardCursor(IDC_IBEAM));
+			}
 		}
 	}
 }
