@@ -1402,7 +1402,13 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 	// draw digital watch
 	if(mDigitalWatch || list_mode)
 	{
+#if 0
 		Gdiplus::Font font(mFontFace, (list_mode? (r << 1) : ROUND(r / 4)), FontStyleBold, UnitPixel);
+#else
+		LOGFONT lf;
+		GetLogfont(&lf, (list_mode? (r << 1) : ROUND(r / 3)), FALSE);
+		Gdiplus::Font font(dc->m_hDC, &lf);
+#endif
 		Gdiplus::StringFormat sf;
 		int opaque = 255;
 		if(mSetting)
