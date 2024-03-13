@@ -53,6 +53,7 @@ protected:
 	int mRadiusHandsHead;
 	Watch * mSetting;
 	Watch * mLastWatch;
+	Watch * mTitleEditingWatch;
 	ULONGLONG mTso;
 	float mOldDeg;
 	int mGridSize;

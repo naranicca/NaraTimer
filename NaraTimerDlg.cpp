@@ -520,6 +520,7 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	mTheme = THEME_DEFAULT;
 	mSetting = NULL;
 	mLastWatch = NULL;
+	mTitleEditingWatch = NULL;
 	mOldDeg = 0;
 	mRadius = 0;
 	mRadiusHandsHead = 0;
@@ -824,7 +825,11 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 				mTitleEdit.ShowWindow(SW_HIDE);
 				mTitleEdit.GetWindowText(title);
 				SetWindowText(title);
-				if(!mSetting && !title.IsEmpty())
+				if(mTitleEditingWatch != NULL)
+				{
+					mTitleEditingWatch->mTitle = title;
+				}
+				else if(!mSetting && !title.IsEmpty())
 				{
 					WCHAR * str = title.GetBuffer();
 					int len = title.GetLength();
@@ -1752,7 +1757,7 @@ void CNaraTimerDlg::DrawHUD(CDC * dc, CString str)
 
 void CNaraTimerDlg::DrawPie(Graphics * g, Watch * watch, int x, int y, int r, float deg, COLORREF c)
 {
-	if(watch->mExpired == FALSE)
+	if(watch->mExpired == FALSE && deg > -mDegOffset)
 	{
 		if(c == -1) c = RED;
 		SolidBrush brred(Color(255, GetRValue(c), GetGValue(c), GetBValue(c)));
@@ -1884,6 +1889,17 @@ void CNaraTimerDlg::OnPaint()
 			Graphics g(mdc);
 			SolidBrush br(Color(200, 128, 128, 128));
 			FillRoundRect(&g, &br, Rect(rt.left - 10, rt.top - 10, rt.right - rt.left + 20, rt.bottom - rt.top + 20), 10);
+			{
+				/* to redue flickering while typing */
+				mdc.FillSolidRect(&rt, WHITE);
+				CString str;
+				mTitleEdit.GetWindowText(str);
+				CFont font;
+				GetFont(font, rt.bottom - rt.top, FALSE);
+				CFont * fonto = mdc.SelectObject(&font);
+				mdc.DrawText(str, &rt, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
+				mdc.SelectObject(fonto);
+			}
 		}
 		dc.BitBlt(0, 0, w_crt, h_crt, &mdc, 0, 0, SRCCOPY);
 
@@ -2157,11 +2173,38 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 	}
 	else
 	{
-		int top = (mResizeMargin + (mRoundCorner >> 1));
+		int top = (mResizeMargin + (mRoundCorner >> 1)) + LIST_GAP;
 		int idx = (pt.y - top) / mWatches.mItemHeight;
 		if(pt.y >= top && idx < mWatches.GetSize())
 		{
 			mWatches.mItemHighlighted = idx;
+			/* check if the cursor is over the title */
+			if(mWatches.GetSize() > 0)
+			{
+				int h = ROUND(mWatches.mItemHeight * 0.3f / 1.3f);
+				RECT trt;
+				trt.left = mCrt.left + mResizeMargin;
+				trt.top = top + mWatches.mItemHighlighted * mWatches.mItemHeight;
+				trt.right = mCrt.right - mResizeMargin;
+				trt.bottom = trt.top + h;
+				if(PT_IN_RECT(pt, trt))
+				{
+					mWatches.mItemHighlighted = -1;
+					mTitleEditingWatch = mWatches.Get(idx);
+					TITLE_CHANGING = TRUE;
+					CFont font;
+					GetFont(font, trt.bottom - trt.top, FALSE);
+					mTitleEdit.SetFont(&font, FALSE);
+					mTitleEdit.SetWindowText(mTitleEditingWatch->mTitle);
+					if(mTitleEditingWatch->mTitle.IsEmpty() == FALSE)
+					{
+						mTitleEdit.SetSel(0, -1);
+					}
+					mTitleEdit.MoveWindow(&trt, TRUE);
+					mTitleEdit.ShowWindow(SW_SHOW);
+					mTitleEdit.SetFocus();
+				}
+			}
 		}
 		else
 		{
@@ -2189,7 +2232,7 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 			{
 				mButtonHover = i;
 				Invalidate(FALSE);
-				break;
+				return;
 			}
 		}
 	}
@@ -2611,13 +2654,14 @@ LRESULT CNaraTimerDlg::OnPinToggle(WPARAM wParam, LPARAM lParam)
 
 void CNaraTimerDlg::OnTitleChanging(void)
 {
-	if(TITLE_CHANGING == FALSE)
+	if(TITLE_CHANGING == FALSE) // when you start typing on main window
 	{
 		CFont font;
 		int font_size = HUD_FONT_SIZE;
 		GetFont(font, font_size, TRUE);
 		mTitleEdit.SetFont(&font, TRUE);
 		mTitleEdit.ShowWindow(SW_SHOW);
+		mTitleEditingWatch = NULL;
 		TITLE_CHANGING = TRUE;
 		if(mViewMode == VIEW_LIST)
 		{
