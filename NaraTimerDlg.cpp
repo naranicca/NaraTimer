@@ -1502,15 +1502,15 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2));
 			g.DrawLine(&pen, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
 		}
-		// Hands head
-		SolidBrush brgrey(Color(255, GetRValue(handshead_color), GetGValue(handshead_color), GetBValue(handshead_color)));
-		g.FillEllipse(&brgrey, x + r - head_size, y + r - head_size, 2 * head_size, 2 * head_size);
-		if(hand_color != handshead_color)
-		{
-			SolidBrush br(Color(255, GetRValue(hand_color), GetGValue(hand_color), GetBValue(hand_color)));
-			int s = ROUND(head_size * 0.3f);
-			g.FillEllipse(&br, x + r - s, y + r - s, 2 * s, 2 * s);
-		}
+	}
+	// Hands head
+	SolidBrush brgrey(Color(255, GetRValue(handshead_color), GetGValue(handshead_color), GetBValue(handshead_color)));
+	g.FillEllipse(&brgrey, x + r - head_size, y + r - head_size, 2 * head_size, 2 * head_size);
+	if(hand_color != handshead_color && !list_mode)
+	{
+		SolidBrush br(Color(255, GetRValue(hand_color), GetGValue(hand_color), GetBValue(hand_color)));
+		int s = ROUND(head_size * 0.3f);
+		g.FillEllipse(&br, x + r - s, y + r - s, 2 * s, 2 * s);
 	}
 
 	/* draw title */
