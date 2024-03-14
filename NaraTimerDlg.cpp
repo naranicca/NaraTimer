@@ -1775,9 +1775,9 @@ void CNaraTimerDlg::DrawPie(Graphics * g, Watch * watch, int x, int y, int r, fl
 				}
 			}
 		}
-		Pen pg(watch->IsTimerMode() ? Color(255, 128, 128, 128) : Color(255, GetRValue(c), GetGValue(c), GetBValue(c)), 1);
-		g->DrawLine(&pg, x + r, y + 1, x + r, y + r);
 	}
+	Pen pg(watch->IsTimerMode() ? Color(255, 128, 128, 128) : Color(255, GetRValue(c), GetGValue(c), GetBValue(c)), 1);
+	g->DrawLine(&pg, x + r, y + 1, x + r, y + r);
 }
 
 BOOL CNaraTimerDlg::OnEraseBkgnd(CDC* pDC)
@@ -2219,6 +2219,10 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 			if(PT_IN_RECT(pt, mButtonRect[i]))
 			{
 				mButtonHover = i;
+				if(mButtonHover == BUTTON_CENTER)
+				{
+					::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_HAND));
+				}
 				Invalidate(FALSE);
 				return;
 			}
@@ -2248,13 +2252,6 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 			}
 			SettingTime(deg, d <= (mRadius + (mGridSize >> 1)) * (mRadius + (mGridSize >> 1)));
 			Invalidate(FALSE);
-		}
-		else
-		{
-			if(d < (mRadiusHandsHead * mRadiusHandsHead))
-			{
-				::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_HAND));
-			}
 		}
 		if(hovering_title != hovering_title_now)
 		{
@@ -2382,6 +2379,7 @@ void CNaraTimerDlg::SetViewMode(int mode)
 			animation = TRUE;
 		}
 		mWatches.Sort(mWatches.GetHead());
+		mButtonRect[BUTTON_CENTER].SetRect(-100, -100, -100, -100);
 	}
 	if(animation)
 	{
