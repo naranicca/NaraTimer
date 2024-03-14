@@ -1403,15 +1403,10 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 	// draw digital watch
 	if(mDigitalWatch || list_mode)
 	{
-#if 0
-		Gdiplus::Font font(mFontFace, (list_mode? (r << 1) : ROUND(r / 4)), FontStyleBold, UnitPixel);
-#else
-		LOGFONT lf;
-		GetLogfont(&lf, (list_mode? (r << 1) : ROUND(r / 3)), FALSE);
-		Gdiplus::Font font(dc->m_hDC, &lf);
-#endif
-		Gdiplus::StringFormat sf;
-		int opaque = 255;
+		CFont font;
+		GetFont(font, (list_mode? (r << 1) : ROUND(r / 3)), FALSE);
+		CFont * fonto = dc->SelectObject(&font);
+		COLORREF c = GRID_COLOR;
 		if(mSetting)
 		{
 			str = watch->mTimeStr;
@@ -1424,6 +1419,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			str.Format(L"%d:%02d:%02d", (h == 0 ? 12 : h), t.GetMinute(), t.GetSecond());
 			SetWindowText(str);
 		}
+		UINT fmt = (DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS);
 		if(list_mode)
 		{
 			if(t_remain <= 0)
@@ -1431,24 +1427,20 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 				str = (watch->mTitle.IsEmpty() ? L"TIME'S UP" : watch->mTitle);
 			}
 			SetRect(&mTimeRect, x + r + r + LIST_GAP, rt->top, rt->right, rt->bottom);
-			sf.SetAlignment(StringAlignmentNear);
-			sf.SetLineAlignment(StringAlignmentCenter);
+			fmt |= DT_LEFT;
 			POINT pt;
 			GetCursorPos(&pt);
 			ScreenToClient(&pt);
-			opaque = (PT_IN_RECT(pt, *rt) ? 255 : 170);
+			c = (PT_IN_RECT(pt, *rt) ? GRID_COLOR : blend_color(GRID_COLOR, BK_COLOR));
 		}
 		else
 		{
 			SetRect(&mTimeRect, x, y + r + head_size, x + r + r, y + r + r - r / 3);
-			sf.SetAlignment(StringAlignmentCenter);
-			sf.SetLineAlignment(StringAlignmentCenter);
+			fmt |= DT_CENTER;
 		}
-		sf.SetTrimming(StringTrimmingNone);
-		sf.SetFormatFlags(StringFormatFlagsNoWrap);
-		SolidBrush br(Color(opaque, GetRValue(timestr_color), GetGValue(timestr_color), GetBValue(timestr_color)));
-		RectF rtf(mTimeRect.left, mTimeRect.top, mTimeRect.right - mTimeRect.left, mTimeRect.bottom - mTimeRect.top);
-		g.DrawString(str.GetBuffer(), -1, &font, rtf, &sf, &br);
+		dc->SetTextColor(c);
+		dc->DrawText(str, &mTimeRect, fmt);
+		dc->SelectObject(fonto);
 	}
 
 	// draw date complications
