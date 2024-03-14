@@ -1617,6 +1617,10 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 		font_size = font_size * w_crt / w;
 		h_watch = font_size + LIST_GAP;
 	}
+	if(num_watches > 0)
+	{
+		h_watch = min(h_watch, (h_crt - mRoundCorner * 2 + mResizeMargin * 2) / num_watches);
+	}
 	mWatches.mItemHeight = h_watch;
 	dc->SelectObject(fonto);
 
@@ -1675,9 +1679,6 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 		fonto = dc->SelectObject(&font);
 		dc->FillSolidRect(rt, BK_COLOR);
 		dc->SetTextColor(GRID_COLOR);
-#if 0
-		dc->DrawText(L"Empty", rt, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
-#else
 		{
 			CString str;
 			CTime t = CTime::GetCurrentTime();
@@ -1686,7 +1687,6 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 			str.Format(L"%d:%02d:%02d", (h == 0 ? 12 : h), t.GetMinute(), t.GetSecond());
 			dc->DrawText(str, rt, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
 		}
-#endif
 		dc->SelectObject(fonto);
 	}
 }
@@ -2272,7 +2272,7 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 			Invalidate(FALSE);
 		}
 		/* check if the cursor is over the title */
-		if(mWatches.GetSize() > 0)
+		if(idx >= 0 && idx < mWatches.GetSize())
 		{
 			int h = ROUND(mWatches.mItemHeight * 0.3f / 1.3f);
 			RECT trt;
