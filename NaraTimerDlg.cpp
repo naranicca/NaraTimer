@@ -683,6 +683,7 @@ BOOL CNaraTimerDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);
 
 	SET_WINDOWED_STYLE;
+	ModifyStyle(0, WS_CLIPCHILDREN);
 
 	CString ver = AfxGetApp()->GetProfileStringW(L"Setting", L"Version", L"");
 	if(ver.GetLength() == 0)
@@ -1895,17 +1896,6 @@ void CNaraTimerDlg::OnPaint()
 			Graphics g(mdc);
 			SolidBrush br(Color(200, 128, 128, 128));
 			FillRoundRect(&g, &br, Rect(rt.left - 10, rt.top - 10, rt.right - rt.left + 20, rt.bottom - rt.top + 20), 10);
-			{
-				/* to redue flickering while typing */
-				mdc.FillSolidRect(&rt, WHITE);
-				CString str;
-				mTitleEdit.GetWindowText(str);
-				CFont font;
-				GetFont(font, rt.bottom - rt.top, FALSE);
-				CFont * fonto = mdc.SelectObject(&font);
-				mdc.DrawText(str, &rt, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
-				mdc.SelectObject(fonto);
-			}
 		}
 		dc.BitBlt(0, 0, w_crt, h_crt, &mdc, 0, 0, SRCCOPY);
 
