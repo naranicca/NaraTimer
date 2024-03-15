@@ -76,13 +76,16 @@ BOOL Watch::SetTime(int h, int m, int s)
 	ULONGLONG tcur = (GetTickCount64() / 1000) * 1000;
 	if(IsAlarmMode())
 	{
-		CTime c = CTime::GetCurrentTime();
-		int dh = (h - c.GetHour()) * 3600;
-		int dm = (m - c.GetMinute()) * 60;
-		int ds = (s - c.GetSecond());
-		if(dh + dm + ds >= 0)
+		ULONGLONG t = GetTickCount64();
+		SYSTEMTIME c;
+		GetLocalTime(&c);
+		int dh = (h - c.wHour) * 3600000;
+		int dm = (m - c.wMinute) * 60000;
+		int ds = (s - c.wSecond) * 1000;
+		int dt = dh + dm + ds;
+		if(dt >= 0)
 		{
-			mTimeSet = tcur + (dh + dm + ds) * 1000;
+			mTimeSet = t + dt - c.wMilliseconds;
 			mHM.cx = h;
 			mHM.cy = m;
 			return TRUE;
