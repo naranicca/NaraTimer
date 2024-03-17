@@ -1314,6 +1314,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		int th = ROUND(r / 10);
 		DEFINE_PEN(penm, GRID_COLOR, 64, th);
 		g.DrawEllipse(&penm, x + th/2, y + th/2, r * 2 - th, r * 2 - th);
+		head_size = ROUND(r * 0.75f);
 	}
 	else
 	{
@@ -1604,7 +1605,7 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 	int num_watches = mWatches.GetSize();
 	int w_crt = rt->right - rt->left;
 	int h_crt = rt->bottom - rt->top;
-	float h_watch = (float)h_crt / 3;
+	float h_watch = (float)h_crt / min(mWatches.GetSize(), 3);
 
 	/* estimating font size */
 	int font_size = h_watch - LIST_GAP;
@@ -1669,7 +1670,7 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 				x = cx - r;
 				y = cy - r;
 				wh = (r << 1);
-				Pen pen(hover ? Color(255, 255, 255, 255) : Color(255, 0, 0, 0), 3);
+				Pen pen(hover ? Color(255, 255, 255, 255) : Color(255, 0, 0, 0), (r / 3.f));
 				g.DrawLine(&pen, x, y, x + wh, y + wh);
 				g.DrawLine(&pen, x + wh, y, x, y + wh);
 			}
@@ -1744,7 +1745,7 @@ void CNaraTimerDlg::DrawBar(CDC * dc)
 		if(mViewMode == VIEW_WATCH)
 		{
 			pt[1].X = (mCrt.left + mCrt.right) >> 1;
-			pt[1].Y = mCrt.bottom - mResizeMargin - 10;
+			pt[1].Y = mCrt.bottom - (int)(mResizeMargin * 1.5f);
 			pt[0].X = pt[1].X - w;
 			pt[0].Y = pt[1].Y - h;
 			pt[2].X = pt[1].X + w;
@@ -1754,7 +1755,7 @@ void CNaraTimerDlg::DrawBar(CDC * dc)
 		else
 		{
 			pt[1].X = (mCrt.left + mCrt.right) >> 1;
-			pt[1].Y = mCrt.top + mResizeMargin + 10;
+			pt[1].Y = mCrt.top + (int)(mResizeMargin * 1.5f);
 			pt[0].X = pt[1].X - w;
 			pt[0].Y = pt[1].Y + h;
 			pt[2].X = pt[1].X + w;
@@ -2179,7 +2180,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 		ScreenToClient(&pt);
 		if(PT_NOT_IN_RECT(pt, mButtonRect[BUTTON_BAR]))
 		{
-			mBarAlpha -= 40;
+			mBarAlpha -= 50;
 			if(mBarAlpha <= 0)
 			{
 				mBarAlpha = -1;
@@ -2393,6 +2394,11 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 	{
 		int top = (mResizeMargin + (mRoundCorner >> 1)) + LIST_GAP;
 		int idx = (pt.y - top) / mWatches.mItemHeight;
+		if(idx < 0 || idx >= mWatches.GetSize())
+		{
+			idx = -100;
+			SetRect(&mButtonRect[BUTTON_REMOVE], 0, 0, 0, 0);
+		}
 		if(idx != mWatches.mItemHighlighted)
 		{
 			mWatches.mItemHighlighted = idx;
@@ -2418,6 +2424,7 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 void CNaraTimerDlg::OnMouseLeave(void)
 {
 	SetTimer(TID_HIDEBAR, 100, NULL);
+	mWatches.mItemHighlighted = -1;
 	NaraDialog::OnMouseLeave();
 }
 
@@ -2440,7 +2447,11 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 			else if(mButtonHover == BUTTON_CENTER)
 			{
 				Watch * watch = mWatches.GetHead();
-				if(!watch->IsTimeSet())
+				if(watch->IsTimeSet())
+				{
+					mWatches.Sort(watch);
+				}
+				else
 				{
 					KillTimer(TID_TICK);
 					watch->SetMode(watch->IsAlarmMode());
@@ -2489,7 +2500,7 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 				if(mWatches.GetSize() > 1)
 				{
 					Watch * watch = mWatches.GetHead();
-					mWatches.Sort(mWatches.GetHead());
+					mWatches.Sort(watch);
 					mWatches.Activate(watch);
 				}
 			}
