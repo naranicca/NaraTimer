@@ -869,7 +869,6 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 						time = ((time * 100) + num) * scale;
 						CTime c = CTime::GetCurrentTime();
 						Watch * watch = mWatches.GetUnset();
-						watch->mTitle = title;
 						if(watch->IsAlarmMode())
 						{
 							int s = 0;
@@ -897,7 +896,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 									if(mWatches.GetSize() > 1)
 									{
 										mWatches.Add();
-										SetViewMode(VIEW_LIST);
+										mWatches.Activate(watch);
 									}
 								}
 							}
