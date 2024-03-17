@@ -1648,6 +1648,31 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 			wrt.top = top + ROUND(h_watch * i) + h_font_small;
 			wrt.bottom = top + ROUND(h_watch * (i + 1));
 			DrawTimer(dc, watch, &wrt, TRUE);
+			if(i == mWatches.mItemHighlighted)
+			{
+				/* remove button */
+				Graphics g(*dc);
+				g.SetSmoothingMode(SmoothingModeHighQuality);
+				int wh = (int)((wrt.bottom - wrt.top) * 0.4f);
+				int x = (wrt.right - 10 - wh);
+				int y = wrt.top + ((wrt.bottom - wrt.top - wh) >> 1);
+				SetRect(&mButtonRect[BUTTON_REMOVE], x, y, x + wh, y + wh);
+				int cx = x + (wh >> 1);
+				int cy = y + (wh >> 1);
+				POINT pt;
+				GetCursorPos(&pt);
+				ScreenToClient(&pt);
+				BOOL hover = (SQ(pt.x - cx) + SQ(pt.y - cy) < SQ(wh >> 1));
+				SolidBrush br(hover ? Color(255, 250, 100, 100) : Color(80, 128, 128, 128));
+				g.FillEllipse(&br, x, y, wh, wh);
+				int r = ROUND(wh * 0.7f / 2.828f);
+				x = cx - r;
+				y = cy - r;
+				wh = (r << 1);
+				Pen pen(hover ? Color(255, 255, 255, 255) : Color(255, 0, 0, 0), 3);
+				g.DrawLine(&pen, x, y, x + wh, y + wh);
+				g.DrawLine(&pen, x + wh, y, x, y + wh);
+			}
 #if 1
 			{
 				CFont * fonto = dc->SelectObject(&font_small);
@@ -1676,6 +1701,10 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 		if(wrt.bottom < rt->bottom)
 		{
 			dc->FillSolidRect(rt->left, wrt.bottom, rt->right, rt->bottom, BK_COLOR);
+		}
+		if(mWatches.mItemHighlighted < 0)
+		{
+			SetRect(&mButtonRect[BUTTON_REMOVE], 0, 0, 0, 0);
 		}
 	}
 	else
@@ -2150,7 +2179,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 		ScreenToClient(&pt);
 		if(PT_NOT_IN_RECT(pt, mButtonRect[BUTTON_BAR]))
 		{
-			mBarAlpha -= 30;
+			mBarAlpha -= 40;
 			if(mBarAlpha <= 0)
 			{
 				mBarAlpha = -1;
@@ -2422,6 +2451,14 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 				DrawTimer(&dc, mWatches.GetUnset(), &rt);
 				DrawBorder(&dc);
 			}
+			else if(mButtonHover == BUTTON_REMOVE)
+			{
+				Watch * watch = mWatches.Get(mWatches.mItemHighlighted);
+				if(watch)
+				{
+					mWatches.Remove(watch);
+				}
+			}
 			else if(mButtonHover == BUTTON_BAR)
 			{
 				if(mViewMode == VIEW_WATCH)
@@ -2480,11 +2517,13 @@ void CNaraTimerDlg::SetViewMode(int mode)
 		if(mViewMode != VIEW_WATCH)
 		{
 			mViewMode = VIEW_WATCH;
+			mWatches.mItemHighlighted = -1;
 			if(mLastWatch)
 			{
 				mWatches.Activate(mLastWatch);
 			}
 			animation = TRUE;
+			SetRect(&mButtonRect[BUTTON_REMOVE], 0, 0, 0, 0);
 		}
 	}
 	else

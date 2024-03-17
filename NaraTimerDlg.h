@@ -5,8 +5,9 @@
 #define BUTTON_CLOSE		(0)
 #define BUTTON_PIN			(1)
 #define BUTTON_CENTER		(2)
-#define BUTTON_BAR			(3)
-#define NUM_BUTTONS			(4)
+#define BUTTON_REMOVE		(3)
+#define BUTTON_BAR			(4)
+#define NUM_BUTTONS			(5)
 
 #define THEME_DEFAULT		(0)
 #define THEME_DARK			(1)
