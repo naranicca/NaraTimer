@@ -798,7 +798,13 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 				StopTimesUp();
 				return TRUE;
 			}
-			if(!TITLE_CHANGING)
+			if(TITLE_CHANGING)
+			{
+				mTitleEdit.ShowWindow(SW_HIDE);
+				TITLE_CHANGING = FALSE;
+				return TRUE;
+			}
+			else
 			{
 				if(mViewMode == VIEW_WATCH)
 				{
