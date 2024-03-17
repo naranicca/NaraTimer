@@ -5,7 +5,8 @@
 #define BUTTON_CLOSE		(0)
 #define BUTTON_PIN			(1)
 #define BUTTON_CENTER		(2)
-#define NUM_BUTTONS			(3)
+#define BUTTON_BAR			(3)
+#define NUM_BUTTONS			(4)
 
 #define THEME_DEFAULT		(0)
 #define THEME_DARK			(1)
@@ -71,6 +72,7 @@ protected:
 	int mInstructionIdx;
 	CString mVersion;
 	int mFontScale;
+	int mBarAlpha;
 
 	void reposition(void);
 	POINT deg2pt(float deg, int r);
@@ -78,9 +80,11 @@ protected:
 	Watch * SettingTime(float deg, BOOL stick = FALSE);
 	void SetTitle();
 	void Draw(RECT * rt);
+	void DrawSlide(BOOL swipe_down);
 	void DrawTimer(CDC * dc, Watch * watch, RECT * rt, BOOL list_mode=FALSE);
 	void DrawList(CDC * dc, RECT * rt);
 	void DrawPie(Graphics * g, Watch * watch, int x, int y, int r, float deg, COLORREF c=-1);
+	void DrawBar(CDC * dc);
 	void DrawBorder(CDC * dc);
 	void DrawHUD(CDC * dc, CString str);
 	ULONGLONG GetTimestamp(void);
@@ -98,6 +102,7 @@ protected:
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnMouseLeave(void);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
 	afx_msg void OnContextMenu(CWnd * pWnd, CPoint point);

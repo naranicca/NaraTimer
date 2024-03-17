@@ -23,7 +23,8 @@ BOOL TITLE_CHANGING = FALSE;
 #define TID_TICK			(0)
 #define TID_REFRESH			(1)
 #define TID_TIMESUP			(2)
-#define TID_HELP			(3)
+#define TID_HIDEBAR			(3)
+#define TID_HELP			(4)
 
 #pragma comment(lib, "winmm")
 #include <mmsystem.h>
@@ -533,6 +534,7 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	mMuteTick = 0;
 	mInstructionIdx = 0;
 	mFontScale = 100;
+	mBarAlpha = 220;
 }
 
 void CNaraTimerDlg::Stop(void)
@@ -543,6 +545,8 @@ void CNaraTimerDlg::Stop(void)
 		if(mWatches.GetSize() > 0 && mWatches.GetHead()->IsTimeSet() == FALSE)
 		{
 			mWatches.RemoveHead();
+			Sleep(500);
+			DrawSlide(FALSE);
 		}
 	}
 	else
@@ -603,6 +607,7 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, NaraDialog)
 	ON_WM_TIMER()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_MOUSEMOVE()
+	ON_WM_MOUSELEAVE()
 	ON_WM_LBUTTONUP()
 	ON_WM_MOUSEWHEEL()
 	ON_WM_CONTEXTMENU()
@@ -771,6 +776,8 @@ BOOL CNaraTimerDlg::OnInitDialog()
 
 	mRunning = TRUE;
 	mThread = AfxBeginThread(FnThreadTicking, this);
+
+	SetTimer(TID_HIDEBAR, 2000, NULL);
 
 	SetForegroundWindow();
 
@@ -1691,6 +1698,45 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 	}
 }
 
+void CNaraTimerDlg::DrawBar(CDC * dc)
+{
+	if(mBarAlpha > 0)
+	{
+		int l = mCrt.left + mRoundCorner;
+		int r = mCrt.right - mRoundCorner;
+		int w = ROUND(min(mCrt.right - mCrt.left, mCrt.bottom - mCrt.top) * 0.1f);
+		int h = w * tan(15 * 3.141592 / 180);
+		int t = max(h, 10);
+		Pen pen(Color(mBarAlpha, 128, 128, 128), t);
+		pen.SetStartCap(LineCapRound);
+		pen.SetEndCap(LineCapRound);
+		Graphics g(*dc);
+		g.SetSmoothingMode(SmoothingModeHighQuality);
+		Point pt[3];
+		if(mViewMode == VIEW_WATCH)
+		{
+			pt[1].X = (mCrt.left + mCrt.right) >> 1;
+			pt[1].Y = mCrt.bottom - mResizeMargin - 10;
+			pt[0].X = pt[1].X - w;
+			pt[0].Y = pt[1].Y - h;
+			pt[2].X = pt[1].X + w;
+			pt[2].Y = pt[1].Y - h;
+			SetRect(&mButtonRect[BUTTON_BAR], l, pt[0].Y - t, r, pt[1].Y + t);
+		}
+		else
+		{
+			pt[1].X = (mCrt.left + mCrt.right) >> 1;
+			pt[1].Y = mCrt.top + mResizeMargin + 10;
+			pt[0].X = pt[1].X - w;
+			pt[0].Y = pt[1].Y + h;
+			pt[2].X = pt[1].X + w;
+			pt[2].Y = pt[1].Y + h;
+			SetRect(&mButtonRect[BUTTON_BAR], l, pt[1].Y - t, r, pt[2].Y + t);
+		}
+		g.DrawLines(&pen, pt, 3);
+	}
+}
+
 void CNaraTimerDlg::DrawBorder(CDC * dc)
 {
 	WINDOWPLACEMENT pl;
@@ -1827,9 +1873,38 @@ void CNaraTimerDlg::Draw(RECT * rt)
 		DrawList(&mdc, &trt);
 	}
 	DrawBorder(&mdc);
+	DrawBar(&mdc);
 	dc.BitBlt(0, 0, w_crt, h_crt, &mdc, 0, 0, SRCCOPY);
 
 	mdc.SelectObject(bmpo);
+}
+
+void CNaraTimerDlg::DrawSlide(BOOL slide_down)
+{
+	RECT rt;
+	CopyRect(&rt, &mCrt);
+	DWORD tbeg = GetTickCount64();
+	BOOL cond = TRUE;
+	while(cond)
+	{
+		int dt = GetTickCount64() - tbeg;
+		if(dt > 300)
+		{
+			dt = 300;
+			cond = FALSE;
+		}
+		float r = tanh(dt / 80.f);
+		if(slide_down)
+		{
+			rt.top = r * mCrt.top + (1 - r) * (mCrt.top + mCrt.top - mCrt.bottom);
+		}
+		else
+		{
+			rt.top = r * mCrt.top + (1 - r) * mCrt.bottom;
+		}
+		rt.bottom = rt.top + (mCrt.bottom - mCrt.top);
+		Draw(&rt);
+	}
 }
 
 void CNaraTimerDlg::OnPaint()
@@ -1880,6 +1955,7 @@ void CNaraTimerDlg::OnPaint()
 			DrawList(&mdc, &trt);
 		}
 		DrawBorder(&mdc);
+		DrawBar(&mdc);
 		if(TITLE_CHANGING)
 		{
 			RECT rt;
@@ -2068,6 +2144,26 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 		}
 		Invalidate(FALSE);
 	}
+	else if(nIDEvent == TID_HIDEBAR)
+	{
+		POINT pt;
+		GetCursorPos(&pt);
+		ScreenToClient(&pt);
+		if(PT_NOT_IN_RECT(pt, mButtonRect[BUTTON_BAR]))
+		{
+			mBarAlpha -= 30;
+			if(mBarAlpha <= 0)
+			{
+				mBarAlpha = -1;
+				KillTimer(TID_HIDEBAR);
+			}
+			else
+			{
+				SetTimer(TID_HIDEBAR, 100, NULL);
+			}
+			Invalidate(FALSE);
+		}
+	}
 	else if(nIDEvent == TID_HELP)
 	{
 		Invalidate(FALSE);
@@ -2223,6 +2319,11 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 				{
 					::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_HAND));
 				}
+				else if(mButtonHover == BUTTON_BAR)
+				{
+					mBarAlpha = 255;
+					SetTimer(TID_HIDEBAR, 100, NULL);
+				}
 				Invalidate(FALSE);
 				return;
 			}
@@ -2285,6 +2386,12 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 	}
 }
 
+void CNaraTimerDlg::OnMouseLeave(void)
+{
+	SetTimer(TID_HIDEBAR, 100, NULL);
+	NaraDialog::OnMouseLeave();
+}
+
 void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 {
 	NaraDialog::OnLButtonUp(nFlags, pt);
@@ -2315,6 +2422,17 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 				DrawTimer(&dc, mWatches.GetUnset(), &rt);
 				DrawBorder(&dc);
 			}
+			else if(mButtonHover == BUTTON_BAR)
+			{
+				if(mViewMode == VIEW_WATCH)
+				{
+					SetViewMode(VIEW_LIST);
+				}
+				else
+				{
+					SetViewMode(VIEW_WATCH);
+				}
+			}
 		}
 		mButtonHover = -1;
 		Invalidate(FALSE);
@@ -2333,9 +2451,9 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 				SetTimer(TID_TICK, CHK_INTERVAL, NULL);
 				if(mWatches.GetSize() > 1)
 				{
+					Watch * watch = mWatches.GetHead();
 					mWatches.Sort(mWatches.GetHead());
-					mWatches.Add();
-					SetViewMode(VIEW_LIST);
+					mWatches.Activate(watch);
 				}
 			}
 			else
@@ -2357,8 +2475,6 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 void CNaraTimerDlg::SetViewMode(int mode)
 {
 	BOOL animation = FALSE;
-	RECT rt;
-	CopyRect(&rt, &mCrt);
 	if(mode == VIEW_WATCH)
 	{
 		if(mViewMode != VIEW_WATCH)
@@ -2383,28 +2499,9 @@ void CNaraTimerDlg::SetViewMode(int mode)
 	}
 	if(animation)
 	{
-		DWORD tbeg = GetTickCount64();
-		BOOL cond = TRUE;
-		while(cond)
-		{
-			int dt = GetTickCount64() - tbeg;
-			if(dt > 300)
-			{
-				dt = 300;
-				cond = FALSE;
-			}
-			float r = tanh(dt / 80.f);
-			if(mViewMode == VIEW_WATCH)
-			{
-				rt.top = r * mCrt.top + (1 - r) * (mCrt.top + mCrt.top - mCrt.bottom);
-			}
-			else
-			{
-				rt.top = r * mCrt.top + (1 - r) * mCrt.bottom;
-			}
-			rt.bottom = rt.top + (mCrt.bottom - mCrt.top);
-			Draw(&rt);
-		}
+		mBarAlpha = 200;
+		DrawSlide(mViewMode == VIEW_WATCH);
+		SetTimer(TID_HIDEBAR, 2000, NULL);
 	}
 }
 
@@ -2598,6 +2695,12 @@ void CNaraTimerDlg::reposition(void)
 	SET_BUTTON(BUTTON_CLOSE, IDI_CLOSE, IDI_CLOSE_HOVER);
 	// hand's head - rect is updated in DrawTimer()
 	SET_BUTTON(BUTTON_CENTER, NULL, NULL);
+
+	if(mBarAlpha <= 0)
+	{
+		// since bar's position is updated when it's drawn
+		mBarAlpha = 1;
+	}
 }
 
 void CNaraTimerDlg::OnSize(UINT nType, int cx, int cy)
