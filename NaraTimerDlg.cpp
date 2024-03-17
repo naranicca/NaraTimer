@@ -1793,7 +1793,7 @@ void CNaraTimerDlg::DrawHUD(CDC * dc, CString str)
 	trt.right = trt.left + w;
 	trt.bottom = ((mCrt.top + mCrt.bottom) >> 1) - (mRadius >> 1) + (h >> 1);
 	trt.top = trt.bottom - h;
-	SolidBrush br(Color(220, 128, 128, 128));
+	SolidBrush br(Color(mSetting ? 100 : 220, 128, 128, 128));
 	FillRoundRect(&g, &br, Rect(trt.left - 10, trt.top - 10, w + 20, h + 20), 10);
 	dc->SetTextColor(RGB(255, 255, 255));
 	dc->DrawText(str, &trt, fmt);
@@ -2284,6 +2284,7 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 					{
 						mTitleEdit.SetSel(0, -1);
 					}
+					mTitleEdit.ModifyStyle(ES_CENTER, ES_LEFT);
 					mTitleEdit.MoveWindow(&trt, TRUE);
 					mTitleEdit.ShowWindow(SW_SHOW);
 					mTitleEdit.SetFocus();
@@ -2748,6 +2749,7 @@ void CNaraTimerDlg::OnTitleChanging(void)
 		CFont font;
 		int font_size = HUD_FONT_SIZE;
 		GetFont(font, font_size, TRUE);
+		mTitleEdit.ModifyStyle(ES_LEFT, ES_CENTER);
 		mTitleEdit.SetFont(&font, TRUE);
 		mTitleEdit.ShowWindow(SW_SHOW);
 		mTitleEditingWatch = NULL;
