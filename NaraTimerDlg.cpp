@@ -871,6 +871,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 					}
 					if(time >= 0)
 					{
+						mWatches.Sort(mWatches.GetHead());
 						int scale = (has_colon ? 1 : 100);
 						time = ((time * 100) + num) * scale;
 						CTime c = CTime::GetCurrentTime();
@@ -899,7 +900,8 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 								if(watch->SetTime(h, m, s))
 								{
 									SetTimer(TID_TICK, CHK_INTERVAL, NULL);
-									if(mWatches.GetSize() > 1)
+									mWatches.Sort(watch);
+									if(mWatches.GetSize() > 1 && mViewMode == VIEW_WATCH)
 									{
 										mWatches.Add();
 										mWatches.Activate(watch);
