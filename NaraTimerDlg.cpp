@@ -816,8 +816,8 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 						if(dlg.DoModal() == IDOK)
 						{
 							Stop();
-							return TRUE;
 						}
+						return TRUE;
 					}
 				}
 				else if(mWatches.GetSize() > 0)
@@ -1439,7 +1439,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			int s = (t % 60);
 			if(h == 0)
 			{
-				str.Format(L"+%02d:%02d", m, s);
+				str.Format(L"+%d:%02d", m, s);
 			}
 			else
 			{
@@ -1866,7 +1866,7 @@ void CNaraTimerDlg::DrawPie(Graphics * g, Watch * watch, int x, int y, int r, fl
 		if(deg > 0)
 		{
 			POINT t = deg2pt(deg, r);
-			if(t.x == 0 && deg > 200)
+			if(t.x == 0 && deg + mDegOffset > 200)
 			{
 				g->FillEllipse(&brred, Rect(x, y, r << 1, r << 1));
 			}
@@ -2018,7 +2018,7 @@ void CNaraTimerDlg::OnPaint()
 			RECT rt;
 			mTitleEdit.GetWindowRect(&rt);
 			ScreenToClient(&rt);
-			int h_font = (rt.bottom - rt.top) >> 1;
+			int h_font = (mTitleEditingWatch ? 0 : (rt.bottom - rt.top) >> 1);
 			Graphics g(mdc);
 			SolidBrush br(Color(200, 128, 128, 128));
 			FillRoundRect(&g, &br, Rect(rt.left - 10, rt.top - h_font - 10, rt.right - rt.left + 20, rt.bottom - rt.top + h_font + 20), 10);
@@ -2028,7 +2028,10 @@ void CNaraTimerDlg::OnPaint()
 			BOOL a = (mTitleEditingWatch ? mTitleEditingWatch : mWatches.GetHead())->IsAlarmMode();
 			mdc.SetTextColor(WHITE);
 			mdc.SetBkMode(TRANSPARENT);
-			mdc.DrawText(a ? L"Alarm" : L"Timer", CRect(rt.left, rt.top - h_font - 10, rt.right, rt.top), DT_SINGLELINE | DT_LEFT | DT_VCENTER);
+			if(h_font > 0)
+			{
+				mdc.DrawText(a ? L"Alarm" : L"Timer", CRect(rt.left, rt.top - h_font - 10, rt.right, rt.top), DT_SINGLELINE | DT_LEFT | DT_VCENTER);
+			}
 			mdc.SelectObject(fonto);
 		}
 		dc.BitBlt(0, 0, w_crt, h_crt, &mdc, 0, 0, SRCCOPY);
