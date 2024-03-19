@@ -13,6 +13,10 @@
 COLORREF BK_COLOR = WHITE;
 COLORREF GRID_COLOR = WHITE;
 COLORREF BORDER_COLOR = RED;
+COLORREF PIE_COLOR;
+COLORREF HAND_COLOR;
+COLORREF HANDSHEAD_COLOR;
+COLORREF TIMESTR_COLOR;
 
 float TIMES_UP = -100.f;
 BOOL TITLE_CHANGING = FALSE;
@@ -534,7 +538,7 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	mMuteTick = 0;
 	mInstructionIdx = 0;
 	mFontScale = 100;
-	mBarAlpha = 220;
+	mBarAlpha = 200;
 }
 
 void CNaraTimerDlg::Stop(void)
@@ -581,6 +585,41 @@ void CNaraTimerDlg::SetTheme(int theme)
 {
 	mTheme = theme;
 	AfxGetApp()->WriteProfileInt(L"Theme", L"CurrentTheme", mTheme);
+
+	BK_COLOR = WHITE;
+	GRID_COLOR = RGB(0, 0, 0);
+	PIE_COLOR = RED;
+	HAND_COLOR = RGB(220, 220, 220);
+	HANDSHEAD_COLOR = RGB(77, 88, 94);
+	TIMESTR_COLOR = RGB(20, 20, 20);
+	BORDER_COLOR = RED;
+	switch(mTheme)
+	{
+	case THEME_DARK:
+		BK_COLOR = RGB(8, 9, 10);
+		GRID_COLOR = WHITE;
+		PIE_COLOR = RED;
+		HAND_COLOR = WHITE;
+		HANDSHEAD_COLOR = RGB(50, 50, 50);
+		TIMESTR_COLOR = RGB(220, 220, 220);
+		BORDER_COLOR = RGB(22, 23, 24);
+		break;
+	case THEME_BLUE:
+		BORDER_COLOR = RGB(89, 161, 245);
+		break;
+	case THEME_GREEN:
+		BORDER_COLOR = RGB(0, 192, 75);
+		break;
+	case THEME_ORANGE:
+		BORDER_COLOR = RGB(255, 185, 2);
+		break;
+	case THEME_MINT:
+		BORDER_COLOR = RGB(64, 224, 208);
+		break;
+	case THEME_PINK:
+		BORDER_COLOR = RGB(251, 162, 139);
+		break;
+	}
 	Invalidate(FALSE);
 }
 
@@ -765,6 +804,7 @@ BOOL CNaraTimerDlg::OnInitDialog()
 	}
 	LocalFree(args);
 
+	SetTheme(mTheme);
 	reposition();
 	mTitleEdit.Create(WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | ES_CENTER, CRect(0, 0, 10, 10), this, IDC_EDIT);
 	mTitleEdit.ShowWindow(SW_HIDE);
@@ -816,8 +856,8 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 						if(dlg.DoModal() == IDOK)
 						{
 							Stop();
-							return TRUE;
 						}
+						return TRUE;
 					}
 				}
 				else if(mWatches.GetSize() > 0)
@@ -1179,49 +1219,13 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 	POINT pt0, pt1;
 	int clock;
 	int start = 0;
-	COLORREF pie_color, hand_color, handshead_color, timestr_color;
 	float hand_size;
 	float handshead_size;
 
-	BK_COLOR = WHITE;
-	GRID_COLOR = RGB(0, 0, 0);
-	pie_color = RED;
-	hand_color = RGB(220, 220, 220);
-	handshead_color = RGB(77, 88, 94);
-	timestr_color = RGB(20, 20, 20);
-	BORDER_COLOR = RED;
-	switch(mTheme)
-	{
-	case THEME_DARK:
-		BK_COLOR = RGB(8, 9, 10);
-		GRID_COLOR = WHITE;
-		pie_color = RED;
-		hand_color = WHITE;
-		handshead_color = RGB(50, 50, 50);
-		timestr_color = RGB(220, 220, 220);
-		BORDER_COLOR = RGB(22, 23, 24);
-		break;
-	case THEME_BLUE:
-		BORDER_COLOR = RGB(89, 161, 245);
-		break;
-	case THEME_GREEN:
-		BORDER_COLOR = RGB(0, 192, 75);
-		break;
-	case THEME_ORANGE:
-		BORDER_COLOR = RGB(255, 185, 2);
-		break;
-	case THEME_MINT:
-		BORDER_COLOR = RGB(64, 224, 208);
-		break;
-	case THEME_PINK:
-		BORDER_COLOR = RGB(251, 162, 139);
-		break;
-	}
 	if(watch->IsTimerMode())
 	{
 		hand_size = 0.27f;
 		handshead_size = 0.14f;
-		hand_color = handshead_color;
 	}
 	else
 	{
@@ -1361,7 +1365,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		int o = c.GetMinute() * 60 + c.GetSecond();
 		deg = 360.f * (t_remain + o * 1000) / MAX_TIME360;
 	}
-	DrawPie(&g, watch, x, y, r, deg, pie_color);
+	DrawPie(&g, watch, x, y, r, deg, PIE_COLOR);
 	CString str = L"";
 	if (deg > -mDegOffset)
 	{
@@ -1406,7 +1410,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			dc->DrawText(min, &rt2, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 			dc->DrawText(min, &rt3, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 			dc->DrawText(min, &rt4, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-			dc->SetTextColor(pie_color);
+			dc->SetTextColor(PIE_COLOR);
 			dc->DrawText(min, &rt0, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 			dc->SelectObject(fonto);
 		}
@@ -1439,7 +1443,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			int s = (t % 60);
 			if(h == 0)
 			{
-				str.Format(L"+%02d:%02d", m, s);
+				str.Format(L"+%d:%02d", m, s);
 			}
 			else
 			{
@@ -1493,8 +1497,8 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		CPen pen(PS_SOLID, 1, cl);
 		CPen* peno = dc->SelectObject(&pen);
 		dc->Rectangle(&trt);
-		dc->FillSolidRect(trt.left, trt.bottom, w, ROUND(h * 0.1f) , pie_color);
-		dc->SetTextColor(timestr_color);
+		dc->FillSolidRect(trt.left, trt.bottom, w, ROUND(h * 0.1f) , PIE_COLOR);
+		dc->SetTextColor(TIMESTR_COLOR);
 		dc->DrawText(d, &trt, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 		dc->SelectObject(fonto);
 		dc->SelectObject(bro);
@@ -1505,10 +1509,10 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 	if(!list_mode)
 	{
 		if(deg < -mDegOffset) deg = -mDegOffset;
-		if(hand_color == handshead_color)
+		if(watch->IsTimerMode())
 		{
 			float pt = (r * 0.08f);
-			DEFINE_PEN(pencl, handshead_color, 255, pt);
+			DEFINE_PEN(pencl, HANDSHEAD_COLOR, 255, pt);
 			pencl.SetStartCap(LineCapRound);
 			pencl.SetEndCap(LineCapRound);
 			pt0 = deg2pt(deg, ROUND(r * hand_size - pt / 2 + 1));
@@ -1517,12 +1521,12 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		else
 		{
 			float pt = (r * 0.15f);
-			DEFINE_PEN(pencl, handshead_color, 255, pt);
+			DEFINE_PEN(pencl, HANDSHEAD_COLOR, 255, pt);
 			pencl.SetEndCap(LineCapTriangle);
 			pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2 + 1));
 			g.DrawLine(&pencl, x + r, y + r, x + r + pt1.x, y + r + pt1.y);
 
-			DEFINE_PEN(pen, hand_color, 255, pt * 0.3f);
+			DEFINE_PEN(pen, HAND_COLOR, 255, pt * 0.3f);
 			pen.SetStartCap(LineCapSquare);
 			pen.SetEndCap(LineCapTriangle);
 			pt0 = deg2pt(deg, head_size + head_size / 2);
@@ -1531,11 +1535,11 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		}
 	}
 	// Hands head
-	SolidBrush brgrey(Color(255, GetRValue(handshead_color), GetGValue(handshead_color), GetBValue(handshead_color)));
+	SolidBrush brgrey(Color(255, GetRValue(HANDSHEAD_COLOR), GetGValue(HANDSHEAD_COLOR), GetBValue(HANDSHEAD_COLOR)));
 	g.FillEllipse(&brgrey, x + r - head_size, y + r - head_size, 2 * head_size, 2 * head_size);
-	if(hand_color != handshead_color && !list_mode)
+	if(HAND_COLOR != HANDSHEAD_COLOR && !list_mode)
 	{
-		SolidBrush br(Color(255, GetRValue(hand_color), GetGValue(hand_color), GetBValue(hand_color)));
+		SolidBrush br(Color(255, GetRValue(HAND_COLOR), GetGValue(HAND_COLOR), GetBValue(HAND_COLOR)));
 		int s = ROUND(head_size * 0.3f);
 		g.FillEllipse(&br, x + r - s, y + r - s, 2 * s, 2 * s);
 	}
@@ -1578,7 +1582,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		trt.top = rt->top;
 		trt.right = trt.left + w;
 		trt.bottom = rt->bottom;
-		dc->SetTextColor(timestr_color);
+		dc->SetTextColor(TIMESTR_COLOR);
 		dc->DrawText(str, &trt, DT_SINGLELINE | DT_VCENTER);
 		dc->SelectObject(fonto);
 		if(trt.right < 0)
@@ -1763,7 +1767,7 @@ void CNaraTimerDlg::DrawBar(CDC * dc)
 		int w = ROUND(min(mCrt.right - mCrt.left, mCrt.bottom - mCrt.top) * 0.1f);
 		int h = w * tan(15 * 3.141592 / 180);
 		int t = max(h, 10);
-		Pen pen(Color(mBarAlpha, 128, 128, 128), t);
+		Pen pen(Color(mBarAlpha, GetRValue(GRID_COLOR), GetGValue(GRID_COLOR), GetBValue(GRID_COLOR)), t);
 		pen.SetStartCap(LineCapRound);
 		pen.SetEndCap(LineCapRound);
 		Graphics g(*dc);
@@ -1866,7 +1870,7 @@ void CNaraTimerDlg::DrawPie(Graphics * g, Watch * watch, int x, int y, int r, fl
 		if(deg > 0)
 		{
 			POINT t = deg2pt(deg, r);
-			if(t.x == 0 && deg > 200)
+			if(t.x == 0 && deg + mDegOffset > 200)
 			{
 				g->FillEllipse(&brred, Rect(x, y, r << 1, r << 1));
 			}
@@ -2018,7 +2022,7 @@ void CNaraTimerDlg::OnPaint()
 			RECT rt;
 			mTitleEdit.GetWindowRect(&rt);
 			ScreenToClient(&rt);
-			int h_font = (rt.bottom - rt.top) >> 1;
+			int h_font = (mTitleEditingWatch ? 0 : (rt.bottom - rt.top) >> 1);
 			Graphics g(mdc);
 			SolidBrush br(Color(200, 128, 128, 128));
 			FillRoundRect(&g, &br, Rect(rt.left - 10, rt.top - h_font - 10, rt.right - rt.left + 20, rt.bottom - rt.top + h_font + 20), 10);
@@ -2028,7 +2032,10 @@ void CNaraTimerDlg::OnPaint()
 			BOOL a = (mTitleEditingWatch ? mTitleEditingWatch : mWatches.GetHead())->IsAlarmMode();
 			mdc.SetTextColor(WHITE);
 			mdc.SetBkMode(TRANSPARENT);
-			mdc.DrawText(a ? L"Alarm" : L"Timer", CRect(rt.left, rt.top - h_font - 10, rt.right, rt.top), DT_SINGLELINE | DT_LEFT | DT_VCENTER);
+			if(h_font > 0)
+			{
+				mdc.DrawText(a ? L"Alarm" : L"Timer", CRect(rt.left, rt.top - h_font - 10, rt.right, rt.top), DT_SINGLELINE | DT_LEFT | DT_VCENTER);
+			}
 			mdc.SelectObject(fonto);
 		}
 		dc.BitBlt(0, 0, w_crt, h_crt, &mdc, 0, 0, SRCCOPY);
@@ -2392,8 +2399,8 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 				}
 				else if(mButtonHover == BUTTON_BAR)
 				{
-					mBarAlpha = 255;
-					SetTimer(TID_HIDEBAR, 1500, NULL);
+					mBarAlpha = 220;
+					SetTimer(TID_HIDEBAR, 100, NULL);
 				}
 				Invalidate(FALSE);
 				return;
@@ -2590,7 +2597,7 @@ void CNaraTimerDlg::SetViewMode(int mode)
 	}
 	if(animation)
 	{
-		mBarAlpha = 200;
+		mBarAlpha = 120;
 		DrawSlide(mViewMode == VIEW_WATCH);
 		SetTimer(TID_HIDEBAR, 1500, NULL);
 	}
