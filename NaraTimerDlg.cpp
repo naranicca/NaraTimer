@@ -559,7 +559,6 @@ void CNaraTimerDlg::Stop(void)
 		mWatches.Add();
 	}
 	KillTimer(TID_TICK);
-	SetWindowText(L"NaraTimer");
 	Invalidate(FALSE);
 }
 
@@ -878,7 +877,6 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 				CString title;
 				mTitleEdit.ShowWindow(SW_HIDE);
 				mTitleEdit.GetWindowText(title);
-				SetWindowText(title);
 				if(mTitleEditingWatch != NULL)
 				{
 					mTitleEditingWatch->mTitle = title;
@@ -1381,6 +1379,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		}
 		if (ts != mTso && !mSetting)
 		{
+#if 0
 			if (watch->mTitle.IsEmpty())
 			{
 				SetWindowText(str);
@@ -1389,6 +1388,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			{
 				SetWindowText(watch->mTitle + L" " + str);
 			}
+#endif
 			mTso = ts;
 		}
 
@@ -1433,7 +1433,6 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			int h = t.GetHour();
 			h = (h > 12 ? h - 12 : h);
 			str.Format(L"%d:%02d:%02d", (h == 0 ? 12 : h), t.GetMinute(), t.GetSecond());
-			SetWindowText(str);
 		}
 		else if(t_remain < 0)
 		{
