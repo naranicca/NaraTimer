@@ -1758,14 +1758,14 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 	}
 }
 
-void CNaraTimerDlg::DrawBar(CDC * dc)
+void CNaraTimerDlg::DrawBar(CDC * dc, RECT * rt)
 {
 	if(mBarAlpha > 0)
 	{
-		int l = mCrt.left + mRoundCorner;
-		int r = mCrt.right - mRoundCorner;
-		int w = ROUND(min(mCrt.right - mCrt.left, mCrt.bottom - mCrt.top) * 0.1f);
-		int h = w * tan(15 * 3.141592 / 180);
+		int l = rt->left + mRoundCorner;
+		int r = rt->right - mRoundCorner;
+		int w = ROUND(min(rt->right - rt->left, rt->bottom - rt->top) * 0.1f);
+		int h = w * tan(12 * 3.141592 / 180);
 		int t = max(h, 10);
 		Pen pen(Color(mBarAlpha, GetRValue(GRID_COLOR), GetGValue(GRID_COLOR), GetBValue(GRID_COLOR)), t);
 		pen.SetStartCap(LineCapRound);
@@ -1775,8 +1775,8 @@ void CNaraTimerDlg::DrawBar(CDC * dc)
 		Point pt[3];
 		if(mViewMode == VIEW_WATCH)
 		{
-			pt[1].X = (mCrt.left + mCrt.right) >> 1;
-			pt[1].Y = mCrt.bottom - (int)(mResizeMargin * 1.5f);
+			pt[1].X = (rt->left + rt->right) >> 1;
+			pt[1].Y = rt->bottom - (mResizeMargin >> 1);
 			pt[0].X = pt[1].X - w;
 			pt[0].Y = pt[1].Y - h;
 			pt[2].X = pt[1].X + w;
@@ -1785,8 +1785,8 @@ void CNaraTimerDlg::DrawBar(CDC * dc)
 		}
 		else
 		{
-			pt[1].X = (mCrt.left + mCrt.right) >> 1;
-			pt[1].Y = mCrt.top + (int)(mResizeMargin * 1.5f);
+			pt[1].X = (rt->left + rt->right) >> 1;
+			pt[1].Y = rt->top + (mResizeMargin >> 1);
 			pt[0].X = pt[1].X - w;
 			pt[0].Y = pt[1].Y + h;
 			pt[2].X = pt[1].X + w;
@@ -1934,7 +1934,7 @@ void CNaraTimerDlg::Draw(RECT * rt)
 		DrawList(&mdc, &trt);
 	}
 	DrawBorder(&mdc);
-	DrawBar(&mdc);
+	DrawBar(&mdc, &trt);
 	dc.BitBlt(0, 0, w_crt, h_crt, &mdc, 0, 0, SRCCOPY);
 
 	mdc.SelectObject(bmpo);
@@ -2016,7 +2016,7 @@ void CNaraTimerDlg::OnPaint()
 			DrawList(&mdc, &trt);
 		}
 		DrawBorder(&mdc);
-		DrawBar(&mdc);
+		DrawBar(&mdc, &trt);
 		if(TITLE_CHANGING)
 		{
 			RECT rt;
