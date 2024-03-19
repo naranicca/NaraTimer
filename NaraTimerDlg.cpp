@@ -927,7 +927,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 							if(h < 24 && num < 60)
 							{
 								int h_cur = c.GetHour();
-								if((h == h_cur || abs(h - h_cur) == 12) && m > c.GetMinute())
+								if((h == h_cur || abs(h - h_cur) == 12) && m * 60 + s > c.GetMinute() * 60 + c.GetSecond())
 								{
 									h = h_cur;
 								}
@@ -2170,6 +2170,10 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 					else
 					{
 						watch->mExpired = TRUE;
+						if(watch->mTitle.IsEmpty())
+						{
+							watch->GetDescription(watch->mTitle);
+						}
 
 						FLASHWINFO fi;
 						fi.cbSize = sizeof(FLASHWINFO);
@@ -2180,13 +2184,11 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 						::FlashWindowEx(&fi);
 						mMuteTick = 5;
 						PlaySound((LPCWSTR)MAKEINTRESOURCE(IDR_WAVE1), GetModuleHandle(NULL), SND_ASYNC | SND_RESOURCE);
-						if(watch != mWatches.GetHead() && mWatches.GetSize() > 1)
+						if(mViewMode == VIEW_WATCH && watch != mWatches.GetHead())
 						{
-							SetViewMode(VIEW_LIST);
-						}
-						else if(watch->mTitle.IsEmpty())
-						{
-							watch->GetDescription(watch->mTitle);
+							mWatches.Sort(mWatches.GetHead());
+							mWatches.Activate(watch);
+							DrawSlide(FALSE);
 						}
 
 						TIMES_UP = GetTickCount64();
