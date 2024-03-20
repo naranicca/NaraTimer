@@ -1,4 +1,8 @@
 #pragma once
+#define MODE_TIMER			(0)
+#define MODE_ALARM			(1)
+#define MODE_STOPWATCH		(2)
+
 #define TIMER_TIME360		(3600000) // 1h in ms
 #define MAX_TIME360			(12*3600000) // 12h
 
@@ -8,16 +12,15 @@ public:
 	Watch(void);
 	~Watch(void) {};
 	void Stop(void);
-	void SetMode(BOOL is_timer);
+	void SetMode(int mode);
 	LONGLONG GetRemainingTime(void);
 	BOOL IsTimeSet();
-	BOOL IsTimerMode(void);
-	BOOL IsAlarmMode(void);
 	BOOL SetTime(int h, int m, int s);
 	void SetText(wchar_t * fmt, ...);
+	int GetMode(void);
 	void GetDescription(CString & str);
 
-	BOOL mIsTimer;
+	int mMode;
 	float mTime360;
 	ULONGLONG mTimeSet;
 	CString mTitle;
@@ -35,7 +38,7 @@ public:
 	WatchList(void);
 	~WatchList(void);
 	Watch * GetHead(void);
-	Watch * GetUnset(void);
+	Watch * GetNew(void);
 	Watch * GetWatchSet(void);
 	Watch * Get(int idx);
 	int GetSize(BOOL count_unset=FALSE);
@@ -50,7 +53,7 @@ public:
 protected:
 	Watch * mHead;
 	int mSize;
-	int mLastIsTimer;
+	int mLastMode;
 public:
 	int mItemHeight;
 	int mItemHighlighted;

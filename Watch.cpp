@@ -6,8 +6,7 @@
 Watch::Watch(void)
 {
 	mTimeSet = 0;
-	mIsTimer = FALSE;
-	mTime360 = MAX_TIME360;
+	SetMode(MODE_TIMER);
 	mExpired = FALSE;
 	mPrev = NULL;
 	mNext = NULL;
@@ -18,36 +17,27 @@ void Watch::Stop(void)
 	mTitle = L"";
 	mTimeSet = 0;
 	mTimeStr = L"";
-	if(IsAlarmMode())
-	{
-		mIsTimer = FALSE;
-		mTime360 = MAX_TIME360;
-	}
-	else
-	{
-		mIsTimer = TRUE;
-		mTime360 = TIMER_TIME360;
-	}
 	mHM = { 0, };
 	mExpired = FALSE;
 }
 
-void Watch::SetMode(BOOL is_timer)
+void Watch::SetMode(int mode)
 {
 	Stop();
-	if(is_timer == IsTimerMode())
-	{
-		return;
-	}
-	if(is_timer)
+	if(mode == MODE_TIMER)
 	{
 		mTime360 = TIMER_TIME360;
-		mIsTimer = TRUE;
+		mMode = MODE_TIMER;
 	}
-	else
+	else if(mode == MODE_ALARM)
 	{
 		mTime360 = MAX_TIME360;
-		mIsTimer = FALSE;
+		mMode = MODE_ALARM;
+	}
+	else //if(mode == MODE_STOPWATCH)
+	{
+		mTime360 = 1;
+		mMode = MODE_STOPWATCH;
 	}
 }
 
@@ -56,14 +46,9 @@ inline BOOL Watch::IsTimeSet(void)
 	return (mTimeSet > 0);
 }
 
-inline BOOL Watch::IsTimerMode(void)
+inline BOOL Watch::GetMode(void)
 {
-	return (mTime360 == TIMER_TIME360);
-}
-
-inline BOOL Watch::IsAlarmMode(void)
-{
-	return !IsTimerMode();
+	return mMode;
 }
 
 LONGLONG Watch::GetRemainingTime(void)
@@ -74,7 +59,7 @@ LONGLONG Watch::GetRemainingTime(void)
 BOOL Watch::SetTime(int h, int m, int s)
 {
 	ULONGLONG tcur = (GetTickCount64() / 1000) * 1000;
-	if(IsAlarmMode())
+	if(GetMode() == MODE_ALARM)
 	{
 		ULONGLONG t = GetTickCount64();
 		SYSTEMTIME c;
@@ -115,7 +100,7 @@ void Watch::SetText(wchar_t * fmt, ...)
 
 void Watch::GetDescription(CString & str)
 {
-	if(IsAlarmMode())
+	if(GetMode() == MODE_ALARM)
 	{
 		int h = (mHM.cx < 24 ? mHM.cx : mHM.cx - 24);
 		str.Format(L"Alarm: %d:%02d", h, mHM.cy);
@@ -147,7 +132,7 @@ WatchList::WatchList(void)
 	mSize = 0;
 	mItemHeight = 0;
 	mItemHighlighted = 0;
-	mLastIsTimer = FALSE;
+	mLastMode = MODE_ALARM;
 }
 
 WatchList::~WatchList(void)
@@ -170,7 +155,7 @@ Watch * WatchList::GetHead(void)
 	return mHead;
 }
 
-Watch * WatchList::GetUnset(void)
+Watch * WatchList::GetNew(void)
 {
 	if(mHead == NULL || mHead->IsTimeSet())
 	{
@@ -226,12 +211,12 @@ Watch * WatchList::Add(void)
 		{
 			watch->mNext = mHead;
 			mHead->mPrev = watch;
-			watch->mIsTimer = mHead->mIsTimer;
+			watch->mMode = mHead->mMode;
 			watch->mTime360 = mHead->mTime360;
 		}
 		else
 		{
-			watch->SetMode(mLastIsTimer);
+			watch->SetMode(mLastMode);
 		}
 		mHead = watch;
 		mSize++;
@@ -258,7 +243,7 @@ Watch * WatchList::Remove(Watch * watch)
 			}
 			if(watch == mHead)
 			{
-				mLastIsTimer = mHead->mIsTimer;
+				mLastMode = mHead->mMode;
 				mHead = cur->mNext;
 			}
 			delete cur;
@@ -273,14 +258,14 @@ void WatchList::RemoveHead(void)
 {
 	if(mHead)
 	{
-		mLastIsTimer = mHead->mIsTimer;
+		mLastMode = mHead->mMode;
 		Remove(mHead);
 	}
 }
 
 void WatchList::RemoveStopped(void)
 {
-	mLastIsTimer = mHead->mIsTimer;
+	mLastMode = mHead->mMode;
 	Watch * cur = mHead;
 	while(cur)
 	{
@@ -297,7 +282,7 @@ void WatchList::RemoveStopped(void)
 
 void WatchList::RemoveAll(void)
 {
-	mLastIsTimer = mHead->mIsTimer;
+	mLastMode = mHead->mMode;
 	while(mHead)
 	{
 		RemoveHead();
@@ -329,7 +314,7 @@ void WatchList::Activate(Watch * watch)
 	}
 	if(mHead)
 	{
-		mLastIsTimer = mHead->mIsTimer;
+		mLastMode = mHead->mMode;
 	}
 }
 

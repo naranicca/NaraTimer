@@ -23,7 +23,7 @@ class CNaraTimerDlg : public NaraDialog
 public:
 	CNaraTimerDlg(CWnd* pParent = nullptr);
 	void Stop(void);
-	void SetViewMode(int mode);
+	void SetView(int view);
 	void SetTitle(CString str, BOOL still_editing=FALSE);
 	void SetTopmost(BOOL topmost=TRUE);
 	void SetTheme(int theme);
@@ -46,7 +46,7 @@ protected:
 	HICON m_hIcon;
 	CBitmap mBmp;
 	CBitmap mBuf;
-	int mViewMode;
+	int mView;
 	int mTheme;
 	int mDigitalWatch;
 	int mTickSound;
@@ -74,6 +74,7 @@ protected:
 	CString mVersion;
 	int mFontScale;
 	int mBarAlpha;
+	ULONGLONG mTimeClick;
 
 	void reposition(void);
 	POINT deg2pt(float deg, int r);
@@ -83,6 +84,7 @@ protected:
 	void Draw(RECT * rt);
 	void DrawSlide(BOOL swipe_down);
 	void DrawTimer(CDC * dc, Watch * watch, RECT * rt, BOOL list_mode=FALSE);
+	void DrawStopwatch(CDC * dc, Watch * watch, RECT * rt);
 	void DrawList(CDC * dc, RECT * rt);
 	void DrawPie(Graphics * g, Watch * watch, int x, int y, int r, float deg, COLORREF c=-1);
 	void DrawBar(CDC * dc, RECT * rt);
