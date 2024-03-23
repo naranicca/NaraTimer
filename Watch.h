@@ -3,6 +3,10 @@
 #define MODE_ALARM			(1)
 #define MODE_STOPWATCH		(2)
 
+#define STATUS_STOPPED		(0)
+#define STATUS_RUNNING		(1)
+#define STATUS_PAUSED		(2)
+
 #define TIMER_TIME360		(3600000) // 1h in ms
 #define MAX_TIME360			(12*3600000) // 12h
 
@@ -18,6 +22,7 @@ public:
 	BOOL SetTime(int h, int m, int s);
 	void SetText(wchar_t * fmt, ...);
 	int GetMode(void);
+	int GetStatus(void);
 	void GetDescription(CString & str);
 
 	int mMode;

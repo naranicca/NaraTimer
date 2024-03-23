@@ -14,11 +14,22 @@ Watch::Watch(void)
 
 void Watch::Stop(void)
 {
-	mTitle = L"";
-	mTimeSet = 0;
-	mTimeStr = L"";
-	mHM = { 0, };
-	mExpired = FALSE;
+	if(GetMode() != MODE_STOPWATCH)
+	{
+		mTitle = L"";
+		mTimeSet = 0;
+		mTimeStr = L"";
+		mHM = { 0, };
+		mExpired = FALSE;
+	}
+	else
+	{
+		mTitle = L"";
+		mTimeStr = L"";
+		mTimeSet = (GetTickCount64() - mTimeSet);
+		mHM = { 0, };
+		mExpired = TRUE;
+	}
 }
 
 void Watch::SetMode(int mode)
@@ -38,6 +49,8 @@ void Watch::SetMode(int mode)
 	{
 		mTime360 = 1;
 		mMode = MODE_STOPWATCH;
+		mTimeSet = 0;
+		mExpired = FALSE;
 	}
 }
 
@@ -49,6 +62,23 @@ inline BOOL Watch::IsTimeSet(void)
 inline BOOL Watch::GetMode(void)
 {
 	return mMode;
+}
+
+int Watch::GetStatus(void)
+{
+	if(IsTimeSet() == FALSE)
+	{
+		/* not started yet */
+		return STATUS_STOPPED;
+	}
+	else if(mExpired)
+	{
+		return STATUS_PAUSED;
+	}
+	else
+	{
+		return STATUS_RUNNING;
+	}
 }
 
 LONGLONG Watch::GetRemainingTime(void)
@@ -105,7 +135,7 @@ void Watch::GetDescription(CString & str)
 		int h = (mHM.cx < 24 ? mHM.cx : mHM.cx - 24);
 		str.Format(L"Alarm: %d:%02d", h, mHM.cy);
 	}
-	else
+	else if(GetMode() == MODE_TIMER)
 	{
 		int m = mHM.cx;
 		int s = mHM.cy;
@@ -121,6 +151,10 @@ void Watch::GetDescription(CString & str)
 		{
 			str.Format(L"Timer: %d:%02d", mHM.cx, mHM.cy);
 		}
+	}
+	else
+	{
+		str = L"Stopwatch";
 	}
 }
 

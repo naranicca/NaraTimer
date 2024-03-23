@@ -92,6 +92,9 @@ protected:
 	void DrawHUD(CDC * dc, CString str);
 	ULONGLONG GetTimestamp(void);
 	void StopTimesUp(void);
+	void StopwatchStart(Watch * watch);
+	void StopwatchPause(Watch * watch);
+	void StopwatchStop(Watch * watch);
 
 	virtual BOOL OnInitDialog();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
