@@ -26,10 +26,11 @@ BOOL TITLE_CHANGING = FALSE;
 
 #define TID_TICK			(0)
 #define TID_REFRESH			(1)
-#define TID_STOPWATCH		(2)
-#define TID_TIMESUP			(3)
-#define TID_HIDEBAR			(4)
-#define TID_HELP			(5)
+#define TID_LOADING			(2)
+#define TID_STOPWATCH		(3)
+#define TID_TIMESUP			(4)
+#define TID_HIDEBAR			(5)
+#define TID_HELP			(6)
 
 #pragma comment(lib, "winmm")
 #include <mmsystem.h>
@@ -869,6 +870,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 					StopwatchPause(watch);
 				}
 			}
+			KillTimer(TID_LOADING);
 			mTimeClick = 0;
 		}
 		break;
@@ -881,6 +883,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 				if(mTimeClick == 0)
 				{
 					mTimeClick = GetTickCount64();
+					SetTimer(TID_LOADING, 100, NULL);
 				}
 				return TRUE;
 			}
@@ -2205,7 +2208,7 @@ void CNaraTimerDlg::OnNcCalcSize(BOOL bCalcValidRects, NCCALCSIZE_PARAMS* params
 	NaraDialog::OnNcCalcSize(bCalcValidRects, params);
 }
 
-void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
+void CNaraTimerDlg::OnTimer(UINT_PTR id)
 {
 	if(mInstructionIdx > 0)
 	{
@@ -2296,7 +2299,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 		KillTimer(TID_HELP);
 	}
 
-	if (nIDEvent == TID_TICK)
+	if (id == TID_TICK)
 	{
 		if(!mSetting)
 		{
@@ -2328,7 +2331,6 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 						PlaySound((LPCWSTR)MAKEINTRESOURCE(IDR_WAVE1), GetModuleHandle(NULL), SND_ASYNC | SND_RESOURCE);
 						if(mView == VIEW_WATCH && watch != mWatches.GetHead())
 						{
-							mWatches.Sort(mWatches.GetHead());
 							mWatches.Activate(watch);
 							DrawSlide(FALSE);
 						}
@@ -2341,17 +2343,8 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 			}
 		}
 	}
-	else if (nIDEvent == TID_REFRESH)
+	else if (id == TID_REFRESH)
 	{
-		if(mTimeClick > 0 && GetTickCount64() - mTimeClick >= 1500)
-		{
-			Watch * watch = mWatches.GetNew();
-			watch->SetMode(MODE_STOPWATCH);
-			Invalidate(FALSE);
-			mTimeClick = 0;
-			SetRect(&mButtonRect[BUTTON_CENTER], 0, 0, 0, 0);
-			mButtonHover = -1;
-		}
 		Watch * watch = mWatches.GetHead();
 		if(watch->GetMode() == MODE_TIMER || mDigitalWatch)
 		{
@@ -2365,7 +2358,28 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 			}
 		}
 	}
-	else if(nIDEvent == TID_STOPWATCH)
+	else if(id == TID_LOADING)
+	{
+		if(mTimeClick > 0)
+		{
+			if(GetTickCount64() - mTimeClick >= 1500)
+			{
+				mTimeClick = 0;
+				SetRect(&mButtonRect[BUTTON_CENTER], 0, 0, 0, 0);
+				mButtonHover = -1;
+				KillTimer(id);
+				Watch * watch = mWatches.GetNew();
+				watch->SetMode(MODE_STOPWATCH);
+				mWatches.Activate(watch);
+				SetView(VIEW_WATCH);
+			}
+		}
+		else
+		{
+			KillTimer(id);
+		}
+	}
+	else if(id == TID_STOPWATCH)
 	{
 		Invalidate(FALSE);
 		Watch * watch = mWatches.GetHead();
@@ -2379,7 +2393,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 		}
 		KillTimer(TID_STOPWATCH);
 	}
-	else if(nIDEvent == TID_TIMESUP)
+	else if(id == TID_TIMESUP)
 	{
 		if(TIMES_UP < 0)
 		{
@@ -2387,7 +2401,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 		}
 		Invalidate(FALSE);
 	}
-	else if(nIDEvent == TID_HIDEBAR)
+	else if(id == TID_HIDEBAR)
 	{
 		POINT pt;
 		GetCursorPos(&pt);
@@ -2407,11 +2421,11 @@ void CNaraTimerDlg::OnTimer(UINT_PTR nIDEvent)
 			Invalidate(FALSE);
 		}
 	}
-	else if(nIDEvent == TID_HELP)
+	else if(id == TID_HELP)
 	{
 		Invalidate(FALSE);
 	}
-	NaraDialog::OnTimer(nIDEvent);
+	NaraDialog::OnTimer(id);
 }
 
 void CNaraTimerDlg::SetTitle(CString str, BOOL still_editing)
@@ -2464,6 +2478,7 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 			if(i == BUTTON_CENTER)
 			{
 				mTimeClick = GetTickCount64();
+				SetTimer(TID_LOADING, 100, NULL);
 			}
 			Invalidate(FALSE);
 			SetCapture();
@@ -2655,6 +2670,7 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 	NaraDialog::OnLButtonUp(nFlags, pt);
 
 	mTimeClick = 0;
+	KillTimer(TID_LOADING);
 
 	if(mButtonHover >= 0)
 	{
@@ -2717,25 +2733,6 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 		Invalidate(FALSE);
 		ReleaseCapture();
 	}
-	else if(mWatches.GetHead()->GetMode() == MODE_STOPWATCH)
-	{
-		Watch * watch = mWatches.GetHead();
-		int status = watch->GetStatus();
-		if(status == STATUS_STOPPED)
-		{
-			ReleaseCapture();
-			mWatches.GetHead()->mTimeSet = GetTickCount64();
-			SetTimer(TID_STOPWATCH, 33, NULL);
-		}
-		else if(status == STATUS_RUNNING)
-		{
-			StopwatchPause(watch);
-		}
-		else if(status == STATUS_PAUSED)
-		{
-			StopwatchStart(watch);
-		}
-	}
 	else if(mView == VIEW_WATCH)
 	{
 		if(mSetting)
@@ -2750,13 +2747,31 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 				if(mWatches.GetSize() > 1)
 				{
 					Watch * watch = mWatches.GetHead();
-					mWatches.Sort(watch);
 					mWatches.Activate(watch);
 				}
 			}
 			else
 			{
 				Stop();
+			}
+		}
+		else if(mWatches.GetHead()->GetMode() == MODE_STOPWATCH)
+		{
+			Watch * watch = mWatches.GetHead();
+			int status = watch->GetStatus();
+			if(status == STATUS_STOPPED)
+			{
+				ReleaseCapture();
+				mWatches.GetHead()->mTimeSet = GetTickCount64();
+				SetTimer(TID_STOPWATCH, 33, NULL);
+			}
+			else if(status == STATUS_RUNNING)
+			{
+				StopwatchPause(watch);
+			}
+			else if(status == STATUS_PAUSED)
+			{
+				StopwatchStart(watch);
 			}
 		}
 	}

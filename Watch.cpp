@@ -83,7 +83,14 @@ int Watch::GetStatus(void)
 
 LONGLONG Watch::GetRemainingTime(void)
 {
-	return (IsTimeSet() ? mTimeSet - GetTickCount64() : 0);
+	if(GetMode() == MODE_STOPWATCH)
+	{
+		return INT_MAX;
+	}
+	else
+	{
+		return (IsTimeSet() ? mTimeSet - GetTickCount64() : 0);
+	}
 }
 
 BOOL Watch::SetTime(int h, int m, int s)
@@ -331,6 +338,10 @@ void WatchList::Activate(Watch * watch)
 	if(mHead->IsTimeSet() == FALSE)
 	{
 		RemoveHead();
+	}
+	else
+	{
+		Sort(mHead);
 	}
 	Watch * cur = mHead;
 	while(cur)
