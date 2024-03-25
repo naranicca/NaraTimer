@@ -912,9 +912,14 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 				Watch * watch = mWatches.GetHead();
 				if(watch->GetMode() == MODE_STOPWATCH)
 				{
-					watch->SetMode(MODE_ALARM);
-					watch->Stop();
-					Invalidate(FALSE);
+					NaraMessageBox dlg(this, TRUE);
+					dlg.AddHeading(L"Stop the stopwatch mode?");
+					if(dlg.DoModal() == IDOK)
+					{
+						watch->SetMode(MODE_ALARM);
+						watch->Stop();
+						Invalidate(FALSE);
+					}
 					return TRUE;
 				}
 				else if(mView == VIEW_WATCH)
