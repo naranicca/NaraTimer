@@ -910,14 +910,21 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			else
 			{
 				Watch * watch = mWatches.GetHead();
-				if(watch->GetMode() == MODE_STOPWATCH)
+				if(mView == VIEW_WATCH && watch->GetMode() == MODE_STOPWATCH)
 				{
 					NaraMessageBox dlg(this, TRUE);
 					dlg.AddHeading(L"Stop the stopwatch mode?");
 					if(dlg.DoModal() == IDOK)
 					{
-						watch->SetMode(MODE_ALARM);
-						watch->Stop();
+						if(mWatches.GetSize() > 1)
+						{
+							mWatches.Remove(watch);
+						}
+						else
+						{
+							watch->SetMode(MODE_ALARM);
+							watch->Stop();
+						}
 						Invalidate(FALSE);
 					}
 					return TRUE;
@@ -1169,6 +1176,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 			if(PT_IN_RECT(pt, mButtonRect[BUTTON_CENTER]))
 			{
 				mTimeClick = GetTickCount64();
+				SetTimer(TID_LOADING, 100, NULL);
 			}
 		}
 		break;
@@ -1444,18 +1452,21 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 	// draw red pie
 	LONGLONG t_remain = watch->GetRemainingTime();
 	float deg = 0;
-	if(watch->GetMode() == MODE_TIMER || !mSetting)
+	if(mOldDeg > -mDegOffset)
 	{
-		deg = 360.f * t_remain / watch->mTime360;
-		deg -= mDegOffset;
+		if(watch->GetMode() == MODE_TIMER || !mSetting)
+		{
+			deg = 360.f * t_remain / watch->mTime360;
+			deg -= mDegOffset;
+		}
+		else if(t_remain > 0)
+		{
+			CTime c = CTime::GetCurrentTime();
+			int o = c.GetMinute() * 60 + c.GetSecond();
+			deg = 360.f * (t_remain + o * 1000) / MAX_TIME360;
+		}
+		DrawPie(&g, watch, x, y, r, deg, PIE_COLOR);
 	}
-	else if (t_remain > 0)
-	{
-		CTime c = CTime::GetCurrentTime();
-		int o = c.GetMinute() * 60 + c.GetSecond();
-		deg = 360.f * (t_remain + o * 1000) / MAX_TIME360;
-	}
-	DrawPie(&g, watch, x, y, r, deg, PIE_COLOR);
 	CString str = L"";
 	if (deg > -mDegOffset)
 	{

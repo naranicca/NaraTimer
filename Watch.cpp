@@ -231,7 +231,7 @@ Watch * WatchList::Get(int idx)
 
 int WatchList::GetSize(BOOL count_unset)
 {
-	if(count_unset == FALSE && mHead->IsTimeSet() == FALSE)
+	if(count_unset == FALSE && mHead && mHead->IsTimeSet() == FALSE)
 	{
 		return mSize - 1;
 	}
