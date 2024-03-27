@@ -86,7 +86,7 @@ protected:
 	void DrawTimer(CDC * dc, Watch * watch, RECT * rt, BOOL list_mode=FALSE);
 	void DrawStopwatch(CDC * dc, Watch * watch, RECT * rt);
 	void DrawList(CDC * dc, RECT * rt);
-	void DrawPie(Graphics * g, Watch * watch, int x, int y, int r, float deg, COLORREF c=-1);
+	void DrawPie(Graphics * g, Watch * watch, int x, int y, int r, float deg, COLORREF c=-1, int opaque=255);
 	void DrawBar(CDC * dc, RECT * rt);
 	void DrawBorder(CDC * dc);
 	void DrawHUD(CDC * dc, CString str);

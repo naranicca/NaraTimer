@@ -552,7 +552,6 @@ void CNaraTimerDlg::Stop(void)
 		if(mWatches.GetSize() > 0 && mWatches.GetHead()->IsTimeSet() == FALSE)
 		{
 			mWatches.RemoveHead();
-			Sleep(500);
 			DrawSlide(FALSE);
 		}
 	}
@@ -1241,19 +1240,26 @@ Watch * CNaraTimerDlg::SettingTime(float deg, BOOL stick)
 	}
 	else
 	{
-		ULONGLONG t = (ULONGLONG)(deg * watch->mTime360 / 360);
-		t = ((t + 30000) / 60000) * 60000;
-		if (stick)
+		if(deg > -mDegOffset)
 		{
-			t = ((t + 300000) / 600000) * 600000;
+			ULONGLONG t = (ULONGLONG)(deg * watch->mTime360 / 360);
+			t = ((t + 30000) / 60000) * 60000;
+			if(stick)
+			{
+				t = ((t + 300000) / 600000) * 600000;
+			}
+			CTime c = CTime::GetCurrentTime();
+			t /= 1000;
+			int h = c.GetHour() + (int)(t / 3600);
+			int m = (int)((t % 3600) / 60);
+			watch->SetTime(h, m, 0);
+			h = (h < 24 ? h : h - 24);
+			watch->SetText(L"%d:%02d %s", (h > 12 ? h - 12 : h), m, h < 12 ? L"am" : L"pm");
 		}
-		CTime c = CTime::GetCurrentTime();
-		t /= 1000;
-		int h = c.GetHour() + (int)(t / 3600);
-		int m = (int)((t % 3600) / 60);
-		watch->SetTime(h, m, 0);
-		h = (h < 24 ? h : h - 24);
-		watch->SetText(L"%d:%02d %s", (h > 12 ? h - 12 : h), m, h < 12? L"am": L"pm");
+		else
+		{
+			watch->mTimeSet = 0;
+		}
 	}
 	return watch;
 }
@@ -1452,20 +1458,44 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 	// draw red pie
 	LONGLONG t_remain = watch->GetRemainingTime();
 	float deg = 0;
-	if(mOldDeg > -mDegOffset)
+	if(!mSetting || t_remain > 0)
 	{
-		if(watch->GetMode() == MODE_TIMER || !mSetting)
+		deg = (360.f * t_remain / watch->mTime360) - mDegOffset;
+	}
+	BOOL earliest = TRUE;
+	if(mView == VIEW_WATCH && watch->GetMode() == MODE_ALARM)
+	{
+		Watch * cur = mWatches.GetHead();
+		while(cur)
 		{
-			deg = 360.f * t_remain / watch->mTime360;
-			deg -= mDegOffset;
+			if(cur != watch && cur->GetMode() == MODE_ALARM)
+			{
+				if(cur->GetRemainingTime() > t_remain)
+				{
+					float deg = (360.f * cur->GetRemainingTime() / cur->mTime360) - mDegOffset;
+					DrawPie(&g, cur, x, y, r, deg, GRID_COLOR, 80);
+				}
+				else
+				{
+					earliest = FALSE;
+				}
+			}
+			cur = cur->mNext;
 		}
-		else if(t_remain > 0)
+	}
+	DrawPie(&g, watch, x, y, r, deg, PIE_COLOR);
+	if(earliest == FALSE)
+	{
+		Watch * cur = mWatches.GetHead();
+		while(cur)
 		{
-			CTime c = CTime::GetCurrentTime();
-			int o = c.GetMinute() * 60 + c.GetSecond();
-			deg = 360.f * (t_remain + o * 1000) / MAX_TIME360;
+			if(cur != watch && cur->GetMode() == MODE_ALARM && cur->GetRemainingTime() < t_remain)
+			{
+				float deg = (360.f * cur->GetRemainingTime() / cur->mTime360) - mDegOffset;
+				DrawPie(&g, cur, x, y, r, deg, GRID_COLOR, 80);
+			}
+			cur = cur->mNext;
 		}
-		DrawPie(&g, watch, x, y, r, deg, PIE_COLOR);
 	}
 	CString str = L"";
 	if (deg > -mDegOffset)
@@ -1732,12 +1762,9 @@ void CNaraTimerDlg::DrawStopwatch(CDC * dc, Watch * watch, RECT * dst)
 	CFont tfont;
 	GetFont(tfont, rt.bottom - rt.top, FALSE);
 	CFont * fonto = dc->SelectObject(&tfont);
+	dc->SetTextColor(GRID_COLOR);
 	dc->DrawText(L"888:88:88.888", &trt, DT_SINGLELINE | DT_LEFT | DT_CALCRECT);
 	dc->SelectObject(fonto);
-	// (0, 0) (h_rt, w_trt)
-	// w_trt * h_font / h_rt + d + LIST_GAP = w_rt
-	// w_trt * h_font / h_rt = w_rt - d - LIST_GAP
-	// h_font = (w_rt - d - LIST_GAP) * h_rt / w_trt
 	int r = (mView == VIEW_LIST ? (min(rt.right - rt.left, rt.bottom - rt.top) >> 1) - LIST_GAP : 0);
 	int h_font = ((rt.right - rt.left) - (r << 1) - LIST_GAP) * (rt.bottom - rt.top) / (trt.right - trt.left);
 	CFont font;
@@ -2027,13 +2054,13 @@ void CNaraTimerDlg::DrawHUD(CDC * dc, CString str)
 	dc->SelectObject(fonto);
 }
 
-void CNaraTimerDlg::DrawPie(Graphics * g, Watch * watch, int x, int y, int r, float deg, COLORREF c)
+void CNaraTimerDlg::DrawPie(Graphics * g, Watch * watch, int x, int y, int r, float deg, COLORREF c, int opaque)
 {
 	if(mView == VIEW_LIST && watch->mExpired) return;
 	if(watch->mExpired == FALSE && deg > -mDegOffset)
 	{
 		if(c == -1) c = RED;
-		SolidBrush brred(Color(255, GetRValue(c), GetGValue(c), GetBValue(c)));
+		SolidBrush brred(Color(opaque, GetRValue(c), GetGValue(c), GetBValue(c)));
 		if(deg > 0)
 		{
 			POINT t = deg2pt(deg, r);
