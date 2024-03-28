@@ -1489,10 +1489,17 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		Watch * cur = mWatches.GetHead();
 		while(cur)
 		{
-			if(cur != watch && cur->GetMode() == MODE_ALARM && cur->GetRemainingTime() < t_remain)
+			if(cur != watch && cur->GetMode() == MODE_ALARM)
 			{
-				float deg = (360.f * cur->GetRemainingTime() / cur->mTime360) - mDegOffset;
-				DrawPie(&g, cur, x, y, r, deg, GRID_COLOR, 80);
+				if(cur->GetRemainingTime() < t_remain)
+				{
+					float deg = (360.f * cur->GetRemainingTime() / cur->mTime360) - mDegOffset;
+					DrawPie(&g, cur, x, y, r, deg, GRID_COLOR, 80);
+				}
+				else
+				{
+					break;
+				}
 			}
 			cur = cur->mNext;
 		}
@@ -1510,9 +1517,9 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			int m = (int)(ts / 60);
 			str.Format(L"-%d:%02d:%02d", (int)(m / 60), (int)(m % 60), (int)(ts % 60));
 		}
+#if 0
 		if (ts != mTso && !mSetting)
 		{
-#if 0
 			if (watch->mTitle.IsEmpty())
 			{
 				SetWindowText(str);
@@ -1521,9 +1528,9 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			{
 				SetWindowText(watch->mTitle + L" " + str);
 			}
-#endif
 			mTso = ts;
 		}
+#endif
 
 		if(watch->mHM.cy > 0 && mFontScale > 0 && !list_mode)
 		{
@@ -1659,9 +1666,9 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			g.DrawLine(&pencl, x + r, y + r, x + r + pt1.x, y + r + pt1.y);
 
 			DEFINE_PEN(pen, HAND_COLOR, 255, pt * 0.3f);
-			pen.SetStartCap(LineCapSquare);
-			pen.SetEndCap(LineCapTriangle);
-			pt0 = deg2pt(deg, head_size + head_size / 2);
+			pen.SetStartCap(LineCapFlat);
+			pen.SetEndCap(LineCapFlat);
+			pt0 = deg2pt(deg, ROUND(r * 0.6f * hand_size));
 			pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2));
 			g.DrawLine(&pen, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
 		}
@@ -2075,6 +2082,41 @@ void CNaraTimerDlg::DrawPie(Graphics * g, Watch * watch, int x, int y, int r, fl
 					g->FillPie(&brred, Rect(x, y, (r << 1), r << 1), -90, -deg - mDegOffset);
 				}
 			}
+			if(opaque != 255)
+			{
+				POINT t0 = deg2pt(deg, r);
+				POINT t1 = deg2pt(deg, r + mGridSize*2);
+				t0.x += x + r;
+				t0.y += y + r;
+				t1.x += x + r;
+				t1.y += y + r;
+				POINT t2 = deg2pt(deg - 90, mGridSize);
+				t2.x += t1.x;
+				t2.y += t1.y;
+				POINT t3 = deg2pt(deg + 90, mGridSize);
+				t3.x += t1.x;
+				t3.y += t1.y;
+
+				POINT pt;
+				GetCursorPos(&pt);
+				ScreenToClient(&pt);
+				int cx = (t0.x + t1.x) >> 1;
+				int cy = (t0.y + t1.y) >> 1;
+				watch->mMarkerHover = (SQ(cx - pt.x) + SQ(cy - pt.y) <= SQ(mGridSize));
+
+				COLORREF m = (watch->mMarkerHover ? PIE_COLOR : c);
+				GraphicsPath path;
+				path.AddLine(t0.x, t0.y, t2.x, t2.y);
+				path.AddLine(t2.x, t2.y, t3.x, t3.y);
+				path.AddLine(t3.x, t3.y, t0.x, t0.y);
+				path.CloseFigure();
+				SolidBrush br(Color(160, GetRValue(m), GetGValue(m), GetBValue(m)));
+				g->FillPath(&br, &path);
+			}
+			else
+			{
+				watch->mMarkerHover = FALSE;
+			}
 		}
 	}
 	Pen pg(watch->GetMode() == MODE_TIMER ? Color(255, 128, 128, 128) : Color(255, GetRValue(c), GetGValue(c), GetBValue(c)), 1);
@@ -2089,7 +2131,7 @@ BOOL CNaraTimerDlg::OnEraseBkgnd(CDC* pDC)
 static void bmp_init(CBitmap * bmp, CDC * dc, int w, int h)
 {
 	BITMAP bm;
-	if (bmp->m_hObject && bmp->GetBitmap(&bm) && (bm.bmWidth != w || bm.bmHeight != h))
+	if (bmp->m_hObject && bmp->GetBitmap(&bm) && (bm.bmWidth < w || bm.bmHeight < h))
 	{
 		bmp->DeleteObject();
 	}
@@ -2547,6 +2589,20 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 		}
 		else
 		{
+			{
+				Watch * cur = mWatches.GetHead();
+				while(cur)
+				{
+					if(cur->mMarkerHover)
+					{
+						mWatches.Sort(mWatches.GetHead());
+						mWatches.Activate(cur);
+						return;
+					}
+					cur = cur->mNext;
+				}
+			}
+
 			if(mTitleEdit.GetWindowTextLength() == 0)
 			{
 				mWatches.GetHead()->mTitle = L"";

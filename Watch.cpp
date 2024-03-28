@@ -10,6 +10,7 @@ Watch::Watch(void)
 	mExpired = FALSE;
 	mPrev = NULL;
 	mNext = NULL;
+	mMarkerHover = FALSE;
 }
 
 void Watch::Stop(void)

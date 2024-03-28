@@ -32,6 +32,7 @@ public:
 	CString mTimeStr;
 	SIZE mHM;
 	BOOL mExpired;
+	BOOL mMarkerHover;
 
 	Watch * mPrev;
 	Watch * mNext;
