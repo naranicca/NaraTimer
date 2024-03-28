@@ -2589,6 +2589,7 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 		}
 		else
 		{
+			// check if alarm marker is clicked
 			{
 				Watch * cur = mWatches.GetHead();
 				while(cur)
@@ -2597,6 +2598,7 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 					{
 						mWatches.Sort(mWatches.GetHead());
 						mWatches.Activate(cur);
+						mSetting = cur;
 						return;
 					}
 					cur = cur->mNext;
