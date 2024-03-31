@@ -7,7 +7,7 @@
 #define BUTTON_CENTER		(2)
 #define BUTTON_REMOVE		(3)
 #define BUTTON_BAR			(4)
-#define NUM_BUTTONS			(5)
+#define NUM_BUTTONS			(6)
 
 #define THEME_DEFAULT		(0)
 #define THEME_DARK			(1)
@@ -90,11 +90,11 @@ protected:
 	void DrawBar(CDC * dc, RECT * rt);
 	void DrawBorder(CDC * dc);
 	void DrawHUD(CDC * dc, CString str);
+	void DrawLoadingBar(CDC * dc);
 	ULONGLONG GetTimestamp(void);
 	void StopTimesUp(void);
 	void StopwatchStart(Watch * watch);
 	void StopwatchPause(Watch * watch);
-	void StopwatchStop(Watch * watch);
 
 	virtual BOOL OnInitDialog();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
