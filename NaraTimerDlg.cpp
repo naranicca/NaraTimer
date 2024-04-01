@@ -43,8 +43,8 @@ BOOL TITLE_CHANGING = FALSE;
 #define SET_DOCKED_STYLE	ModifyStyle(WS_CAPTION|WS_THICKFRAME|WS_SYSMENU|WS_MINIMIZEBOX|WS_MAXIMIZEBOX, WS_POPUP)
 #define SET_WINDOWED_STYLE	ModifyStyle(WS_CAPTION|WS_POPUP, WS_THICKFRAME|WS_SYSMENU|WS_MINIMIZEBOX|WS_MAXIMIZEBOX)
 #define SET_BUTTON(id, idi, idi_hover) { mButtonIcon[id] = idi; mButtonIconHover[id] = idi_hover; }
-#define DEFINE_PEN(name, color, opaque, width)	Pen name(Color(opaque, GetRValue(color), GetGValue(color), GetBValue(color)), width)
 #define rgba(c, alpha)		(Color(alpha, GetRValue(c), GetGValue(c), GetBValue(c)))
+#define DEFINE_PEN(name, color, opaque, width)	Pen name(rgba(color, opaque), width)
 
 #define WM_PIN				(WM_USER+1)
 
@@ -549,6 +549,7 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 
 void CNaraTimerDlg::Stop(void)
 {
+	KillTimer(TID_TICK);
 	if(mView == VIEW_WATCH)
 	{
 		Watch * watch = mWatches.GetHead();
@@ -575,7 +576,6 @@ void CNaraTimerDlg::Stop(void)
 		mWatches.RemoveAll();
 		mWatches.Add();
 	}
-	KillTimer(TID_TICK);
 	Invalidate(FALSE);
 }
 
@@ -1233,7 +1233,7 @@ Watch * CNaraTimerDlg::SettingTime(float deg, BOOL stick)
 			t = ((t + 30000) / 60000) * 60000;
 		}
 		watch->SetText(L"%d:%02d", (t / 60000), ((t % 60000) + 500) / 1000);
-		watch->SetTime(0, (t / 60000), ((t % 60000) + 500) / 1000);
+		watch->SetTime(0, (int)(t / 60000), ((t % 60000) + 500) / 1000);
 	}
 	else
 	{
@@ -1574,7 +1574,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		else if(t_remain < 0)
 		{
 			LONGLONG t = (- t_remain + 500) / 1000;
-			int h = (t / 3600);
+			int h = (int)(t / 3600);
 			int m = (t % 3600) / 60;
 			int s = (t % 60);
 			if(h == 0)
@@ -1611,7 +1611,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 	}
 
 	// draw date complications
-	if(mHasDate && !list_mode)
+	if(mHasDate && !list_mode && r >= 5)
 	{
 		CFont font;
 		GetFont(font, r / 5, TRUE);
@@ -1716,7 +1716,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		dc->DrawText(str, &trt, DT_SINGLELINE | DT_CALCRECT);
 		int w = trt.right - trt.left;
 		float t = GetTickCount64() - TIMES_UP;
-		trt.left = t * (rt->left - w - rt->right) / 5000 + rt->right;
+		trt.left = (LONG)(t * (rt->left - w - rt->right) / 5000 + rt->right);
 		trt.top = rt->top;
 		trt.right = trt.left + w;
 		trt.bottom = rt->bottom;
@@ -1725,7 +1725,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		dc->SelectObject(fonto);
 		if(trt.right < 0)
 		{
-			TIMES_UP = GetTickCount64();
+			TIMES_UP = (float)GetTickCount64();
 		}
 	}
 
@@ -1777,13 +1777,14 @@ void CNaraTimerDlg::DrawStopwatch(CDC * dc, Watch * watch, RECT * dst)
 	int h_font = ((rt.right - rt.left) - (r << 1) - LIST_GAP) * (rt.bottom - rt.top) / (trt.right - trt.left);
 	if(mView == VIEW_WATCH)
 	{
-		h_font = min(h_font, rt.bottom - rt.left - mRoundCorner * 2 - LIST_GAP * 2);
+		h_font = min(h_font, rt.bottom - rt.left);
 	}
 	CFont font;
 	GetFont(font, h_font, FALSE);
 	fonto = dc->SelectObject(&font);
 
-	int dt, t, h, m, s, ms;
+	LONGLONG dt;
+	int t, h, m, s, ms;
 	if(watch->mTimeSet > 0)
 	{
 		if(watch->mExpired == FALSE)
@@ -1794,8 +1795,8 @@ void CNaraTimerDlg::DrawStopwatch(CDC * dc, Watch * watch, RECT * dst)
 		{
 			dt = watch->mTimeSet;
 		}
-		t = (dt / 1000);
-		ms = (dt - t * 1000);
+		t = (int)(dt / 1000);
+		ms = (int)(dt - t * 1000);
 		h = (t / 3600);
 		m = (t % 3600) / 60;
 		s = (t % 60);
@@ -1836,46 +1837,46 @@ void CNaraTimerDlg::DrawStopwatch(CDC * dc, Watch * watch, RECT * dst)
 		mButtonRect[BUTTON_CLOSE].left = mButtonRect[BUTTON_CLOSE].right - w;
 		mButtonRect[BUTTON_CLOSE].bottom = ((dst->top + dst->bottom - h_font) >> 1) + (h >> 1);
 		mButtonRect[BUTTON_CLOSE].top = mButtonRect[BUTTON_CLOSE].bottom - h;
-	}
 
-	POINT pt;
-	GetCursorPos(&pt);
-	ScreenToClient(&pt);
-	int opaque = (PT_IN_RECT(pt, mButtonRect[BUTTON_CENTER]) ? 255 : 128);
-	int status = watch->GetStatus();
-	if(status == STATUS_RUNNING || status == STATUS_PAUSED)
-	{
-		int cx = ((dst->left + dst->right) >> 1);
-		int y = ((dst->top + dst->bottom + h_font) >> 1);
-		int r = ROUND((dst->bottom - mResizeMargin - y) * 0.25f);
-		int thick = ROUND(r * 0.3);
-		int cy = ((y + dst->bottom - mResizeMargin) >> 1);
-		y = cy - r;
-		SetRect(&mButtonRect[BUTTON_CENTER], cx - r, y, cx + r, cy + r);
-		Pen pen(rgba(GRID_COLOR, opaque), thick);
-		g.DrawEllipse(&pen, Rect(cx - r, y, r << 1, r << 1));
-		int off = ROUND(thick * 0.8f);
-		int y0 = ROUND(cy - r * 0.55f);
-		int y1 = ROUND(cy + r * 0.55f);
-		if(status == STATUS_RUNNING)
+		POINT pt;
+		GetCursorPos(&pt);
+		ScreenToClient(&pt);
+		int opaque = (PT_IN_RECT(pt, mButtonRect[BUTTON_CENTER]) ? 255 : 128);
+		int status = watch->GetStatus();
+		if(status == STATUS_RUNNING || status == STATUS_PAUSED)
 		{
-			g.DrawLine(&pen, cx - off, y0, cx - off, y1);
-			g.DrawLine(&pen, cx + off, y0, cx + off, y1);
-		}
-		else
-		{
-			GraphicsPath path;
-			SolidBrush br(rgba(GRID_COLOR, opaque));
-			Point pt[4];
-			pt[0].X = cx - off;
-			pt[0].Y = y0;
-			pt[1].X = cx - off;
-			pt[1].Y = y1;
-			pt[2].X = cx + off + thick;
-			pt[2].Y = cy;
-			pt[3].X = pt[0].X;
-			pt[3].Y = pt[0].Y;
-			g.FillPolygon(&br, pt, 4);
+			int cx = ((dst->left + dst->right) >> 1);
+			int y = ((dst->top + dst->bottom + h_font) >> 1);
+			int r = max(16, ROUND((dst->bottom - mResizeMargin - y) * 0.25f));
+			int thick = ROUND(r * 0.3);
+			int cy = ((y + dst->bottom - mResizeMargin) >> 1);
+			y = cy - r;
+			SetRect(&mButtonRect[BUTTON_CENTER], cx - r, y, cx + r, cy + r);
+			Pen pen(rgba(GRID_COLOR, opaque), thick);
+			g.DrawEllipse(&pen, Rect(cx - r, y, r << 1, r << 1));
+			int off = ROUND(thick * 0.8f);
+			int y0 = ROUND(cy - r * 0.55f);
+			int y1 = ROUND(cy + r * 0.55f);
+			if(status == STATUS_RUNNING)
+			{
+				g.DrawLine(&pen, cx - off, y0, cx - off, y1);
+				g.DrawLine(&pen, cx + off, y0, cx + off, y1);
+			}
+			else
+			{
+				GraphicsPath path;
+				SolidBrush br(rgba(GRID_COLOR, opaque));
+				Point pt[4];
+				pt[0].X = cx - off;
+				pt[0].Y = y0;
+				pt[1].X = cx - off;
+				pt[1].Y = y1;
+				pt[2].X = cx + off + thick;
+				pt[2].Y = cy;
+				pt[3].X = pt[0].X;
+				pt[3].Y = pt[0].Y;
+				g.FillPolygon(&br, pt, 4);
+			}
 		}
 	}
 
@@ -1891,7 +1892,7 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 	float h_watch = (float)h_crt / min(mWatches.GetSize(), 3);
 
 	/* estimating font size */
-	int font_size = h_watch - LIST_GAP;
+	int font_size = (int)(h_watch - LIST_GAP);
 	if(num_watches <= 1)
 	{
 		font_size = h_crt - (mRoundCorner >> 1);
@@ -1919,7 +1920,7 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 	{
 		h_watch = min(h_watch, (h_crt - mRoundCorner * 2 + mResizeMargin * 2) / num_watches);
 	}
-	mWatches.mItemHeight = h_watch;
+	mWatches.mItemHeight = (int)h_watch;
 	dc->SelectObject(fonto);
 
 	if(num_watches > 0)
@@ -2128,7 +2129,7 @@ void CNaraTimerDlg::DrawLoadingBar(CDC * dc)
 		{
 			int cx = ((mButtonRect[BUTTON_CENTER].left + mButtonRect[BUTTON_CENTER].right) >> 1);
 			int y = mButtonRect[BUTTON_CENTER].top - LIST_GAP;
-			int w = ROUND(mRadius * 0.3f);
+			int w = ROUND(min(mCrt.right - mCrt.left, mCrt.bottom - mCrt.top) * 0.1f);
 			int h = ROUND(w * 0.2f);
 			int bar_x = cx - (w >> 1);
 			int bar_y = y;
@@ -2268,17 +2269,21 @@ void CNaraTimerDlg::DrawSlide(BOOL slide_down)
 			dt = 300;
 			cond = FALSE;
 		}
-		float r = tanh(dt / 80.f);
+		float r = (float)tanh(dt / 80.f);
 		if(slide_down)
 		{
-			rt.top = r * mCrt.top + (1 - r) * (mCrt.top + mCrt.top - mCrt.bottom);
+			rt.top = (LONG)(r * mCrt.top + (1 - r) * (mCrt.top + mCrt.top - mCrt.bottom));
 		}
 		else
 		{
-			rt.top = r * mCrt.top + (1 - r) * mCrt.bottom;
+			rt.top = (LONG)(r * mCrt.top + (1 - r) * mCrt.bottom);
 		}
 		rt.bottom = rt.top + (mCrt.bottom - mCrt.top);
 		Draw(&rt);
+	}
+	if(mView == VIEW_WATCH)
+	{
+		SetTimer(TID_TICK, CHK_INTERVAL, NULL);
 	}
 }
 
@@ -2505,7 +2510,7 @@ void CNaraTimerDlg::OnTimer(UINT_PTR id)
 							DrawSlide(FALSE);
 						}
 
-						TIMES_UP = GetTickCount64();
+						TIMES_UP = (float)GetTickCount64();
 						SetTimer(TID_TIMESUP, 100, NULL);
 					}
 				}
@@ -2706,7 +2711,7 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 				SendMessage(WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(pt.x, pt.y));
 			}
 		}
-		else
+		else if(cur->GetStatus() != STATUS_STOPPED)
 		{
 			SendMessage(WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(pt.x, pt.y));
 		}
