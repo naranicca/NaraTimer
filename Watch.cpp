@@ -349,11 +349,18 @@ void WatchList::Activate(Watch * watch)
 	{
 		if(cur == watch && watch != mHead)
 		{
-			if(watch->mPrev) watch->mPrev->mNext = watch->mNext;
-			if(watch->mNext) watch->mNext->mPrev = watch->mPrev;
-			watch->mPrev = NULL;
-			watch->mNext = mHead;
-			mHead = watch;
+			if(cur->mPrev)
+			{
+				cur->mPrev->mNext = cur->mNext;
+				cur->mPrev = NULL;
+			}
+			if(cur->mNext)
+			{
+				cur->mNext->mPrev = cur->mPrev;
+			}
+			mHead->mPrev = cur;
+			cur->mNext = mHead;
+			mHead = cur;
 			break;
 		}
 		cur = cur->mNext;

@@ -2679,7 +2679,6 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 				{
 					if(cur->mMarkerHover)
 					{
-						mWatches.Sort(mWatches.GetHead());
 						mWatches.Activate(cur);
 						mSetting = cur;
 						return;
