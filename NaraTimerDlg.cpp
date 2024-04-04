@@ -1833,13 +1833,6 @@ void CNaraTimerDlg::DrawStopwatch(CDC * dc, Watch * watch, RECT * dst)
 	/* change close button position */
 	if(mView != VIEW_LIST)
 	{
-		int w = mButtonRect[BUTTON_CLOSE].right - mButtonRect[BUTTON_CLOSE].left;
-		int h = mButtonRect[BUTTON_CLOSE].bottom - mButtonRect[BUTTON_CLOSE].top;
-		mButtonRect[BUTTON_CLOSE].right = dst->right - LIST_GAP;
-		mButtonRect[BUTTON_CLOSE].left = mButtonRect[BUTTON_CLOSE].right - w;
-		mButtonRect[BUTTON_CLOSE].bottom = ((dst->top + dst->bottom - h_font) >> 1) + (h >> 1);
-		mButtonRect[BUTTON_CLOSE].top = mButtonRect[BUTTON_CLOSE].bottom - h;
-
 		POINT pt;
 		GetCursorPos(&pt);
 		ScreenToClient(&pt);
@@ -1879,6 +1872,10 @@ void CNaraTimerDlg::DrawStopwatch(CDC * dc, Watch * watch, RECT * dst)
 				pt[3].Y = pt[0].Y;
 				g.FillPolygon(&br, pt, 4);
 			}
+			mButtonRect[BUTTON_CLOSE].left = cx + r + thick;
+			mButtonRect[BUTTON_CLOSE].top = cy - ((mButtonRect[BUTTON_CLOSE].bottom - mButtonRect[BUTTON_CLOSE].top) >> 1);
+			mButtonRect[BUTTON_CLOSE].right = mButtonRect[BUTTON_CLOSE].left + r;
+			mButtonRect[BUTTON_CLOSE].bottom = mButtonRect[BUTTON_CLOSE].top + r;
 		}
 	}
 
