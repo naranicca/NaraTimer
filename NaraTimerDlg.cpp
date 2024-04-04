@@ -1203,9 +1203,11 @@ void CNaraTimerDlg::OnSysCommand(UINT nID, LPARAM lParam)
 POINT CNaraTimerDlg::deg2pt(float deg, int r)
 {
 	POINT pt;
-	double rad = (deg + mDegOffset) * 3.141592 / 180;
-	pt.x = (LONG)(-r * sin(rad) + 0.5f);
-	pt.y = (LONG)(-r * cos(rad) + 0.5f);
+	float rad = (deg + mDegOffset) * 3.141592f / 180;
+	float x = (-r * sin(rad));
+	float y = (-r * cos(rad));
+	pt.x = (LONG)(x < 0 ? x - 0.5f : x + 0.5f);
+	pt.y = (LONG)(y < 0 ? y - 0.5f : y + 0.5f);
 	return pt;
 }
 
