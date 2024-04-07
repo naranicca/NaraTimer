@@ -75,6 +75,7 @@ protected:
 	int mFontScale;
 	int mBarAlpha;
 	ULONGLONG mTimeClick;
+	int mTickInterval;
 
 	void reposition(void);
 	POINT deg2pt(float deg, int r);

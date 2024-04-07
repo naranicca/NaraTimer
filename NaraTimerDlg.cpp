@@ -7,7 +7,6 @@
 
 #define RED						RGB(249, 99, 101)
 #define WHITE					RGB(255, 255, 255)
-#define CHK_INTERVAL			(300)
 #define LOAD_INTERVAL			(100)
 #define LIST_GAP				(10)
 #define HUD_FONT_SIZE			(mView == VIEW_WATCH? ROUND(mRadius * 0.4f) : ROUND(mRoundCorner * 0.4f))
@@ -27,12 +26,11 @@ BOOL TITLE_CHANGING = FALSE;
 #define VIEW_LIST			(1)
 
 #define TID_TICK			(0)
-#define TID_REFRESH			(1)
-#define TID_LOADING			(2)
-#define TID_STOPWATCH		(3)
-#define TID_TIMESUP			(4)
-#define TID_HIDEBAR			(5)
-#define TID_HELP			(6)
+#define TID_LOADING			(1)
+#define TID_STOPWATCH		(2)
+#define TID_TIMESUP			(3)
+#define TID_HIDEBAR			(4)
+#define TID_HELP			(5)
 
 #pragma comment(lib, "winmm")
 #include <mmsystem.h>
@@ -545,11 +543,11 @@ CNaraTimerDlg::CNaraTimerDlg(CWnd* pParent /*=nullptr*/)
 	mFontScale = 100;
 	mBarAlpha = 200;
 	mTimeClick = 0;
+	mTickInterval = 500;
 }
 
 void CNaraTimerDlg::Stop(void)
 {
-	KillTimer(TID_TICK);
 	if(mView == VIEW_WATCH)
 	{
 		Watch * watch = mWatches.GetHead();
@@ -832,7 +830,7 @@ BOOL CNaraTimerDlg::OnInitDialog()
 	mTitleEdit.Create(WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | ES_CENTER, CRect(0, 0, 10, 10), this, IDC_EDIT);
 	mTitleEdit.ShowWindow(SW_HIDE);
 
-	SetTimer(TID_REFRESH, 500, NULL);
+	SetTimer(TID_TICK, mTickInterval, NULL);
 	SetTopmost(FALSE);
 
 	SetWindowText(L"NaraTimer");
@@ -1016,7 +1014,6 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 								}
 								if(watch->SetTime(h, m, s))
 								{
-									SetTimer(TID_TICK, CHK_INTERVAL, NULL);
 									mWatches.Sort(watch);
 									if(mWatches.GetSize() > 1 && mView == VIEW_WATCH)
 									{
@@ -1031,10 +1028,6 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 							int h = (time / 10000);
 							int m = (time / 100) % 100;
 							int s = (time % 100);
-							if(watch->SetTime(h, m, s))
-							{
-								SetTimer(TID_TICK, CHK_INTERVAL, NULL);
-							}
 						}
 					}
 					else if(mView == VIEW_WATCH)
@@ -2280,10 +2273,6 @@ void CNaraTimerDlg::DrawSlide(BOOL slide_down)
 		rt.bottom = rt.top + (mCrt.bottom - mCrt.top);
 		Draw(&rt);
 	}
-	if(mView == VIEW_WATCH)
-	{
-		SetTimer(TID_TICK, CHK_INTERVAL, NULL);
-	}
 }
 
 void CNaraTimerDlg::OnPaint()
@@ -2478,11 +2467,12 @@ void CNaraTimerDlg::OnTimer(UINT_PTR id)
 		if(!mSetting)
 		{
 			Watch * watch = mWatches.GetHead();
+			int interval = ((mView == VIEW_WATCH && watch->GetMode() == MODE_ALARM && watch->IsTimeSet()) ? 300 : 500);
 			while(watch)
 			{
 				if(watch->IsTimeSet() && watch->mExpired == FALSE)
 				{
-					if(watch->GetRemainingTime() > CHK_INTERVAL)
+					if(watch->GetRemainingTime() > mTickInterval)
 					{
 						Invalidate(FALSE);
 					}
@@ -2515,21 +2505,13 @@ void CNaraTimerDlg::OnTimer(UINT_PTR id)
 				}
 				watch = watch->mNext;
 			}
-		}
-	}
-	else if (id == TID_REFRESH)
-	{
-		Watch * watch = mWatches.GetHead();
-		if(watch->GetMode() == MODE_TIMER || mDigitalWatch)
-		{
-			static int s = 0;
-			int cm = CTime::GetCurrentTime().GetMinute();
-			int cs = CTime::GetCurrentTime().GetSecond();
-			if(cs != s)
+			if(interval != mTickInterval)
 			{
-				s = cs;
-				Invalidate(FALSE);
+				KillTimer(id);
+				SetTimer(id, interval, NULL);
+				mTickInterval = interval;
 			}
+			Invalidate(FALSE);
 		}
 	}
 	else if(id == TID_LOADING)
@@ -2697,7 +2679,6 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 			int d = SQ(pt.x - cx) + SQ(pt.y - cy);
 			if(d < SQ(mRadius + mGridSize))
 			{
-				KillTimer(TID_TICK);
 				float deg = pt2deg(pt);
 				mSetting = mWatches.GetHead();
 				SettingTime(deg, TRUE);
@@ -2911,7 +2892,6 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 					}
 					else
 					{
-						KillTimer(TID_TICK);
 						if(watch->GetMode() == MODE_ALARM)
 						{
 							watch->SetMode(MODE_TIMER);
@@ -2959,10 +2939,8 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 			ReleaseCapture();
 			mSetting = NULL;
 			Invalidate(FALSE);
-			KillTimer(TID_TICK);
 			if(mOldDeg > -mDegOffset)
 			{
-				SetTimer(TID_TICK, CHK_INTERVAL, NULL);
 				if(mWatches.GetSize() > 1)
 				{
 					Watch * watch = mWatches.GetHead();
