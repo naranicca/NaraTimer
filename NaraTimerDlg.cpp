@@ -5,6 +5,8 @@
 #include "afxdialogex.h"
 #include "NaraUtil.h"
 
+#define CLOSE_BUTTON_GDI
+
 #define RED						RGB(249, 99, 101)
 #define WHITE					RGB(255, 255, 255)
 #define LOAD_INTERVAL			(100)
@@ -18,6 +20,9 @@ COLORREF PIE_COLOR;
 COLORREF HAND_COLOR;
 COLORREF HANDSHEAD_COLOR;
 COLORREF TIMESTR_COLOR;
+#ifdef CLOSE_BUTTON_GDI
+COLORREF CLOSE_BUTTON_COLOR = RED;
+#endif
 
 float TIMES_UP = -100.f;
 BOOL TITLE_CHANGING = FALSE;
@@ -2068,10 +2073,10 @@ void CNaraTimerDlg::DrawBorder(CDC * dc)
 	}
 
 	// draw icon
-	for (int i = 0; i < NUM_BUTTONS; i++)
+	for(int i = 0; i < NUM_BUTTONS; i++)
 	{
 		int id = (i == mButtonHover ? mButtonIconHover[i] : mButtonIcon[i]);
-		if (id)
+		if(id)
 		{
 			RECT* brt = &mButtonRect[i];
 			HICON icon = static_cast<HICON>(::LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(id), IMAGE_ICON, 256, 256, LR_DEFAULTCOLOR));
@@ -2080,6 +2085,23 @@ void CNaraTimerDlg::DrawBorder(CDC * dc)
 			DestroyIcon(icon);
 		}
 	}
+#ifdef CLOSE_BUTTON_GDI
+	SolidBrush cbr(rgba(CLOSE_BUTTON_COLOR, 255));
+	int thick = ROUND(mResizeMargin * 0.08f);
+	BYTE pr = max(0, GetRValue(CLOSE_BUTTON_COLOR) - 80);
+	BYTE pg = max(0, GetGValue(CLOSE_BUTTON_COLOR) - 80);
+	BYTE pb = max(0, GetBValue(CLOSE_BUTTON_COLOR) - 80);
+	Pen cpen(Color(255, pr, pg, pb), thick);
+	RECT * rt = &mButtonRect[BUTTON_CLOSE];
+	g.FillEllipse(&cbr, rt->left, rt->top, rt->right - rt->left, rt->bottom - rt->top);
+	g.DrawEllipse(&cpen, rt->left, rt->top, rt->right - rt->left, rt->bottom - rt->top);
+	if(mButtonHover == BUTTON_CLOSE)
+	{
+		int off = ROUND((rt->right - rt->left) * 0.25f);
+		g.DrawLine(&cpen, rt->left + off, rt->top + off, rt->right - off, rt->bottom - off);
+		g.DrawLine(&cpen, rt->right - off, rt->top + off, rt->left + off, rt->bottom - off);
+	}
+#endif
 }
 
 void CNaraTimerDlg::DrawHUD(CDC * dc, CString str)
@@ -3200,7 +3222,11 @@ void CNaraTimerDlg::reposition(void)
 	sz = max(ROUND(bsz * 0.8f), 16);
 	x = (mCrt.right - mRoundCorner + r);
 	mButtonRect[BUTTON_CLOSE].SetRect(x - sz, y, x, y + sz);
+#ifndef CLOSE_BUTTON_GDI
 	SET_BUTTON(BUTTON_CLOSE, IDI_CLOSE, IDI_CLOSE_HOVER);
+#else
+	SET_BUTTON(BUTTON_CLOSE, NULL, NULL);
+#endif
 	// hand's head - rect is updated in DrawTimer()
 	SET_BUTTON(BUTTON_CENTER, NULL, NULL);
 
