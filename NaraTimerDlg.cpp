@@ -2087,19 +2087,23 @@ void CNaraTimerDlg::DrawBorder(CDC * dc)
 	}
 #ifdef CLOSE_BUTTON_GDI
 	SolidBrush cbr(rgba(CLOSE_BUTTON_COLOR, 255));
-	int thick = ROUND(mResizeMargin * 0.08f);
-	BYTE pr = max(0, GetRValue(CLOSE_BUTTON_COLOR) - 80);
-	BYTE pg = max(0, GetGValue(CLOSE_BUTTON_COLOR) - 80);
-	BYTE pb = max(0, GetBValue(CLOSE_BUTTON_COLOR) - 80);
-	Pen cpen(Color(255, pr, pg, pb), thick);
+	int thick = ROUND(mResizeMargin * 0.15f);
+	BYTE r0 = max(0, GetRValue(CLOSE_BUTTON_COLOR) - 40);
+	BYTE g0 = max(0, GetGValue(CLOSE_BUTTON_COLOR) - 40);
+	BYTE b0 = max(0, GetBValue(CLOSE_BUTTON_COLOR) - 40);
+	BYTE r1 = max(0, GetRValue(CLOSE_BUTTON_COLOR) - 100);
+	BYTE g1 = max(0, GetGValue(CLOSE_BUTTON_COLOR) - 100);
+	BYTE b1 = max(0, GetBValue(CLOSE_BUTTON_COLOR) - 100);
+	Pen cpen0(Color(255, r0, g0, b0), thick/3.f);
+	Pen cpen1(Color(255, r1, g1, b1), thick);
 	RECT * rt = &mButtonRect[BUTTON_CLOSE];
 	g.FillEllipse(&cbr, rt->left, rt->top, rt->right - rt->left, rt->bottom - rt->top);
-	g.DrawEllipse(&cpen, rt->left, rt->top, rt->right - rt->left, rt->bottom - rt->top);
+	g.DrawEllipse(&cpen0, rt->left, rt->top, rt->right - rt->left, rt->bottom - rt->top);
 	if(mButtonHover == BUTTON_CLOSE)
 	{
-		int off = ROUND((rt->right - rt->left) * 0.25f);
-		g.DrawLine(&cpen, rt->left + off, rt->top + off, rt->right - off, rt->bottom - off);
-		g.DrawLine(&cpen, rt->right - off, rt->top + off, rt->left + off, rt->bottom - off);
+		int off = ROUND((rt->right - rt->left) * 0.23f);
+		g.DrawLine(&cpen1, rt->left + off, rt->top + off, rt->right - off, rt->bottom - off);
+		g.DrawLine(&cpen1, rt->right - off, rt->top + off, rt->left + off, rt->bottom - off);
 	}
 #endif
 }
@@ -2277,6 +2281,7 @@ void CNaraTimerDlg::DrawSlide(BOOL slide_down)
 	CopyRect(&rt, &mCrt);
 	DWORD tbeg = GetTickCount64();
 	BOOL cond = TRUE;
+	mButtonHover = -1;
 	while(cond)
 	{
 		int dt = GetTickCount64() - tbeg;
