@@ -1597,7 +1597,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			POINT pt;
 			GetCursorPos(&pt);
 			ScreenToClient(&pt);
-			if(t_remain >= 0 && !PT_IN_RECT(pt, *rt))
+			if(PT_IN_RECT(pt, *rt))
 			{
 				c = blend_color(c, RGB(150, 150, 150));
 			}
