@@ -1035,6 +1035,15 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 							int h = (time / 10000);
 							int m = (time / 100) % 100;
 							int s = (time % 100);
+							if(watch->SetTime(h, m, s))
+							{
+								mWatches.Sort(watch);
+								if(mWatches.GetSize() > 1 && mView == VIEW_WATCH)
+								{
+									mWatches.Add();
+									mWatches.Activate(watch);
+								}
+							}
 						}
 					}
 					else if(mView == VIEW_WATCH)
@@ -1587,7 +1596,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			{
 				str.Format(L"+%d:%02d:%02d", h, m, s);
 			}
-			c = RED;
+			c = PIE_COLOR;
 		}
 		UINT fmt = (DT_SINGLELINE | DT_VCENTER);
 		if(list_mode)
