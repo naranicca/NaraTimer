@@ -612,6 +612,7 @@ void CNaraTimerDlg::SetTheme(int theme)
 	HANDSHEAD_COLOR = RGB(77, 88, 94);
 	TIMESTR_COLOR = RGB(20, 20, 20);
 	BORDER_COLOR = RGB(251, 162, 139);
+	CLOSE_BUTTON_COLOR = RED;
 	switch(mTheme)
 	{
 	case THEME_DARK:
@@ -638,11 +639,14 @@ void CNaraTimerDlg::SetTheme(int theme)
 		TIMESTR_COLOR = WHITE;
 		PIE_COLOR = RGB(180, 180, 180);
 		BORDER_COLOR = HANDSHEAD_COLOR = RGB(52, 35, 20);
+		CLOSE_BUTTON_COLOR = BORDER_COLOR;
 		break;
 	case THEME_ORANGE:
 		BORDER_COLOR = RGB(36, 0, 0);
 		BK_COLOR = RGB(255, 113, 13);
 		PIE_COLOR = RGB(255, 210, 170);
+		HANDSHEAD_COLOR = BORDER_COLOR;
+		CLOSE_BUTTON_COLOR = BORDER_COLOR;
 		break;
 	case THEME_MINT:
 		BORDER_COLOR = RGB(64, 224, 208);
@@ -676,6 +680,7 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, NaraDialog)
 	ON_WM_MOUSEMOVE()
 	ON_WM_MOUSELEAVE()
 	ON_WM_LBUTTONUP()
+	ON_WM_LBUTTONDBLCLK()
 	ON_WM_MOUSEWHEEL()
 	ON_WM_CONTEXTMENU()
 	ON_WM_SIZE()
@@ -2097,12 +2102,22 @@ void CNaraTimerDlg::DrawBorder(CDC * dc)
 #ifdef CLOSE_BUTTON_GDI
 	SolidBrush cbr(rgba(CLOSE_BUTTON_COLOR, 255));
 	int thick = ROUND(mResizeMargin * 0.15f);
-	BYTE r0 = max(0, GetRValue(CLOSE_BUTTON_COLOR) - 40);
-	BYTE g0 = max(0, GetGValue(CLOSE_BUTTON_COLOR) - 40);
-	BYTE b0 = max(0, GetBValue(CLOSE_BUTTON_COLOR) - 40);
-	BYTE r1 = max(0, GetRValue(CLOSE_BUTTON_COLOR) - 100);
-	BYTE g1 = max(0, GetGValue(CLOSE_BUTTON_COLOR) - 100);
-	BYTE b1 = max(0, GetBValue(CLOSE_BUTTON_COLOR) - 100);
+	int off0 = -40;
+	int off1 = -100;
+	int br = GetRValue(CLOSE_BUTTON_COLOR);
+	int bg = GetGValue(CLOSE_BUTTON_COLOR);
+	int bb = GetBValue(CLOSE_BUTTON_COLOR);
+	if(br + bg + bb < 128 * 3)
+	{
+		off0 = -off0;
+		off1 = -off1;
+	}
+	BYTE r0 = max(0, GetRValue(CLOSE_BUTTON_COLOR) + off0);
+	BYTE g0 = max(0, GetGValue(CLOSE_BUTTON_COLOR) + off0);
+	BYTE b0 = max(0, GetBValue(CLOSE_BUTTON_COLOR) + off0);
+	BYTE r1 = max(0, GetRValue(CLOSE_BUTTON_COLOR) + off1);
+	BYTE g1 = max(0, GetGValue(CLOSE_BUTTON_COLOR) + off1);
+	BYTE b1 = max(0, GetBValue(CLOSE_BUTTON_COLOR) + off1);
 	Pen cpen0(Color(255, r0, g0, b0), thick/3.f);
 	Pen cpen1(Color(255, r1, g1, b1), thick);
 	RECT * rt = &mButtonRect[BUTTON_CLOSE];
@@ -2349,8 +2364,8 @@ void CNaraTimerDlg::OnPaint()
 		Watch * watch = mWatches.GetHead();
 		trt.left = mCrt.left + mResizeMargin;
 		trt.top = mCrt.top + mResizeMargin;
-		trt.right = mCrt.right - mResizeMargin;
-		trt.bottom = mCrt.bottom - mResizeMargin;
+		trt.right = mCrt.right - mResizeMargin + 1;
+		trt.bottom = mCrt.bottom - mResizeMargin + 1;
 		if(mView == VIEW_WATCH)
 		{
 			DrawTimer(&mdc, watch, &trt);
@@ -3010,6 +3025,61 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 			SetView(VIEW_WATCH);
 		}
 	}
+}
+
+void CNaraTimerDlg::OnLButtonDblClk(UINT nFlags, CPoint pt)
+{
+	int ht = HitTest(pt);
+	RECT wrt;
+	GetWindowRect(&wrt);
+	int w = wrt.right - wrt.left;
+	int h = wrt.bottom - wrt.top;
+	if(w == h)
+	{
+		SendMessage(WM_NCLBUTTONDBLCLK, ht, MAKELPARAM(pt.x, pt.y));
+		return;
+	}
+	switch(ht)
+	{
+	case HTLEFT:
+		wrt.left = wrt.right - h;
+		MoveWindow(&wrt, TRUE);
+		break;
+	case HTRIGHT:
+		wrt.right = wrt.left + h;
+		MoveWindow(&wrt, TRUE);
+		break;
+	case HTTOP:
+		wrt.top = wrt.bottom - w;
+		MoveWindow(&wrt, TRUE);
+		SendMessage(WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(pt.x, pt.y));
+		break;
+	case HTBOTTOM:
+		wrt.bottom = wrt.top + w;
+		MoveWindow(&wrt, TRUE);
+		break;
+	case HTTOPLEFT:
+		wrt.left = wrt.right - min(w, h);
+		wrt.top = wrt.bottom - min(w, h);
+		MoveWindow(&wrt, TRUE);
+		break;
+	case HTTOPRIGHT:
+		wrt.right = wrt.left + min(w, h);
+		wrt.top = wrt.bottom - min(w, h);
+		MoveWindow(&wrt, TRUE);
+		break;
+	case HTBOTTOMLEFT:
+		wrt.left = wrt.right - min(w, h);
+		wrt.bottom = wrt.top + min(w, h);
+		MoveWindow(&wrt, TRUE);
+		break;
+	case HTBOTTOMRIGHT:
+		wrt.right = wrt.left + min(w, h);
+		wrt.bottom = wrt.top + min(w, h);
+		MoveWindow(&wrt, TRUE);
+		break;
+	}
+	NaraDialog::OnLButtonDblClk(nFlags, pt);
 }
 
 void CNaraTimerDlg::SetView(int view)
