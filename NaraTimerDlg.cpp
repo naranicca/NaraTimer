@@ -1133,7 +1133,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 					if(watch->GetMode() == MODE_ALARM)
 					{
 						watch->mHM.cy++;
-						watch->mHM.cx += (watch->mHM.cx / 60);
+						watch->mHM.cx += (watch->mHM.cy / 60);
 						watch->mHM.cy = (watch->mHM.cy % 60);
 						watch->SetTime(watch->mHM.cx, watch->mHM.cy, 0);
 					}
