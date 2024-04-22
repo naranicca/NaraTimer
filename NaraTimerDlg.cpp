@@ -1613,7 +1613,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			ScreenToClient(&pt);
 			if(PT_IN_RECT(pt, *rt))
 			{
-				c = blend_color(c, RGB(150, 150, 150));
+				c = PIE_COLOR;
 			}
 		}
 		else
