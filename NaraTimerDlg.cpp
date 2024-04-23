@@ -1034,6 +1034,10 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 									}
 								}
 							}
+							else
+							{
+								watch->mTitle = title;
+							}
 						}
 						else
 						{
