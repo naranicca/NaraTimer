@@ -241,28 +241,20 @@ int WatchList::GetSize(BOOL count_unset)
 
 Watch * WatchList::Add(void)
 {
-	if(mHead && !mHead->IsTimeSet())
+	if(mHead && mHead->IsTimeSet() == FALSE)
 	{
-		/* we already have an unset watch */
 		return mHead;
 	}
 	Watch * watch = new Watch();
-	if(watch)
+	watch->SetMode(mLastMode);
+	if(mHead)
 	{
-		if(mHead)
-		{
-			watch->mNext = mHead;
-			mHead->mPrev = watch;
-			watch->mMode = mHead->mMode;
-			watch->mTime360 = mHead->mTime360;
-		}
-		else
-		{
-			watch->SetMode(mLastMode);
-		}
-		mHead = watch;
-		mSize++;
+		Sort(mHead);
+		watch->mNext = mHead;
+		mHead->mPrev = watch;
 	}
+	mHead = watch;
+	mSize++;
 	return watch;
 }
 
@@ -352,13 +344,13 @@ void WatchList::Activate(Watch * watch)
 			if(cur->mPrev)
 			{
 				cur->mPrev->mNext = cur->mNext;
-				cur->mPrev = NULL;
 			}
 			if(cur->mNext)
 			{
 				cur->mNext->mPrev = cur->mPrev;
 			}
 			mHead->mPrev = cur;
+			cur->mPrev = NULL;
 			cur->mNext = mHead;
 			mHead = cur;
 			break;
@@ -399,6 +391,11 @@ void WatchList::Sort(Watch * watch)
 			}
 		}
 		cur = next;
+	}
+	int size = GetSize();
+	if(size > 0)
+	{
+		Get(size - 1)->mNext = NULL;
 	}
 }
 

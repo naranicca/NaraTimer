@@ -996,13 +996,12 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 							break;
 						}
 					}
+					Watch * watch = mWatches.GetHead();
 					if(time >= 0)
 					{
-						mWatches.Sort(mWatches.GetHead());
 						int scale = (has_colon ? 1 : 100);
 						time = ((time * 100) + num) * scale;
 						CTime c = CTime::GetCurrentTime();
-						Watch * watch = mWatches.GetNew();
 						if(watch->GetMode() == MODE_ALARM)
 						{
 							int s = 0;
@@ -1024,15 +1023,8 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 								{
 									h += ((h + 24 - h_cur <= 12) ? 24 : 12);
 								}
-								if(watch->SetTime(h, m, s))
-								{
-									mWatches.Sort(watch);
-									if(mWatches.GetSize() > 1 && mView == VIEW_WATCH)
-									{
-										mWatches.Add();
-										mWatches.Activate(watch);
-									}
-								}
+								watch = mWatches.GetNew();
+								watch->SetTime(h, m, s);
 							}
 							else
 							{
@@ -3237,8 +3229,12 @@ void CNaraTimerDlg::OnMenuFont(void)
 
 void CNaraTimerDlg::OnMenuHelp(void)
 {
-	SetView(VIEW_WATCH);
-	mInstructionIdx = 2;
+	CWnd * wnd = GetFocus();
+	if(wnd == this || wnd == &mTitleEdit)
+	{
+		SetView(VIEW_WATCH);
+		mInstructionIdx = 2;
+	}
 }
 
 void CNaraTimerDlg::OnMenuAbout(void)
