@@ -32,7 +32,8 @@ public:
 	WatchList mWatches;
 
 	BOOL mRunning;
-	CWinThread * mThread;
+	CWinThread * mThreadTick;
+	CWinThread * mThreadCheckVersion;
 	int mMuteTick;
 
 #ifdef AFX_DESIGN_TIME

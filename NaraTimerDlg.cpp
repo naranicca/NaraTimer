@@ -5,6 +5,8 @@
 #include "afxdialogex.h"
 #include "NaraUtil.h"
 
+int Versions[4];
+
 #define CLOSE_BUTTON_GDI
 
 #define RED						RGB(249, 99, 101)
@@ -735,6 +737,113 @@ UINT FnThreadTicking(LPVOID param)
 	return 0;
 }
 
+#include "afxinet.h"
+static void GetDefaultBrowser(wchar_t path[MAX_PATH])
+{
+	HFILE h = _lcreat("dummy.html", 0);
+	_lclose(h);
+	FindExecutable(L"dummy.html", NULL, path);
+	DeleteFile(L"dummy.html");
+}
+
+static int read_num(char ** str)
+{
+	int ret = 0;
+	while(**str >= '0' && **str <= '9')
+	{
+		ret *= 10;
+		ret += (**str - '0');
+		(*str)++;
+	}
+	return ret;
+}
+
+UINT FnThreadCheckVersion(LPVOID param)
+{
+	CString homeaddr = L"https://github.com/naranicca/NaraTimer/releases";
+	CNaraTimerDlg * dlg = (CNaraTimerDlg*)param;
+
+	// get the default browser
+	wchar_t browser[MAX_PATH];
+	GetDefaultBrowser(browser);
+
+	// open homepage to read version
+	CInternetSession session(L"Microsoft Internet Explorer");
+	CInternetFile * pFile;
+	try
+	{
+		pFile = (CInternetFile *)session.OpenURL(homeaddr);
+	}
+	catch(...)
+	{
+		return 0;
+	}
+
+	// read homepage source to get version
+	int version[4] = { 0, };
+	CString data;
+	pFile->SetReadBufferSize(4096);
+	while(pFile->ReadString(data))
+	{
+		char * str = (char *)data.GetBuffer();
+		CStringA cstr(str);
+		int pos = cstr.Find("NaraTimer v");
+		if(pos != -1)
+		{
+			str += pos + 11;
+			version[0] = read_num(&str);
+			str++;
+			version[1] = read_num(&str);
+			str++;
+			version[2] = read_num(&str);
+			str++;
+			version[3] = read_num(&str);
+			break;
+		}
+		Sleep(0);
+	}
+	pFile->Close();
+	delete pFile;
+
+	BOOL new_version = FALSE;
+	if(version[0] > Versions[0])
+	{
+		new_version = TRUE;
+	}
+	else if(version[0] == Versions[0])
+	{
+		if(version[1] > Versions[1])
+		{
+			new_version = TRUE;
+		}
+		else if(version[1] == Versions[1])
+		{
+			if(version[2] > Versions[2])
+			{
+				new_version = TRUE;
+			}
+		}
+	}
+
+	if(new_version)
+	{
+		NaraMessageBox mbox(dlg, TRUE);
+		mbox.AddHeading(L"New Version is Available");
+		CString str;
+		str.Format(L"v%d.%d.%d.%d --> v%d.%d.%d.%d", Versions[0], Versions[1], Versions[2], Versions[3],
+			version[0], version[1], version[2], version[3]);
+		mbox.AddBoldString(str);
+		mbox.AddString(L"Do you want to download now?");
+		if(mbox.DoModal() == IDOK)
+		{
+			ShellExecute(NULL, L"open", browser, homeaddr, NULL, 0);
+			return 0;
+		}
+	}
+
+	return 0;
+}
+
 BOOL CNaraTimerDlg::OnInitDialog()
 {
 	NaraDialog::OnInitDialog();
@@ -790,6 +899,10 @@ BOOL CNaraTimerDlg::OnInitDialog()
 		DWORD ms = lpFfi->dwProductVersionMS;
 		DWORD ls = lpFfi->dwProductVersionLS;
 
+		Versions[0] = HIWORD(ms);
+		Versions[1] = LOWORD(ms);
+		Versions[2] = HIWORD(ls);
+		Versions[3] = LOWORD(ls);
 		mVersion.Format(L"%d.%d.%d.%d", HIWORD(ms), LOWORD(ms), HIWORD(ls), LOWORD(ls));
 		if(mVersion != ver)
 		{
@@ -848,7 +961,8 @@ BOOL CNaraTimerDlg::OnInitDialog()
 	SetWindowText(L"NaraTimer");
 
 	mRunning = TRUE;
-	mThread = AfxBeginThread(FnThreadTicking, this);
+	mThreadTick = AfxBeginThread(FnThreadTicking, this);
+	mThreadCheckVersion = AfxBeginThread(FnThreadCheckVersion, this);
 
 	SetTimer(TID_HIDEBAR, 2000, NULL);
 
@@ -1188,7 +1302,8 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 		break;
 	case WM_CLOSE:
 		mRunning = FALSE;
-		WaitForSingleObject(mThread->m_hThread, INFINITE);
+		WaitForSingleObject(mThreadTick->m_hThread, INFINITE);
+		WaitForSingleObject(mThreadCheckVersion->m_hThread, INFINITE);
 		break;
 	}
 	return NaraDialog::PreTranslateMessage(pMsg);
