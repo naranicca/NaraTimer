@@ -7,6 +7,7 @@
 #define BUTTON_CENTER		(2)
 #define BUTTON_REMOVE		(3)
 #define BUTTON_BAR			(4)
+#define BUTTON_STOP			(5)
 #define NUM_BUTTONS			(6)
 
 #define THEME_DEFAULT		(0)

@@ -49,6 +49,7 @@ BOOL TITLE_CHANGING = FALSE;
 #define SET_WINDOWED_STYLE	ModifyStyle(WS_CAPTION|WS_POPUP, WS_THICKFRAME|WS_SYSMENU|WS_MINIMIZEBOX|WS_MAXIMIZEBOX)
 #define SET_BUTTON(id, idi, idi_hover) { mButtonIcon[id] = idi; mButtonIconHover[id] = idi_hover; }
 #define rgba(c, alpha)		(Color(alpha, GetRValue(c), GetGValue(c), GetBValue(c)))
+#define gdirect(rt)			(Rect((rt).left, (rt).top, (rt).right - (rt).left, (rt).bottom - (rt).top))
 #define DEFINE_PEN(name, color, opaque, width)	Pen name(rgba(color, opaque), width)
 
 #define WM_PIN				(WM_USER+1)
@@ -62,6 +63,14 @@ static COLORREF blend_color(COLORREF c0, COLORREF c1)
 	int r = (GetRValue(c0) + GetRValue(c1) + 1) >> 1;
 	int g = (GetGValue(c0) + GetGValue(c1) + 1) >> 1;
 	int b = (GetBValue(c0) + GetBValue(c1) + 1) >> 1;
+	return RGB(r, g, b);
+}
+
+static COLORREF blend_color(COLORREF c0, COLORREF c1, float o)
+{
+	int r = (int)(GetRValue(c0) * o + GetRValue(c1) * (1 - o));
+	int g = (int)(GetGValue(c0) * o + GetGValue(c1) * (1 - o));
+	int b = (int)(GetBValue(c0) * o + GetBValue(c1) * (1 - o));
 	return RGB(r, g, b);
 }
 
@@ -1447,7 +1456,19 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 
 	RECT tmp_rect, * rt = &tmp_rect;
 	CopyRect(rt, dst);
-	dc->FillSolidRect(rt, BK_COLOR);
+
+	POINT pt;
+	GetCursorPos(&pt);
+	ScreenToClient(&pt);
+	if(list_mode && PT_IN_RECT(pt, *rt))
+	{
+		dc->FillSolidRect(rt, blend_color(BK_COLOR, GRID_COLOR, 0.8f));
+	}
+	else
+	{
+		dc->FillSolidRect(rt, BK_COLOR);
+	}
+
 	dc->SetBkMode(TRANSPARENT);
 	GetClientRect(&mTimerRect);
 	w = (rt->right - rt->left);
@@ -1719,13 +1740,6 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		{
 			SetRect(&mTimeRect, x + r + r + LIST_GAP, rt->top, rt->right, rt->bottom);
 			fmt |= DT_LEFT;
-			POINT pt;
-			GetCursorPos(&pt);
-			ScreenToClient(&pt);
-			if(PT_IN_RECT(pt, *rt))
-			{
-				c = PIE_COLOR;
-			}
 		}
 		else
 		{
@@ -1756,7 +1770,7 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 		trt.bottom = trt.top + h;
 		CBrush br(BK_COLOR);
 		CBrush* bro = dc->SelectObject(&br);
-		COLORREF cl = blend_color(blend_color(blend_color(GRID_COLOR, BK_COLOR), BK_COLOR), BK_COLOR);
+		COLORREF cl = blend_color(GRID_COLOR, BK_COLOR, 0.15f);
 		CPen pen(PS_SOLID, 1, cl);
 		CPen* peno = dc->SelectObject(&pen);
 		dc->Rectangle(&trt);
@@ -1955,7 +1969,6 @@ void CNaraTimerDlg::DrawStopwatch(CDC * dc, Watch * watch, RECT * dst)
 	dc->DrawText(str, &rt, DT_SINGLELINE | DT_VCENTER | DT_LEFT);
 	dc->SelectObject(fonto);
 
-	/* change close button position */
 	if(mView != VIEW_LIST)
 	{
 		POINT pt;
@@ -1997,10 +2010,16 @@ void CNaraTimerDlg::DrawStopwatch(CDC * dc, Watch * watch, RECT * dst)
 				pt[3].Y = pt[0].Y;
 				g.FillPolygon(&br, pt, 4);
 			}
-			mButtonRect[BUTTON_CLOSE].left = cx + r + thick;
-			mButtonRect[BUTTON_CLOSE].top = cy - ((mButtonRect[BUTTON_CLOSE].bottom - mButtonRect[BUTTON_CLOSE].top) >> 1);
-			mButtonRect[BUTTON_CLOSE].right = mButtonRect[BUTTON_CLOSE].left + r;
-			mButtonRect[BUTTON_CLOSE].bottom = mButtonRect[BUTTON_CLOSE].top + r;
+			mButtonRect[BUTTON_STOP].left = cx + r + thick;
+			mButtonRect[BUTTON_STOP].top = cy - ((mButtonRect[BUTTON_STOP].bottom - mButtonRect[BUTTON_STOP].top) >> 1);
+			mButtonRect[BUTTON_STOP].right = mButtonRect[BUTTON_STOP].left + r;
+			mButtonRect[BUTTON_STOP].bottom = mButtonRect[BUTTON_STOP].top + r;
+			opaque = (PT_IN_RECT(pt, mButtonRect[BUTTON_STOP]) ? 255 : 128);
+			SolidBrush br0(rgba(GRID_COLOR, opaque));
+			SolidBrush br1(rgba(BK_COLOR, 255));
+			g.FillEllipse(&br0, gdirect(mButtonRect[BUTTON_STOP]));
+			off = round(r * 0.3f);
+			g.FillRectangle(&br1, Rect(mButtonRect[BUTTON_STOP].left + off, mButtonRect[BUTTON_STOP].top + off, r - off * 2, r - off * 2));
 		}
 	}
 
@@ -2049,7 +2068,7 @@ void CNaraTimerDlg::DrawList(CDC * dc, RECT * rt)
 
 	if(num_watches > 0)
 	{
-		COLORREF split_color = blend_color(BK_COLOR, blend_color(BK_COLOR, RGB(128, 128, 128)));
+		COLORREF split_color = blend_color(BK_COLOR, RGB(128, 128, 128), 0.75f);
 		CFont font_small;
 		int h_font_small = ROUND(h_watch * 0.3f);
 		GetFont(font_small, h_font_small, FALSE);
@@ -3024,14 +3043,7 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 		{
 			if(mButtonHover == BUTTON_CLOSE)
 			{
-				if(mView == VIEW_WATCH && mWatches.GetHead()->GetMode() == MODE_STOPWATCH)
-				{
-					Stop();
-				}
-				else
-				{
-					PostMessage(WM_CLOSE, 0, 0);
-				}
+				PostMessage(WM_CLOSE, 0, 0);
 			}
 			else if(mButtonHover == BUTTON_PIN)
 			{
@@ -3098,6 +3110,10 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 				{
 					SetView(VIEW_WATCH);
 				}
+			}
+			else if(mButtonHover == BUTTON_STOP)
+			{
+				Stop();
 			}
 		}
 		mButtonHover = -1;
@@ -3436,6 +3452,8 @@ void CNaraTimerDlg::reposition(void)
 #endif
 	// hand's head - rect is updated in DrawTimer()
 	SET_BUTTON(BUTTON_CENTER, NULL, NULL);
+
+	mButtonRect[BUTTON_STOP].SetRect(0, 0, 0, 0);
 
 	if(mBarAlpha <= 0)
 	{
