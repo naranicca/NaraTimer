@@ -78,6 +78,7 @@ protected:
 	int mBarAlpha;
 	ULONGLONG mTimeClick;
 	int mTickInterval;
+	POINT mHandCoord[2];
 
 	void reposition(void);
 	POINT deg2pt(float deg, int r);
@@ -98,6 +99,7 @@ protected:
 	void StopTimesUp(void);
 	void StopwatchStart(Watch * watch);
 	void StopwatchPause(Watch * watch);
+	BOOL CursorIsOnHand(void);
 
 	virtual BOOL OnInitDialog();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);

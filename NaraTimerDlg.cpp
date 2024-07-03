@@ -1794,6 +1794,10 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			pencl.SetEndCap(LineCapRound);
 			pt0 = deg2pt(deg, ROUND(r * hand_size - pt / 2 + 1));
 			g.DrawLine(&pencl, x + r, y + r, x + r + pt0.x, y + r + pt0.y);
+			mHandCoord[0].x = x + r;
+			mHandCoord[0].y = y + r;
+			mHandCoord[1].x = x + r + pt0.x;
+			mHandCoord[1].y = y + r + pt0.y;
 		}
 		else
 		{
@@ -1809,6 +1813,10 @@ void CNaraTimerDlg::DrawTimer(CDC * dc, Watch * watch, RECT * dst, BOOL list_mod
 			pt0 = deg2pt(deg, ROUND(r * 0.6f * hand_size));
 			pt1 = deg2pt(deg, ROUND(r * hand_size - pt / 2));
 			g.DrawLine(&pen, x + r + pt0.x, y + r + pt0.y, x + r + pt1.x, y + r + pt1.y);
+			mHandCoord[0].x = x + r + pt0.x;
+			mHandCoord[0].y = y + r + pt0.y;
+			mHandCoord[1].x = x + r + pt1.x;
+			mHandCoord[1].y = y + r + pt1.y;
 		}
 	}
 	// Hands head
@@ -2803,6 +2811,27 @@ void CNaraTimerDlg::SetTitle()
 	TITLE_CHANGING = TRUE;
 }
 
+BOOL CNaraTimerDlg::CursorIsOnHand(void)
+{
+	POINT pt;
+	GetCursorPos(&pt);
+	ScreenToClient(&pt);
+	if(pt.x < MIN(mHandCoord[0].x, mHandCoord[1].x) || pt.x > MAX(mHandCoord[0].x, mHandCoord[1].x))
+	{
+		return FALSE;
+	}
+
+	// y = a * x + c --> ax - y + c = 0 
+	float a = (float)(mHandCoord[1].y - mHandCoord[0].y) / (mHandCoord[1].x - mHandCoord[0].x);
+	float b = -1;
+	float c = mHandCoord[0].y - a * mHandCoord[0].x; //y - ax
+
+	float m = (a * pt.x + b * pt.y + c);
+	float n = (a * a + b * b);
+	float d_square = m * m / n;
+	return d_square < SQ(mRadius * 0.07f);
+}
+
 void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 {
 	this->SetFocus();
@@ -2870,6 +2899,13 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 			int d = SQ(pt.x - cx) + SQ(pt.y - cy);
 			if(d < SQ(mRadius + mGridSize))
 			{
+				Watch * watch = mWatches.GetHead();
+				int mode = watch->GetMode();
+				if(watch->IsTimeSet() && mode == MODE_ALARM && !CursorIsOnHand())
+				{
+					watch = mWatches.Add();
+					watch->SetMode(mode);
+				}
 				float deg = pt2deg(pt);
 				mSetting = mWatches.GetHead();
 				SettingTime(deg, TRUE);
@@ -2986,6 +3022,10 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 			SettingTime(deg, d <= (mRadius + (mGridSize >> 1)) * (mRadius + (mGridSize >> 1)));
 			Invalidate(FALSE);
 		}
+		else if(CursorIsOnHand())
+		{
+			::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_HAND));
+		}
 		if(hovering_title != hovering_title_now)
 		{
 			Invalidate(FALSE);
@@ -3073,6 +3113,7 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 					if(watch->IsTimeSet())
 					{
 						mWatches.Sort(watch);
+						mWatches.GetNew()->SetMode(watch->GetMode() == MODE_TIMER ? MODE_ALARM : MODE_TIMER);
 					}
 					else
 					{
