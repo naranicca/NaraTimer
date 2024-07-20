@@ -2813,23 +2813,32 @@ void CNaraTimerDlg::SetTitle()
 
 BOOL CNaraTimerDlg::CursorIsOnHand(void)
 {
+	if(mWatches.GetHead()->GetMode() != MODE_ALARM) return FALSE;
+
 	POINT pt;
 	GetCursorPos(&pt);
 	ScreenToClient(&pt);
-	if(pt.x < MIN(mHandCoord[0].x, mHandCoord[1].x) || pt.x > MAX(mHandCoord[0].x, mHandCoord[1].x))
+	float th = mRadius * 0.07f;
+	if(pt.x < MIN(mHandCoord[0].x, mHandCoord[1].x) - th || pt.x > MAX(mHandCoord[0].x, mHandCoord[1].x) + th)
 	{
 		return FALSE;
 	}
 
-	// y = a * x + c --> ax - y + c = 0 
-	float a = (float)(mHandCoord[1].y - mHandCoord[0].y) / (mHandCoord[1].x - mHandCoord[0].x);
-	float b = -1;
-	float c = mHandCoord[0].y - a * mHandCoord[0].x; //y - ax
+	int cx = (mButtonRect[BUTTON_CENTER].left + mButtonRect[BUTTON_CENTER].right + 1) >> 1;
+	int cy = (mButtonRect[BUTTON_CENTER].top + mButtonRect[BUTTON_CENTER].bottom + 1) >> 1;
+	float d = SQ(pt.x - cx) + SQ(pt.y - cy);
+	if(d < SQ(mRadius))
+	{
+		float a = (float)(mHandCoord[1].y - mHandCoord[0].y) / (mHandCoord[1].x - mHandCoord[0].x + 0.0000001f);
+		float b = -1;
+		float c = mHandCoord[0].y - a * mHandCoord[0].x;
 
-	float m = (a * pt.x + b * pt.y + c);
-	float n = (a * a + b * b);
-	float d_square = m * m / n;
-	return d_square < SQ(mRadius * 0.07f);
+		float m = (a * pt.x + b * pt.y + c);
+		float n = (a * a + b * b);
+		float d_square = m * m / n;
+		return d_square < SQ(th);
+	}
+	return FALSE;
 }
 
 void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
