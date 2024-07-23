@@ -99,7 +99,7 @@ protected:
 	void StopTimesUp(void);
 	void StopwatchStart(Watch * watch);
 	void StopwatchPause(Watch * watch);
-	BOOL CursorIsOnHand(void);
+	BOOL PtOnHand(CPoint pt);
 
 	virtual BOOL OnInitDialog();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);

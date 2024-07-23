@@ -2811,13 +2811,10 @@ void CNaraTimerDlg::SetTitle()
 	TITLE_CHANGING = TRUE;
 }
 
-BOOL CNaraTimerDlg::CursorIsOnHand(void)
+BOOL CNaraTimerDlg::PtOnHand(CPoint pt)
 {
 	if(mWatches.GetHead()->GetMode() != MODE_ALARM) return FALSE;
 
-	POINT pt;
-	GetCursorPos(&pt);
-	ScreenToClient(&pt);
 	float th = mRadius * 0.07f;
 	if(pt.x < MIN(mHandCoord[0].x, mHandCoord[1].x) - th || pt.x > MAX(mHandCoord[0].x, mHandCoord[1].x) + th)
 	{
@@ -2910,7 +2907,7 @@ void CNaraTimerDlg::OnLButtonDown(UINT nFlags, CPoint pt)
 			{
 				Watch * watch = mWatches.GetHead();
 				int mode = watch->GetMode();
-				if(watch->IsTimeSet() && mode == MODE_ALARM && !CursorIsOnHand())
+				if(watch->IsTimeSet() && mode == MODE_ALARM && !PtOnHand(pt))
 				{
 					watch = mWatches.Add();
 					watch->SetMode(mode);
@@ -3031,7 +3028,7 @@ void CNaraTimerDlg::OnMouseMove(UINT nFlags, CPoint pt)
 			SettingTime(deg, d <= (mRadius + (mGridSize >> 1)) * (mRadius + (mGridSize >> 1)));
 			Invalidate(FALSE);
 		}
-		else if(CursorIsOnHand())
+		else if(PtOnHand(pt))
 		{
 			::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_HAND));
 		}
