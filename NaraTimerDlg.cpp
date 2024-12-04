@@ -4,6 +4,7 @@
 #include "NaraTimerDlg.h"
 #include "afxdialogex.h"
 #include "NaraUtil.h"
+#include "urlmon.h"
 
 int Versions[4];
 
@@ -791,6 +792,7 @@ UINT FnThreadCheckVersion(LPVOID param)
 	// read homepage source to get version
 	int version[4] = { 0, };
 	CString data;
+	CStringA vstr;
 	pFile->SetReadBufferSize(4096);
 	while(pFile->ReadString(data))
 	{
@@ -807,6 +809,12 @@ UINT FnThreadCheckVersion(LPVOID param)
 			version[2] = read_num(&str);
 			str++;
 			version[3] = read_num(&str);
+			vstr = cstr.Right(cstr.GetLength() - pos - 10);
+			pos = vstr.Find('<');
+			if(pos > 0)
+			{
+				vstr = vstr.Left(pos);
+			}
 			break;
 		}
 		Sleep(0);
@@ -836,18 +844,13 @@ UINT FnThreadCheckVersion(LPVOID param)
 
 	if(new_version)
 	{
-		NaraMessageBox mbox(dlg, TRUE);
-		mbox.AddHeading(L"New Version is Available");
-		CString str;
-		str.Format(L"v%d.%d.%d.%d --> v%d.%d.%d.%d", Versions[0], Versions[1], Versions[2], Versions[3],
-			version[0], version[1], version[2], version[3]);
-		mbox.AddBoldString(str);
-		mbox.AddString(L"Do you want to download now?");
-		if(mbox.DoModal() == IDOK)
-		{
-			ShellExecute(NULL, L"open", browser, homeaddr, NULL, 0);
-			return 0;
-		}
+		PWSTR dir;
+		vstr = "https://github.com/naranicca/NaraTimer/releases/download/" + vstr + "/NaraTimer.exe";
+		SHGetKnownFolderPath(FOLDERID_Downloads, 0, 0, &dir);
+		CString src(vstr);
+		CString dst = CString(dir) + L"\\NaraTimer.exe";
+		HRESULT ret = URLDownloadToFile(NULL, src, dst, 0, NULL);
+		CoTaskMemFree(dir);
 	}
 
 	return 0;
