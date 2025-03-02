@@ -645,23 +645,16 @@ void CNaraTimerDlg::SetTheme(int theme)
 	case THEME_BLUE:
 		BORDER_COLOR = RGB(89, 161, 245);
 		break;
+	case THEME_NAVY:
+		BORDER_COLOR = RGB(32, 62, 89);
+		CLOSE_BUTTON_COLOR = BORDER_COLOR;
+		break;
 	case THEME_GREEN:
-		BK_COLOR = RGB(0, 108, 72);
-		GRID_COLOR = WHITE;
-		TIMESTR_COLOR = WHITE;
-		PIE_COLOR = RGB(180, 180, 180);
-		BORDER_COLOR = HANDSHEAD_COLOR = RGB(52, 35, 20);
+		BORDER_COLOR = RGB(115, 181, 145);
 		CLOSE_BUTTON_COLOR = BORDER_COLOR;
 		break;
-	case THEME_ORANGE:
-		BORDER_COLOR = RGB(36, 0, 0);
-		BK_COLOR = RGB(255, 113, 13);
-		PIE_COLOR = RGB(255, 210, 170);
-		HANDSHEAD_COLOR = BORDER_COLOR;
-		CLOSE_BUTTON_COLOR = BORDER_COLOR;
-		break;
-	case THEME_MINT:
-		BORDER_COLOR = RGB(64, 224, 208);
+	case THEME_BLACK:
+		BORDER_COLOR = RGB(33, 37, 47);
 		break;
 	}
 	Invalidate(FALSE);
@@ -710,12 +703,12 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, NaraDialog)
 	ON_COMMAND(ID_HELP, OnMenuHelp)
 	ON_COMMAND(IDM_ABOUT, OnMenuAbout)
 	ON_COMMAND(IDM_THEMEDEFAULT, OnThemeDefault)
-	ON_COMMAND(IDM_THEMEBLACK, OnThemeDark)
+	ON_COMMAND(IDM_THEMEDARK, OnThemeDark)
 	ON_COMMAND(IDM_THEMERED, OnThemeRed)
 	ON_COMMAND(IDM_THEMEBLUE, OnThemeBlue)
+	ON_COMMAND(IDM_THEMENAVY, OnThemeNavy)
 	ON_COMMAND(IDM_THEMEGREEN, OnThemeGreen)
-	ON_COMMAND(IDM_THEMEORANGE, OnThemeOrange)
-	ON_COMMAND(IDM_THEMEMINT, OnThemeMint)
+	ON_COMMAND(IDM_THEMEBLACK, OnThemeBlack)
 	ON_COMMAND(IDM_TOGGLEDIGITALWATCH, OnToggleDigitalWatch)
 	ON_COMMAND(IDM_TOGGLEDATE, OnToggleDate)
 	ON_COMMAND(IDM_TOGGLETICKSOUND, OnToggleTickSound)
@@ -3333,12 +3326,12 @@ void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 	menu.AppendMenu(MF_SEPARATOR, 0, L"");
 	theme.CreatePopupMenu();
 	theme.AppendMenu(MF_STRING | (mTheme == THEME_DEFAULT? MF_CHECKED: 0), IDM_THEMEDEFAULT, L"Default");
-	theme.AppendMenu(MF_STRING | (mTheme == THEME_DARK? MF_CHECKED: 0), IDM_THEMEBLACK, L"Dark");
+	theme.AppendMenu(MF_STRING | (mTheme == THEME_DARK? MF_CHECKED: 0), IDM_THEMEDARK, L"Dark");
 	theme.AppendMenu(MF_STRING | (mTheme == THEME_RED? MF_CHECKED: 0), IDM_THEMERED, L"Red");
 	theme.AppendMenu(MF_STRING | (mTheme == THEME_BLUE? MF_CHECKED: 0), IDM_THEMEBLUE, L"Blue");
+	theme.AppendMenu(MF_STRING | (mTheme == THEME_NAVY? MF_CHECKED: 0), IDM_THEMENAVY, L"Navy");
 	theme.AppendMenu(MF_STRING | (mTheme == THEME_GREEN? MF_CHECKED: 0), IDM_THEMEGREEN, L"Green");
-	theme.AppendMenu(MF_STRING | (mTheme == THEME_ORANGE? MF_CHECKED: 0), IDM_THEMEORANGE, L"Orange");
-	theme.AppendMenu(MF_STRING | (mTheme == THEME_MINT? MF_CHECKED: 0), IDM_THEMEMINT, L"Mint");
+	theme.AppendMenu(MF_STRING | (mTheme == THEME_BLACK? MF_CHECKED: 0), IDM_THEMEBLACK, L"Black");
 	menu.AppendMenuW(MF_POPUP, (UINT_PTR)theme.Detach(), L"Themes");
 	menu.AppendMenuW(MF_STRING, IDM_FONT, L"Font...");
 	menu.AppendMenuW(MF_STRING | (mDigitalWatch ? MF_CHECKED : 0), IDM_TOGGLEDIGITALWATCH, L"Digital Watch");
@@ -3443,19 +3436,19 @@ void CNaraTimerDlg::OnThemeBlue(void)
 	SetTheme(THEME_BLUE);
 }
 
+void CNaraTimerDlg::OnThemeNavy(void)
+{
+	SetTheme(THEME_NAVY);
+}
+
 void CNaraTimerDlg::OnThemeGreen(void)
 {
 	SetTheme(THEME_GREEN);
 }
 
-void CNaraTimerDlg::OnThemeOrange(void)
+void CNaraTimerDlg::OnThemeBlack(void)
 {
-	SetTheme(THEME_ORANGE);
-}
-
-void CNaraTimerDlg::OnThemeMint(void)
-{
-	SetTheme(THEME_MINT);
+	SetTheme(THEME_BLACK);
 }
 
 void CNaraTimerDlg::OnToggleDigitalWatch(void)

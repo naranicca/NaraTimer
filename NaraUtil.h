@@ -91,4 +91,33 @@ inline void SetArrowCursor(int hittest)
 	}
 }
 
+#include <windows.h>
+// copilot wrote this
+inline BOOL IsWindowVisibleOnAnyMonitor(HWND hWnd)
+{
+	if(!hWnd)
+		return FALSE;
+
+	RECT windowRect;
+	if(!GetWindowRect(hWnd, &windowRect))
+		return FALSE;
+
+	BOOL isVisible = FALSE;
+	EnumDisplayMonitors(nullptr, nullptr, [](HMONITOR hMonitor, HDC, LPRECT lprcMonitor, LPARAM dwData) -> BOOL
+		{
+			RECT * windowRect = reinterpret_cast<RECT *>(dwData);
+			RECT intersection;
+
+			if(IntersectRect(&intersection, windowRect, lprcMonitor))
+			{
+				*reinterpret_cast<BOOL *>(dwData) = TRUE;
+				return FALSE;
+			}
+
+			return TRUE;
+		}, reinterpret_cast<LPARAM>(&windowRect));
+
+	return isVisible;
+}
+
 

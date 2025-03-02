@@ -14,9 +14,9 @@
 #define THEME_DARK			(1)
 #define THEME_RED			(2)
 #define THEME_BLUE			(3)
-#define THEME_GREEN			(4)
-#define THEME_ORANGE		(5)
-#define THEME_MINT			(6)
+#define THEME_NAVY 			(4)
+#define THEME_GREEN 		(5)
+#define THEME_BLACK			(6)
 #define NUM_THEMES			(7)
 
 class CNaraTimerDlg : public NaraDialog
@@ -135,9 +135,9 @@ protected:
 	afx_msg void OnThemeDark();
 	afx_msg void OnThemeRed();
 	afx_msg void OnThemeBlue();
+	afx_msg void OnThemeNavy();
 	afx_msg void OnThemeGreen();
-	afx_msg void OnThemeOrange();
-	afx_msg void OnThemeMint();
+	afx_msg void OnThemeBlack();
 	afx_msg void OnToggleDigitalWatch();
 	afx_msg void OnToggleDate();
 	afx_msg void OnToggleTickSound();

@@ -17,12 +17,12 @@
 #define IDM_TOPMOST						203
 #define IDM_STOP						204
 #define IDM_THEMEDEFAULT				300
-#define IDM_THEMEBLACK					301
+#define IDM_THEMEDARK					301
 #define IDM_THEMERED					302
 #define IDM_THEMEBLUE					303
-#define IDM_THEMEGREEN					304
-#define IDM_THEMEORANGE					305
-#define IDM_THEMEMINT					306
+#define IDM_THEMENAVY 					304
+#define IDM_THEMEGREEN 					305
+#define IDM_THEMEBLACK					306
 #define IDM_TOGGLEDIGITALWATCH			400
 #define IDM_TOGGLEDATE					401
 #define IDM_TOGGLETICKSOUND				402
