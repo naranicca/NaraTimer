@@ -91,4 +91,27 @@ inline void SetArrowCursor(int hittest)
 	}
 }
 
+#include <windows.h>
+inline BOOL IsWindowVisibleOnAnyMonitor(CWnd * wnd)
+{
+	CRect rectWnd;
+	wnd->GetWindowRect(&rectWnd);
+
+	HMONITOR hmon = MonitorFromRect(&rectWnd, MONITOR_DEFAULTTONEAREST);
+	if(hmon == NULL) return FALSE;
+
+	MONITORINFO minfo;
+	minfo.cbSize = sizeof(MONITORINFO);
+
+	if(GetMonitorInfo(hmon, &minfo))
+	{
+		CRect rectMonitor = minfo.rcMonitor;
+		if(rectWnd.IntersectRect(rectWnd, rectMonitor))
+		{
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 

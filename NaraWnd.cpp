@@ -223,8 +223,18 @@ void NaraDialog::OnActivate(UINT nState, CWnd * pWndOther, BOOL bMinimized)
 void NaraDialog::OnWindowPosChanged(WINDOWPOS * pos)
 {
 	CDialogEx::OnWindowPosChanged(pos);
-	mShadow.SetCornerRadius(mRoundCorner);
-	mShadow.Reposition(this, -1);
+	WINDOWPLACEMENT p;
+	GetWindowPlacement(&p);
+	if((p.flags & SW_MAXIMIZE))
+	{
+		mShadow.ShowWindow(SW_HIDE);
+	}
+	else
+	{
+		mShadow.SetCornerRadius(mRoundCorner);
+		mShadow.Reposition(this, -1);
+		mShadow.ShowWindow(SW_SHOW);
+	}
 }
 
 
