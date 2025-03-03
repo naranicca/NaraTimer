@@ -691,6 +691,7 @@ BEGIN_MESSAGE_MAP(CNaraTimerDlg, NaraDialog)
 	ON_WM_SIZE()
 	ON_WM_GETMINMAXINFO()
 	ON_WM_WINDOWPOSCHANGED()
+	ON_WM_CLOSE()
 	ON_WM_QUERYDRAGICON()
 	ON_EN_CHANGE(IDC_EDIT, OnTitleChanging)
 	ON_MESSAGE(WM_PIN, OnPinToggle)
@@ -931,6 +932,14 @@ BOOL CNaraTimerDlg::OnInitDialog()
 		metrics.cbSize = sizeof(NONCLIENTMETRICS);
 		::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &metrics, 0);
 		memcpy(&mFontFace, &metrics.lfMessageFont.lfFaceName, sizeof(metrics.lfMessageFont.lfFaceName));
+	}
+	int x = AfxGetApp()->GetProfileInt(L"Setting", L"WindowPosX", 0);
+	int y = AfxGetApp()->GetProfileInt(L"Setting", L"WindowPosY", 0);
+	int w = AfxGetApp()->GetProfileInt(L"Setting", L"WindowPosW", 0);
+	int h = AfxGetApp()->GetProfileInt(L"Setting", L"WindowPosH", 0);
+	if(w > 0 && h > 0 && IsWindowVisibleOnAnyMonitor(this))
+	{
+		MoveWindow(x, y, w, h, FALSE);
 	}
 
 	int nargs;
@@ -3528,6 +3537,17 @@ void CNaraTimerDlg::OnWindowPosChanged(WINDOWPOS * pos)
 {
 	NaraDialog::OnWindowPosChanged(pos);
 	Invalidate(FALSE);
+}
+
+void CNaraTimerDlg::OnClose()
+{
+	RECT wrt;
+	GetWindowRect(&wrt);
+	AfxGetApp()->WriteProfileInt(L"Setting", L"WindowPosX", wrt.left);
+	AfxGetApp()->WriteProfileInt(L"Setting", L"WindowPosY", wrt.top);
+	AfxGetApp()->WriteProfileInt(L"Setting", L"WindowPosW", wrt.right - wrt.left);
+	AfxGetApp()->WriteProfileInt(L"Setting", L"WindowPosH", wrt.bottom - wrt.top);
+	NaraDialog::OnClose();
 }
 
 // 사용자가 최소화된 창을 끄는 동안에 커서가 표시되도록 시스템에서

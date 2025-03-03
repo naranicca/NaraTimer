@@ -121,6 +121,7 @@ protected:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
 	afx_msg void OnWindowPosChanged(WINDOWPOS* pos);
+	afx_msg void OnClose();
 	afx_msg LRESULT OnPinToggle(WPARAM wParam, LPARAM lparam);
 	afx_msg void OnTitleChanging();
 	afx_msg void OnNew();
