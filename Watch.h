@@ -54,7 +54,7 @@ public:
 	void RemoveStopped(void);
 	void RemoveAll(void);
 	void Activate(Watch * watch);
-	void Sort(Watch * watch);
+	void Sort(void);
 	void CleanUp(void);
 protected:
 	Watch * mHead;
