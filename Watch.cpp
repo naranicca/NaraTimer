@@ -249,7 +249,7 @@ Watch * WatchList::Add(void)
 	watch->SetMode(mLastMode);
 	if(mHead)
 	{
-		Sort(mHead);
+		Sort();
 		watch->mNext = mHead;
 		mHead->mPrev = watch;
 	}
@@ -334,7 +334,7 @@ void WatchList::Activate(Watch * watch)
 	}
 	else
 	{
-		Sort(mHead);
+		Sort();
 	}
 	Watch * cur = mHead;
 	while(cur)
@@ -363,7 +363,7 @@ void WatchList::Activate(Watch * watch)
 	}
 }
 
-void WatchList::Sort(Watch * watch)
+void WatchList::Sort(void)
 {
 	Watch * cur = GetHead();
 	while(cur)

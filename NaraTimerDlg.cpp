@@ -942,28 +942,6 @@ BOOL CNaraTimerDlg::OnInitDialog()
 		MoveWindow(x, y, w, h, FALSE);
 	}
 
-	int nargs;
-	LPWSTR * args = CommandLineToArgvW(GetCommandLine(), &nargs);
-	CString str;
-	for(int i = 1; i < nargs; i++)
-	{
-		if(CString(L"--position") == args[i])
-		{
-			int l = _wtoi(args[i + 1]);
-			int t = _wtoi(args[i + 2]);
-			int r = _wtoi(args[i + 3]);
-			int b = _wtoi(args[i + 4]);
-			MoveWindow(l, t, r - l, b - t, FALSE);
-			i += 4;
-		}
-		else if(CString(L"--mode") == args[i])
-		{
-			mWatches.GetNew()->SetMode(_wtoi(args[i + 1]));
-			i++;
-		}
-	}
-	LocalFree(args);
-
 	SetTheme(mTheme);
 	reposition();
 	mTitleEdit.Create(WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | ES_CENTER, CRect(0, 0, 10, 10), this, IDC_EDIT);
@@ -1153,6 +1131,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 								}
 								watch = mWatches.GetNew();
 								watch->SetTime(h, m, s);
+								mWatches.Sort();
 							}
 							else
 							{
@@ -1166,7 +1145,7 @@ BOOL CNaraTimerDlg::PreTranslateMessage(MSG* pMsg)
 							int s = (time % 100);
 							if(watch->SetTime(h, m, s))
 							{
-								mWatches.Sort(watch);
+								mWatches.Sort();
 								if(mWatches.GetSize() > 1 && mView == VIEW_WATCH)
 								{
 									mWatches.Add();
@@ -3123,7 +3102,7 @@ void CNaraTimerDlg::OnLButtonUp(UINT nFlags, CPoint pt)
 				{
 					if(watch->IsTimeSet())
 					{
-						mWatches.Sort(watch);
+						mWatches.Sort();
 						mWatches.GetNew()->SetMode(watch->GetMode() == MODE_TIMER ? MODE_ALARM : MODE_TIMER);
 					}
 					else
@@ -3294,7 +3273,7 @@ void CNaraTimerDlg::SetView(int view)
 			mView = VIEW_LIST;
 			animation = TRUE;
 		}
-		mWatches.Sort(mWatches.GetHead());
+		mWatches.Sort();
 		mButtonRect[BUTTON_CENTER].SetRect(-100, -100, -100, -100);
 	}
 	if(animation)
@@ -3354,22 +3333,7 @@ void CNaraTimerDlg::OnContextMenu(CWnd * pWnd, CPoint pt)
 
 void CNaraTimerDlg::OnNew(void)
 {
-#if 0
-	CString param;
-	WINDOWPLACEMENT pl;
-	GetWindowPlacement(&pl);
-	if(pl.showCmd != SW_MAXIMIZE)
-	{
-		int off = (mResizeMargin >> 1);
-		int mode = mWatches.GetHead()->GetMode();
-		param.Format(L"--position %d %d %d %d --mode %d", pl.rcNormalPosition.left, pl.rcNormalPosition.top + off, pl.rcNormalPosition.right, pl.rcNormalPosition.bottom + off, mode);
-	}
-	wchar_t path[MAX_PATH];
-	GetModuleFileName(GetModuleHandle(NULL), path, MAX_PATH);
-	ShellExecute(GetSafeHwnd(), L"open", path, param, NULL, 1);
-#else
 	mWatches.Add();
-#endif
 }
 
 void CNaraTimerDlg::OnStop(void)
